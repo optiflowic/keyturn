@@ -6,7 +6,9 @@ language: en-US
 reviews:
   # keyturn is built by AI agents, so an independent reviewer should be thorough.
   profile: assertive
-  request_changes_workflow: false
+  # Request changes when there are findings, and approve once they are resolved.
+  # This only signals review status; merging is not blocked (the ruleset requires 0 approvals).
+  request_changes_workflow: true
   high_level_summary: true
   poem: false
   auto_review:
