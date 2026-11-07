@@ -36,7 +36,7 @@ Leave the list empty, with "Nothing right now.", when no decision needs agreemen
 <!--
 One heading per decision that affects the client (cost, scope, or how the client works), and per decision that always needs the client's approval,
 even when it changes none of those: a new dependency, a new external service, a change to authentication, authorization, or data handling, or anything that deletes data.
-- Use the number and title of the decision's ADR, and link to the ADR as the decision record.
+- Use the number and title of the decision's ADR. Link to the ADR as the decision record: from keyturn/client/, the path is ../internal/adr/<NNNN-short-title>.md.
 - "Serves" lists the requirements the decision exists for. Every decision serves at least one requirement.
 - Give the realistic options only, in a sentence each, with why each was not chosen.
 - "What it means for you" is the part the client agrees to. Say it concretely: money, time, what is or is not included, what they have to do.
@@ -49,7 +49,7 @@ even when it changes none of those: a new dependency, a new external service, a 
 
 - Agreement: <waiting | agreed | not agreed: what the client wants changed>
 - Serves: R-<n>
-- Decision record (the full details): [decision record <NNNN>](../internal/adr/<NNNN-short-title>.md)
+- Decision record (the full details): <link to the ADR, with the text "decision record <NNNN>">
 
 **What we decided**: <the decision, in one or two sentences>
 
@@ -74,7 +74,7 @@ Leave the section with "None." when there are none.
 ### Decision <NNNN>: <short title>
 
 - Serves: R-<n>
-- Decision record (the full details): [decision record <NNNN>](../internal/adr/<NNNN-short-title>.md)
+- Decision record (the full details): <link to the ADR, with the text "decision record <NNNN>">
 
 **What we decided**: <the decision, in one or two sentences>
 
