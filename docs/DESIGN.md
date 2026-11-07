@@ -574,9 +574,9 @@ This document is about keyturn itself and stays independent of any one person's 
 
 ## Decisions
 
-In phase 1, record each of these as an ADR in `docs/adr/`. After that, new decisions go straight into ADRs instead of this list.
+Decisions about keyturn itself are recorded as ADRs in [`docs/adr/`](adr/README.md). New decisions go straight into ADRs.
 
-- Repository: `Optiflowic/keyturn`, public from the start (the README states that it is a work in progress)
-- License: MIT
-- First stack profiles (phase 4): `go` (backend) and `react-spa` (React with Vite, frontend)
-- keyturn's own pull requests are also reviewed by an independent AI reviewer from a different vendor (e.g., CodeRabbit), so that keyturn is not only checked by the same model family that builds it
+- [0001](adr/0001-public-repository-from-the-start.md): repository `optiflowic/keyturn`, public from the start
+- [0002](adr/0002-mit-license.md): MIT license
+- [0003](adr/0003-first-stack-profiles.md): first stack profiles `go` and `react-spa`
+- [0004](adr/0004-independent-ai-reviewer.md): independent AI reviewer from a different vendor (CodeRabbit)
