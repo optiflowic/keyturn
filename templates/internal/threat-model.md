@@ -44,8 +44,8 @@ One heading per threat, numbered T-1, T-2, ... An ID is never changed or reused.
 - Severity is high, medium, or low. High-severity findings block delivery.
 - Every threat needs a mitigation that is implemented, and a way to verify it:
   a QA test for an acceptance criterion (AC-n), a gate check, or the security review. Say which, and what exactly is checked.
-- If a threat cannot be mitigated, stop and ask the client with a decision card. Record the answer here,
-  and list the threat under "Remaining risks" in the delivery report.
+- If a threat cannot be mitigated, stop and ask the client with a decision card (for example, whether to change the requirement that creates it),
+  and record the answer here. Until the threat has an implemented mitigation, it blocks delivery.
 - "Status" is updated by the security role: planned, implemented, or verified (with the finding that confirmed it).
 -->
 
