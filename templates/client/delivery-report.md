@@ -41,19 +41,20 @@ One row per requirement in this delivery. Removed requirements are left out.
 
 <!--
 One row per kind of check that ran. Use these rows, and add others only if they ran.
-- Gate: the mechanical checks (tests, lint, formatting, and, where the stack profile has them, scans for known vulnerability patterns, vulnerable dependencies, and leaked secrets).
-- QA: tests written from the requirements only, never from the code.
-- Security: a review from an attacker's point of view, against the threat model.
-- Review: design fit, readability, and conventions.
+Name who did each check in plain words, as in the rows below, not with internal role names:
+- Automated checks (the gate): the mechanical checks (tests, lint, formatting, and, where the stack profile has them, scans for known vulnerability patterns, vulnerable dependencies, and leaked secrets).
+- Independent tester (QA): tests written from the requirements only, never from the code.
+- Security reviewer: a review from an attacker's point of view, against the threat model.
+- Code reviewer: design fit, readability, and conventions.
 "How" says, in plain language, how the check was done. "Result" says what passed and what was found and fixed. "Details" links to the internal record.
 -->
 
 | Check | Done by | How | Result | Details |
 |---|---|---|---|---|
-| <what was checked> | Gate | <for example: ran the automated tests, the code style checks, and a scan for leaked passwords> | <result> | <link to the gate log> |
-| Behavior matches the requirements | QA | <for example: automated tests written from the requirements only, one or more per acceptance criterion> | <for example: all 9 acceptance criteria pass> | <link to the test report> |
-| Security issues tools cannot find | Security | <for example: tried to reach another user's data and checked every threat in the threat model> | <result> | <link to the security findings> |
-| Design fit, readability, conventions | Review | <for example: read the changes against the design and the coding conventions> | <result> | <link to the review findings> |
+| <what was checked> | Automated checks | <for example: ran the automated tests, the code style checks, and a scan for leaked passwords> | <result> | <link to the gate log> |
+| Behavior matches the requirements | Independent tester | <for example: automated tests written from the requirements only, one or more per acceptance criterion> | <for example: all 9 acceptance criteria pass> | <link to the test report> |
+| Security issues tools cannot find | Security reviewer | <for example: tried to reach another user's data and checked every threat in the threat model> | <result> | <link to the security findings> |
+| The code follows the design and is easy to maintain | Code reviewer | <for example: read the changes against the design and the coding conventions> | <result> | <link to the review findings> |
 
 ## What was not verified
 
