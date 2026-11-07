@@ -35,7 +35,7 @@ Absolute safety cannot be guaranteed. The goal is to always be able to explain *
 8. **Every stack has an explicit definition of "verified"**
    Stacks are supported through stack profiles (see below). Work on a stack without a profile is still possible, but the delivery report must state that gate coverage is limited.
 9. **No lock-in to a single AI tool**
-   keyturn works with both Claude Code and Codex.
+   keyturn is meant to work with any AI coding agent. The shared parts follow open conventions (Agent Skills, `AGENTS.md`), and each tool gets a thin adapter. Claude Code and Codex are the first adapters; others can be added the same way.
 10. **Autonomy never bypasses the gates**
     Agents may run unattended, but they cannot merge or release anything that has not passed the gates.
 11. **Agents cannot change the rules they are judged by**
