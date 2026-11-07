@@ -30,10 +30,10 @@ Based on requirements version <n>. Acceptance guide: <link to acceptance-guide.m
 <!--
 One row per requirement in this delivery. Removed requirements are left out.
 - Status is "delivered", "partly delivered", or "not delivered". Explain anything other than "delivered" in "Notes".
-- "Checked by" lists the acceptance criteria that cover the requirement.
+- "Covered by" lists the acceptance criteria that cover the requirement. Whether each one was tested is in "What was verified" and "What was not verified".
 -->
 
-| Requirement | Status | Checked by | Notes |
+| Requirement | Status | Covered by | Notes |
 |---|---|---|---|
 | R-<n>: <short title> | <delivered \| partly delivered \| not delivered> | AC-<n> | <notes> |
 
@@ -45,15 +45,15 @@ One row per kind of check that ran. Use these rows, and add others only if they 
 - QA: tests written from the requirements only, never from the code.
 - Security: a review from an attacker's point of view, against the threat model.
 - Review: design fit, readability, and conventions.
-"Result" says what passed and what was found and fixed, in plain language. "Details" links to the internal record.
+"How" says, in plain language, how the check was done. "Result" says what passed and what was found and fixed. "Details" links to the internal record.
 -->
 
-| Check | Done by | Result | Details |
-|---|---|---|---|
-| <what was checked> | Gate | <result> | <link to the gate log> |
-| Behavior matches the requirements | QA | <for example: all 9 acceptance criteria pass> | <link to the test report> |
-| Security issues tools cannot find | Security | <result> | <link to the security findings> |
-| Design fit, readability, conventions | Review | <result> | <link to the review findings> |
+| Check | Done by | How | Result | Details |
+|---|---|---|---|---|
+| <what was checked> | Gate | <for example: ran the automated tests, the code style checks, and a scan for leaked passwords> | <result> | <link to the gate log> |
+| Behavior matches the requirements | QA | <for example: automated tests written from the requirements only, one or more per acceptance criterion> | <for example: all 9 acceptance criteria pass> | <link to the test report> |
+| Security issues tools cannot find | Security | <for example: tried to reach another user's data and checked every threat in the threat model> | <result> | <link to the security findings> |
+| Design fit, readability, conventions | Review | <for example: read the changes against the design and the coding conventions> | <result> | <link to the review findings> |
 
 ## What was not verified
 
