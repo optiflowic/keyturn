@@ -35,6 +35,6 @@ The first two profiles are `go` (backend) and `react-spa` (React with Vite, fron
 
 ## Consequences
 
-- Phase 4 builds `profiles/go/` and `profiles/react-spa/`, and phase 6 builds the first real application on these two stacks.
+- Phase 4 builds `profiles/go/` and `profiles/react-spa/`, and phase 6 validates new-project mode on these two stacks.
 - Gate design is validated against two quite different toolchains (Go modules and npm), which helps keep it stack-neutral.
 - Projects that need server rendering, Python, or Rust wait for later profiles, or run with limited gate coverage stated in the delivery report.
