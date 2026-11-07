@@ -457,6 +457,7 @@ By default, keyturn sends code and documents nowhere except to the AI tool the c
 
 ```
 .claude-plugin/
+  plugin.json             # Claude Code plugin manifest (the repository root is the plugin root)
   marketplace.json        # Claude Code marketplace definition
 skills/                   # role procedures (shared across tools)
   spec/SKILL.md           # PM: requirements and acceptance criteria
@@ -477,7 +478,7 @@ templates/
   client/                 # requirements, design summary, acceptance guide, delivery report
   internal/               # design, decisions, handoff, test report, review
 adapters/
-  claude/                 # plugin.json, agents/*.md, recommended permission settings
+  claude/                 # agents/*.md (listed in plugin.json), recommended permission settings
   codex/                  # agents/*.toml, recommended sandbox settings
 github/                   # workflow templates, labels, project setup
 evals/
@@ -491,7 +492,7 @@ LICENSE                   # MIT
 .gitignore                # includes .keyturn/ (local translations and maintainer notes)
 ```
 
-In a Claude Code plugin, only `plugin.json` goes inside `.claude-plugin/`; `skills/`, `agents/`, `hooks/`, etc. must be at the plugin root. The final layout must satisfy this and the location where Codex reads skills (`.agents/skills/`).
+In a Claude Code plugin, only the manifests go inside `.claude-plugin/`; `skills/`, `hooks/`, etc. must be at the plugin root. The repository root is the plugin root, so `skills/` is shared by Claude Code and Codex. See [ADR 0005](adr/0005-repository-root-as-plugin-root.md).
 
 ## Evaluation
 
