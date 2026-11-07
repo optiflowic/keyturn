@@ -66,6 +66,9 @@ One heading per check that decides whether a requirement is met.
 How the deliverable could be misused or attacked, and the requirement that prevents it.
 Think about other users, people who are not signed in, and wrong or harmful input.
 Every entry names at least one requirement. If none prevents it, add a requirement.
+If the deliverable can act on systems or data that are not the user's own (for example, a vulnerability scanner),
+it must only act on targets the user is authorized to use, checked before it acts (for example, by verifying domain ownership).
+Add this as a requirement.
 -->
 
 - <how it could be misused>: prevented by R-<n>
