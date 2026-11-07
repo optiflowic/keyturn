@@ -13,6 +13,8 @@ The tools put these constraints on the layout:
 - When Claude Code installs a plugin from a marketplace, it copies only the plugin directory into its cache. Files outside the plugin directory, such as `../skills`, are not available to the installed plugin.
 - The marketplace definition lives in `.claude-plugin/marketplace.json` at the repository root. A plugin entry may use `"source": "./"` for a plugin at the repository root.
 - Codex reads its plugin manifest from `.codex-plugin/plugin.json`. Only `plugin.json` goes inside `.codex-plugin/`; `skills/` and the other plugin files go at the plugin root. A repository's Codex marketplace lives in `.agents/plugins/marketplace.json`.
+- A Codex plugin points at its skills folder with the `skills` field in `.codex-plugin/plugin.json` (for example, `"skills": "./skills/"`). A Codex plugin can therefore use the root `skills/` as it is, and distributing keyturn as a plugin does not need `.agents/skills/`.
+- `.agents/skills/` is where Codex reads skills that are placed directly in a repository instead of being packaged as a plugin. How Codex uses the skills inside this repository without the plugin is decided in phase 10.
 
 Because both tools keep only their manifest in a tool-specific folder and read `skills/` from the plugin root, a repository root with `.claude-plugin/` and `.codex-plugin/` side by side lets both tools use the same `skills/`.
 
@@ -38,6 +40,6 @@ The repository root is the plugin root for Claude Code (option 1), and later for
 
 - `adapters/claude/` holds only Claude Code specific files: subagent definitions and recommended permission settings. Claude Code does not scan it on its own, so phase 3 lists each `adapters/claude/agents/*.md` file in the `agents` field of `plugin.json` (the field accepts files, not directories).
 - The plugin has a `version` in `plugin.json`. Installed copies update only when it is bumped, so a release that changes a skill must bump it.
-- The Codex adapter (phase 10) adds `.codex-plugin/plugin.json` next to `.claude-plugin/`, and `.agents/plugins/marketplace.json` for the repository's Codex marketplace.
+- The Codex adapter (phase 10) adds `.codex-plugin/plugin.json` (with `"skills": "./skills/"`) next to `.claude-plugin/`, and `.agents/plugins/marketplace.json` for the repository's Codex marketplace.
 - Other tools are supported the same way: add that tool's manifest next to the existing ones, and point it at the same `skills/`.
 - The marketplace and the plugin are both named `keyturn`, so the plugin installs as `keyturn@keyturn`.
