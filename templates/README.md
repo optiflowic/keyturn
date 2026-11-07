@@ -15,3 +15,11 @@ See "Documents" in [`docs/DESIGN.md`](../docs/DESIGN.md).
 |---|---|---|
 | [`client/requirements.md`](client/requirements.md) | PM | What will be built and how it will be judged, with numbered requirements (`R-n`) and acceptance criteria (`AC-n`). The client approves it before work starts. |
 | [`client/design-summary.md`](client/design-summary.md) | Architect | The main design decisions in plain language, with the reason, the alternatives, and what each means for the client. The decisions that need the client's agreement come first and link to their ADRs. |
+
+## Internal templates
+
+| Template | Filled in by | Purpose |
+|---|---|---|
+| [`internal/design.md`](internal/design.md) | Architect | The structure, data model, libraries, and the areas (files or folders) the work may change, with the requirements (`R-n`) each part serves. |
+| [`internal/threat-model.md`](internal/threat-model.md) | Architect | Assets, entry points, and threats (`T-n`, including misuse), each with its mitigation and how it is verified. The security role checks every mitigation is implemented. |
+| [`internal/adr.md`](internal/adr.md) | Architect (or the role making the decision) | One decision per file: context, options considered, decision, reasons, consequences, and status. Follows the same structure as keyturn's own `docs/adr/template.md`. |
