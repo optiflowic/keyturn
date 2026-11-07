@@ -7,7 +7,7 @@ A deliverable ships only because it passed mechanical checks (tests, static anal
 The name comes from a turnkey contract, where the contractor delivers something that is ready to use as soon as the client receives it.
 
 > [!NOTE]
-> keyturn is a work in progress. Nothing is ready to use yet. The full design, and the order in which it is built, are in [`docs/DESIGN.md`](docs/DESIGN.md). Progress on each phase is tracked in the [milestones](https://github.com/optiflowic/keyturn/milestones).
+> keyturn is a work in progress. Only `localize` can be used today, and it is experimental. The full design, and the order in which it is built, are in [`docs/DESIGN.md`](docs/DESIGN.md). Progress on each phase is tracked in the [milestones](https://github.com/optiflowic/keyturn/milestones).
 
 ## Why
 
@@ -20,6 +20,21 @@ When the client never reads the code, a serious problem in production lands dire
 - **Work can always be resumed**: task state lives in the repository, not in a session.
 
 Deliverables are not limited to applications. Anything that can be specified, built, and verified is in scope, in new projects and existing repositories.
+
+## localize
+
+`localize` lets you read a repository's English documents in your own language, as local files. The translations are never committed. It works on any Git repository, including ones that do not use keyturn.
+
+Install it as a Claude Code plugin:
+
+```sh
+claude plugin marketplace add optiflowic/keyturn
+claude plugin install keyturn@keyturn
+```
+
+Then, in the repository you want to read, ask for a file in your language, for example: "Translate docs/DESIGN.md into Japanese."
+
+Translations are written to `.keyturn/i18n/<lang>/`, at the same paths as the originals. When a document changes, only the changed sections are translated again. The full procedure is in [`skills/localize/SKILL.md`](skills/localize/SKILL.md).
 
 ## Supported tools
 
