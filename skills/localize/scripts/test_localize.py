@@ -156,13 +156,29 @@ class CommandsTest(unittest.TestCase):
         self.first_translation()
         self.assertEqual(self.run_script("status", "ja", "docs/GUIDE.md").stdout, "fresh docs/GUIDE.md\n")
 
-    def test_a_translation_with_a_damaged_marker_is_stale(self):
+    def test_a_translation_with_a_lost_marker_is_translated_again_in_full(self):
+        self.first_translation()
+        lines = self.target.read_text(encoding="utf-8").splitlines(keepends=True)
+        second_marker = [i for i, line in enumerate(lines) if line.startswith("<!-- localize-section")][1]
+        del lines[second_marker]
+        self.target.write_text("".join(lines), encoding="utf-8")
+
+        self.assertEqual(self.run_script("status", "ja", "docs/GUIDE.md").stdout, "stale docs/GUIDE.md\n")
+        result = self.run_script("prepare", "ja", "docs/GUIDE.md")
+        self.assertIn("sections to translate: 3 (reused: 0)", result.stdout)
+        self.translate_work_file("[v2]")
+        self.run_script("apply", "ja", "docs/GUIDE.md")
+        translation = self.target.read_text(encoding="utf-8")
+        self.assertEqual(translation.count("One."), 1)
+        self.assertNotIn("[v1]", translation)
+
+    def test_a_translation_with_a_changed_marker_reuses_the_other_sections(self):
         self.first_translation()
         text = self.target.read_text(encoding="utf-8")
-        without_last_section = text.rsplit("<!-- localize-section", 1)[0]
-        self.target.write_text(without_last_section, encoding="utf-8")
-        self.assertEqual(self.run_script("status", "ja", "docs/GUIDE.md").stdout, "stale docs/GUIDE.md\n")
-        self.assertIn("sections to translate: 1 (reused: 2)", self.run_script("prepare", "ja", "docs/GUIDE.md").stdout)
+        marker_hash = text.split('<!-- localize-section sha256="')[2][:64]
+        self.target.write_text(text.replace(marker_hash, "0" * 64), encoding="utf-8")
+        result = self.run_script("prepare", "ja", "docs/GUIDE.md")
+        self.assertIn("sections to translate: 1 (reused: 2)", result.stdout)
 
     def test_paths_are_relative_to_the_repository_root_from_any_folder(self):
         result = subprocess.run(

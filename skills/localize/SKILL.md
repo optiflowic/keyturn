@@ -21,7 +21,7 @@ Translate the files a reader asks for into their language, into a local, git-ign
 
 ## Outputs
 
-- `.keyturn/i18n/<lang>/<path>`: the translation of `<path>`. Its first line records the source file and the SHA-256 of the source; each section starts with a `localize-section` marker that records the hash of the source section it came from. These markers are HTML comments, so they do not show when the Markdown is rendered.
+- `.keyturn/i18n/<lang>/<path>`: the translation of `<path>`. Its first line records the source file, the SHA-256 of the source, and the number of sections; each section starts with a `localize-section` marker that records the hash of the source section it came from. These markers are HTML comments, so they do not show when the Markdown is rendered.
 - `.keyturn/i18n/glossary/<lang>.md`: the project glossary for that language.
 
 ## Procedure
@@ -29,7 +29,7 @@ Translate the files a reader asks for into their language, into a local, git-ign
 The helper script `scripts/localize.py` (in this skill's folder) does all hashing and bookkeeping. It needs Python 3.9 or later and Git, and uses only the standard library. Run it from inside the target repository, and give paths relative to the repository root (the script resolves them from the root, whatever the current folder). Below, `localize.py` means the script's full path.
 
 1. **Keep translations out of Git.** Run `localize.py ignore`. It adds `.keyturn/` to `.git/info/exclude` unless the folder is already ignored. If it reports that Git tracks files under `.keyturn/`, stop and tell the reader: the script will not write there, because ignore rules do not protect tracked files.
-2. **Check what needs work.** Run `localize.py status <lang> <path>...`. Each file is `fresh` (up to date), `stale` (the source changed, or the translation's markers are damaged), or `missing`.
+2. **Check what needs work.** Run `localize.py status <lang> <path>...`. Each file is `fresh` (up to date), `stale` (the source changed, or the translation's markers are damaged; a translation that lost a marker is translated again in full), or `missing`.
    - `fresh`: nothing to do. Show the existing translation.
 3. **Prepare.** For each `stale` or `missing` file, run `localize.py prepare <lang> <path>`. It writes a work file under `.keyturn/i18n/.work/<lang>/<path>` containing only the source sections that have no translation yet, each after a numbered marker (`<!-- localize-section 3 -->`). Sections that did not change are reused. The `.localize.json` file next to the work file holds the hashes; do not edit it.
 4. **Translate the work file in place.** Read the glossary first, if it exists. Replace the English text of each section with the translation, and keep every marker line (`<!-- localize ... -->`) exactly as it is.

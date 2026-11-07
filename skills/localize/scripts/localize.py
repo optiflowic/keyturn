@@ -37,9 +37,11 @@ KEYTURN_DIR = ".keyturn"
 I18N_DIR = Path(KEYTURN_DIR) / "i18n"
 WORK_DIR = I18N_DIR / ".work"
 
-SOURCE_MARKER = '<!-- localize source="{path}" lang="{lang}" sha256="{sha}" -->'
+SOURCE_MARKER = '<!-- localize source="{path}" lang="{lang}" sha256="{sha}" sections="{count}" -->'
 SECTION_MARKER = '<!-- localize-section sha256="{sha}" -->'
-SOURCE_MARKER_RE = re.compile(r'^<!-- localize source="(.*)" lang="(.*)" sha256="([0-9a-f]{64})" -->$')
+SOURCE_MARKER_RE = re.compile(
+    r'^<!-- localize source="(.*)" lang="(.*)" sha256="([0-9a-f]{64})" sections="(\d+)" -->$'
+)
 SECTION_MARKER_RE = re.compile(r'^<!-- localize-section sha256="([0-9a-f]{64})" -->$')
 WORK_HEADER = "<!-- localize: translate the text between markers; keep every marker line as it is -->"
 WORK_MARKER = "<!-- localize-section {number} -->"
@@ -129,8 +131,14 @@ def split_sections(text: str, is_markdown: bool) -> list[Section]:
 
 
 def parse_translation(text: str) -> tuple[str | None, list[Section]]:
-    """Read a translation file: the recorded source hash and its sections in order."""
+    """Read a translation file: the recorded source hash and its sections in order.
+
+    A translation whose section count does not match its header has lost a
+    marker, so its text can no longer be matched to sections. It is treated
+    as empty, and everything is translated again.
+    """
     source_sha = None
+    expected_count = None
     sections: list[Section] = []
     for line in text.splitlines(keepends=True):
         bare = line.rstrip("\r\n")
@@ -138,16 +146,20 @@ def parse_translation(text: str) -> tuple[str | None, list[Section]]:
         section_match = SECTION_MARKER_RE.match(bare)
         if source_match and source_sha is None and not sections:
             source_sha = source_match.group(3)
+            expected_count = int(source_match.group(4))
         elif section_match:
             sections.append(Section(section_match.group(1), ""))
         elif sections:
             sections[-1].text += line
+    if source_sha is None or len(sections) != expected_count:
+        return None, []
     return source_sha, sections
 
 
 def render_translation(source: Source, lang: str, sections: list[Section]) -> str:
     """Write the source marker, then each section after its hash marker."""
-    parts = [SOURCE_MARKER.format(path=source.rel_path, lang=lang, sha=source.sha) + "\n"]
+    header = SOURCE_MARKER.format(path=source.rel_path, lang=lang, sha=source.sha, count=len(sections))
+    parts = [header + "\n"]
     for section in sections:
         parts.append(SECTION_MARKER.format(sha=section.sha) + "\n")
         parts.append(section.text)
@@ -158,12 +170,12 @@ def render_translation(source: Source, lang: str, sections: list[Section]) -> st
 
 def git(root: Path, *args: str) -> subprocess.CompletedProcess:
     """Run a Git command in the repository and capture its output."""
-    return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True)
+    return subprocess.run(["git", *args], cwd=root, capture_output=True, encoding="utf-8")
 
 
 def repo_root() -> Path:
     """Return the root of the repository that contains the current folder."""
-    result = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True)
+    result = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, encoding="utf-8")
     if result.returncode != 0:
         raise LocalizeError("not inside a Git repository")
     return Path(result.stdout.strip())
