@@ -12,7 +12,7 @@ This is the only committed instructions file. If your tool reads a different fil
 ## How to work
 
 - Work phase by phase as described in the Phases section of `docs/DESIGN.md`. Stop at the end of each phase and report whether the completion criteria are met.
-- Ask the human before starting on anything listed under Open Questions.
+- If `docs/DESIGN.md` or the maintainer's local plan lists an unresolved question about the work you are about to start, ask the human before starting.
 - Record decisions as ADRs in `docs/adr/`. Check existing ADRs before making a decision.
 
 ## Where things live
