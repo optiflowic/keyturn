@@ -176,7 +176,7 @@ The client reads these to make decisions and to do the final check. They must be
 
 | Document | Purpose |
 |---|---|
-| requirements.md | What will be built and how it will be judged. The client approves this before work starts. |
+| requirements.md | What will be built and how it will be judged. Each requirement has a priority, Must or Nice to have: the PM proposes it, and the client decides it. The client approves this before work starts. |
 | design-summary.md | The main design decisions in plain language, with the reason for each and the alternatives considered. |
 | acceptance-guide.md | What the client should check by hand, in priority order, with steps and expected results. |
 | delivery-report.md | What was delivered, what was verified, what was not, and the remaining risks. |

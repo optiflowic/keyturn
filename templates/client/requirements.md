@@ -22,7 +22,7 @@ Status: <draft | waiting for approval | approved>
 <!-- Only what the client must do or decide now. Leave the list empty, with "Nothing right now.", when there is nothing. -->
 
 > [!IMPORTANT]
-> - <for example: read R-1 to R-6 and AC-1 to AC-9, and approve them, or tell us what to change>
+> - <for example: read R-1 to R-6 and AC-1 to AC-9, check the priority of each requirement, and approve them, or tell us what to change>
 
 ## Background
 
@@ -35,10 +35,13 @@ Status: <draft | waiting for approval | approved>
 <!--
 One heading per requirement: what the deliverable does, in one or two sentences.
 - Number in order (R-1, R-2, ...). An ID is never changed or reused.
+- Give each requirement a priority: Must or Nice to have. You only propose it; the client decides it when approving. Keep "Must" for what the deliverable is useless without.
 - To remove a requirement, keep it, add "(removed)" to its heading, and replace the text with when and why it was removed.
 -->
 
 ### R-1: <short title>
+
+Priority: <Must | Nice to have>
 
 <what the deliverable does>
 
