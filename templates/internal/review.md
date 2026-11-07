@@ -58,12 +58,12 @@ Leave the section with "None." when there are no findings.
 
 <!--
 One row per threat in threat-model.md: is the mitigation implemented, and what evidence shows it (a test, a code location, a manual check).
-A threat without an implemented mitigation is a high-severity finding above.
+A threat whose mitigation is not implemented, or only partly, is a high-severity finding above, unless the threat model records that the client accepted the risk through a decision card; write "no: accepted by the client" for those.
 -->
 
 | Threat | Mitigation implemented | Evidence |
 |---|---|---|
-| T-<n> | <yes \| no \| partly> | <evidence> |
+| T-<n> | <yes \| no \| partly \| no: accepted by the client> | <evidence, or the link to the client's answer> |
 
 ### Scan triage
 
