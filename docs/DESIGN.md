@@ -574,9 +574,4 @@ This document is about keyturn itself and stays independent of any one person's 
 
 ## Decisions
 
-Decisions about keyturn itself are recorded as ADRs in [`docs/adr/`](adr/README.md). New decisions go straight into ADRs.
-
-- [0001](adr/0001-public-repository-from-the-start.md): repository `optiflowic/keyturn`, public from the start
-- [0002](adr/0002-mit-license.md): MIT license
-- [0003](adr/0003-first-stack-profiles.md): first stack profiles `go` and `react-spa`
-- [0004](adr/0004-independent-ai-reviewer.md): independent AI reviewer from a different vendor (CodeRabbit)
+Decisions about keyturn itself are recorded as ADRs. See the index in [`docs/adr/README.md`](adr/README.md). New decisions go straight into ADRs.

@@ -20,7 +20,6 @@ keyturn is released under the MIT license.
 ## Reasons
 
 - keyturn's skills, templates, and profiles are meant to be copied into and adapted for many projects. The fewer conditions on that, the better.
-- MIT is the most common license in the AI agent tooling ecosystem that keyturn builds on, so it causes no friction for users or contributors.
 - keyturn has no patented technology for which Apache-2.0's patent grant would make a practical difference.
 
 ## Consequences

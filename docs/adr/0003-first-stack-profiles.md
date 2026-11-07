@@ -5,7 +5,7 @@
 
 ## Context
 
-Stack profiles define what "verified" means for one tech stack (see "Stack Profiles" in `docs/DESIGN.md`). Phase 4 starts with one backend and one frontend profile, enough to build and verify a real web application end to end. Profiles are added one at a time, so the first two shape the gate and every later profile.
+Stack profiles define what "verified" means for one tech stack (see "Stack Profiles" in `docs/DESIGN.md`). Phase 4 starts with one backend and one frontend profile, enough to validate new-project mode end to end on a web application. Profiles are added one at a time, so the first two shape the gate and every later profile.
 
 The candidates are the planned profiles: Go, Python, and Rust for the backend; React (SPA), Next.js, and React Router v7+ for the frontend.
 
@@ -15,7 +15,7 @@ Backend:
 
 1. **Go**: static types, a single fast toolchain (`go build`, `go test`, `go vet`), and mature security tooling (`govulncheck`, `gosec`). Small standard library surface for web servers.
 2. **Python**: very common, but type checking and packaging are split across several tools, which makes "verified" harder to define in the first profile.
-3. **Rust**: strong guarantees and good tooling, but slower builds and a steeper learning curve for the agents' output to stay readable.
+3. **Rust**: strong safety guarantees and good tooling, but longer build times slow down the test-and-fix loop that the gate runs many times per task.
 
 Frontend:
 
