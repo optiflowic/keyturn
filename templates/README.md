@@ -14,3 +14,4 @@ See "Documents" in [`docs/DESIGN.md`](../docs/DESIGN.md).
 | Template | Filled in by | Purpose |
 |---|---|---|
 | [`client/requirements.md`](client/requirements.md) | PM | What will be built and how it will be judged, with numbered requirements (`R-n`) and acceptance criteria (`AC-n`). The client approves it before work starts. |
+| [`client/design-summary.md`](client/design-summary.md) | Architect | The main design decisions in plain language, with the reason, the alternatives, and what each means for the client. The decisions that need the client's agreement come first and link to their ADRs. |
