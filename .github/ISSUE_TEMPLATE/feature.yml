@@ -1,0 +1,60 @@
+name: 🌟 Feature Request
+description: Suggest a new feature or improvement
+title: "[Feature]: "
+labels: [enhancement]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to suggest a new feature!  
+        Please provide as much detail as possible to help us understand your idea.
+        This repository is public. Write in English, and do not include anything from `.keyturn/local/`.
+        Agents only start work on issues opened by the maintainer or labeled `approved`.
+        If the proposal changes the design, it is recorded as an ADR once accepted.
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: What problem does this feature solve?
+      placeholder: e.g. It is tedious to manually set up the templates for every repository.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed Solution
+      description: Describe the solution you'd like to see.
+      placeholder: e.g. A command that initializes all default templates with a single command.
+    validations:
+      required: true
+
+  - type: textarea
+    id: references
+    attributes:
+      label: Related Design and ADRs
+      description: Sections of `docs/DESIGN.md` and ADRs this proposal affects.
+      placeholder: e.g., DESIGN.md "Guardrails", ADR-0005
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Describe any alternative solutions or workarounds you've considered.
+      placeholder: e.g. Manually copying template files into each new repository.
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Add any other context or screenshots about the feature request here.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched existing issues to make sure this is not a duplicate.
+        - label: I have described the problem and the proposed solution clearly.

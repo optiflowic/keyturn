@@ -1,0 +1,59 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+# This repository is public, so reviews are written in English.
+language: en-US
+
+reviews:
+  # keyturn is built by AI agents, so an independent reviewer should be thorough.
+  profile: assertive
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  auto_review:
+    enabled: true
+    drafts: false
+
+  path_instructions:
+    - path: "**"
+      instructions: |
+        Review against docs/DESIGN.md and the accepted ADRs in docs/adr/.
+        - Flag changes that contradict an accepted ADR without a new ADR superseding it.
+        - Follow The Art of Readable Code: clear names, simple control flow, small functions, comments that explain why.
+        - Flag unused abstractions, speculative extension points, and code that is not needed yet.
+        - Everything committed must be in English.
+        - Nothing from .keyturn/ may be committed or quoted (local translations and maintainer notes).
+
+    - path: "skills/**/SKILL.md"
+      instructions: |
+        Skills must follow the Agent Skills open standard so they work in both Claude Code and Codex.
+        - Frontmatter uses only `name` and `description`.
+        - No instructions that depend on a single AI tool.
+        - Inputs, procedure, and outputs must be explicit, including what to do when an input document is missing.
+
+    - path: "gates/**"
+      instructions: |
+        Gates and guardrail checks are security-critical.
+        - Look for any way a change could bypass or weaken a check.
+        - Checks must fail closed: missing tools, missing data, or unexpected errors must fail the gate, not pass it.
+        - Shell scripts: quote variables, handle errors explicitly, and do not trust input from the repository being checked.
+
+    - path: "profiles/**"
+      instructions: |
+        Stack profiles define what "verified" means. Check that known gaps are stated honestly
+        and that no check is silently removed or made weaker.
+
+    - path: ".github/workflows/**"
+      instructions: |
+        - Workflows use least-privilege `permissions`.
+        - Third-party actions are pinned to a full commit SHA.
+        - Untrusted input (issue text, PR titles, branch names) is never interpolated directly into shell commands.
+
+    - path: "docs/adr/**"
+      instructions: |
+        Accepted ADRs must not be edited, except to mark them as superseded.
+        A changed decision needs a new ADR that links to the one it replaces.
+
+knowledge_base:
+  # AGENTS.md is picked up automatically as a coding guideline.
+  code_guidelines:
+    enabled: true
