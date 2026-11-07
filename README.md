@@ -1,9 +1,13 @@
 # keyturn
 
-keyturn turns AI coding agents into a contractor team, with you as the client. You do not read the code: you approve the requirements and acceptance criteria, read the reports, and do the final hands-on check yourself. The agents handle everything from specification and design to implementation, verification, and delivery, and a deliverable ships only because it passed mechanical checks (tests, static analysis, dependency and secret scanning), not because an AI said it was fine.
+keyturn turns AI coding agents into a contractor team, with you as the client. You do not read the code: you approve the requirements and acceptance criteria, read the reports, and do the final hands-on check yourself. The agents handle everything else, from specification and design to implementation, verification, and delivery.
+
+A deliverable ships only because it passed mechanical checks (tests, static analysis, dependency and secret scanning), not because an AI said it was fine.
+
+The name comes from a turnkey contract, where the contractor delivers something that is ready to use as soon as the client receives it.
 
 > [!NOTE]
-> keyturn is a work in progress. Nothing is ready to use yet. The full design, and the order in which it is built, are in [`docs/DESIGN.md`](docs/DESIGN.md).
+> keyturn is a work in progress. Nothing is ready to use yet. The full design, and the order in which it is built, are in [`docs/DESIGN.md`](docs/DESIGN.md). Progress on each phase is tracked in the [milestones](https://github.com/optiflowic/keyturn/milestones).
 
 ## Why
 
@@ -33,6 +37,7 @@ See [ADR 0005](docs/adr/0005-repository-root-as-plugin-root.md) for how one `ski
 - [`docs/DESIGN.md`](docs/DESIGN.md): design principles, architecture, and phases
 - [`docs/adr/`](docs/adr/): decisions about keyturn itself
 - [`AGENTS.md`](AGENTS.md): instructions for AI agents working on this repository
+- [`.github/SECURITY.md`](.github/SECURITY.md): how to report a vulnerability
 
 ## License
 
