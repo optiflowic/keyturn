@@ -34,13 +34,14 @@ Leave the list empty, with "Nothing right now.", when no decision needs agreemen
 ## Must agree: decisions that need your agreement
 
 <!--
-One heading per decision that affects the client: cost, scope, or how the client works.
+One heading per decision that affects the client (cost, scope, or how the client works), and per decision that always needs the client's approval,
+even when it changes none of those: a new dependency, a new external service, a change to authentication, authorization, or data handling, or anything that deletes data.
 - Use the number and title of the decision's ADR, and link to the ADR as the decision record.
 - "Serves" lists the requirements the decision exists for. Every decision serves at least one requirement.
 - Give the realistic options only, in a sentence each, with why each was not chosen.
 - "What it means for you" is the part the client agrees to. Say it concretely: money, time, what is or is not included, what they have to do.
 - When the client answers, set "Agreement" to agreed, or to not agreed with what they want changed.
-- "If you do not answer" says what happens meanwhile: for example, the work that depends on it waits, or the recommended option is used.
+- "If you do not answer" says which work waits until the client agrees. Nothing that depends on the decision starts before agreement; never use an option the client has not agreed to.
 - When a new ADR supersedes one listed here, replace the entry with the new ADR and set "Agreement" back to waiting.
 -->
 
@@ -60,7 +61,7 @@ One heading per decision that affects the client: cost, scope, or how the client
 
 **What it means for you**: <cost, scope, or how you work>
 
-**If you do not answer**: <what happens until you answer>
+**If you do not answer**: <which work waits until you agree>
 
 ## For information: other main decisions
 
