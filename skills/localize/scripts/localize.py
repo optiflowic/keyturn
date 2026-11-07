@@ -10,6 +10,7 @@ repository root):
   status  LANG PATH...  Print fresh, stale, or missing for each translation.
   prepare LANG PATH     Write a work file with the sections to translate.
   apply   LANG PATH     Merge the translated work file into the translation.
+  fetch   NUMBER        Save a GitHub issue or pull request as a local source file.
   ignore                Make sure .keyturn/ is git-ignored, without committing.
 
 Layout, relative to the repository root:
@@ -17,6 +18,8 @@ Layout, relative to the repository root:
   .keyturn/i18n/<lang>/<path>        translation of <path>
   .keyturn/i18n/.work/<lang>/<path>  work file for the AI to translate
   .keyturn/i18n/.work/<lang>/<path>.localize.json  hashes for the work file (not for the AI)
+  .keyturn/github/<owner>/<repo>/issues/<n>.md     fetched issue, translated like any file
+  .keyturn/github/<owner>/<repo>/pulls/<n>.md      fetched pull request
 
 The work file marks sections with short numbers instead of hashes, because
 models copying long hashes by hand sometimes get a character wrong.
@@ -36,6 +39,7 @@ from pathlib import Path
 KEYTURN_DIR = ".keyturn"
 I18N_DIR = Path(KEYTURN_DIR) / "i18n"
 WORK_DIR = I18N_DIR / ".work"
+GITHUB_DIR = Path(KEYTURN_DIR) / "github"
 
 SOURCE_MARKER = '<!-- localize source="{path}" lang="{lang}" sha256="{sha}" sections="{count}" -->'
 SECTION_MARKER = '<!-- localize-section sha256="{sha}" -->'
@@ -50,6 +54,12 @@ WORK_MARKER_RE = re.compile(r"^<!-- localize-section (\d+) -->$")
 HEADING_RE = re.compile(r"^ {0,3}#{1,6}(\s|$)")
 FENCE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$")
 MARKDOWN_SUFFIXES = {".md", ".markdown", ".mdx"}
+
+REPO_RE = re.compile(r"[A-Za-z0-9-]+/(?![.]{1,2}$)[A-Za-z0-9._-]+")
+BODY_HEADING_RE = re.compile(r"^ {0,3}(#{1,6})(?=\s|$)", re.MULTILINE)
+BODY_TOP_LEVEL = 3  # comment bodies start at ###, below the ## heading of each comment
+# Inline code is matched first so that a comment written inside it is kept.
+INLINE_CODE_OR_HTML_COMMENT_RE = re.compile(r"(`+)[\s\S]*?\1|<!--[\s\S]*?-->")
 
 
 class LocalizeError(Exception):
@@ -206,7 +216,8 @@ def load_source(root: Path, path: str) -> Source:
         rel_path = source_file.relative_to(root.resolve()).as_posix()
     except ValueError:
         raise LocalizeError(f"{path} is outside the repository") from None
-    if rel_path == KEYTURN_DIR or rel_path.startswith(KEYTURN_DIR + "/"):
+    is_fetched = rel_path.startswith(GITHUB_DIR.as_posix() + "/")
+    if (rel_path == KEYTURN_DIR or rel_path.startswith(KEYTURN_DIR + "/")) and not is_fetched:
         raise LocalizeError(f"{path} is inside {KEYTURN_DIR}/ and is not translated")
     if not source_file.is_file():
         raise LocalizeError(f"{path} is not a file in the repository")
@@ -341,6 +352,158 @@ def cmd_apply(lang: str, path: str) -> None:
     print(f"fresh {source.rel_path}: {target.relative_to(root).as_posix()}")
 
 
+def gh(*args: str) -> str:
+    """Run a read-only GitHub CLI command and return its output."""
+    try:
+        result = subprocess.run(["gh", *args], capture_output=True, encoding="utf-8")
+    except FileNotFoundError:
+        raise LocalizeError("the GitHub CLI (gh) is not installed") from None
+    if result.returncode != 0:
+        raise LocalizeError(f"gh {args[0]} failed: {result.stderr.strip()}")
+    return result.stdout
+
+
+def gh_list(endpoint: str) -> list[dict]:
+    """Fetch every page of a GitHub API list, one JSON object per line."""
+    output = gh("api", "--paginate", "--jq", ".[]", f"{endpoint}?per_page=100")
+    return [json.loads(line) for line in output.splitlines() if line.strip()]
+
+
+def check_repo(repo: str) -> str:
+    """Accept only OWNER/REPO, so it is safe to use as a folder name."""
+    if not REPO_RE.fullmatch(repo):
+        raise argparse.ArgumentTypeError(f"not a repository: {repo!r} (use OWNER/REPO)")
+    return repo
+
+
+def check_number(number: str) -> int:
+    """Accept only a positive issue or pull request number."""
+    if not number.isdigit() or int(number) == 0:
+        raise argparse.ArgumentTypeError(f"not an issue or pull request number: {number!r}")
+    return int(number)
+
+
+def fenced_blocks(lines: list[str]) -> tuple[list[tuple[bool, str]], str | None]:
+    """Group lines into (inside a code fence, text) blocks; also return a fence left open."""
+    blocks: list[tuple[bool, str]] = []
+    open_fence = None
+    for line in lines:
+        inside = open_fence is not None
+        if blocks and blocks[-1][0] == inside:
+            blocks[-1] = (inside, blocks[-1][1] + line)
+        else:
+            blocks.append((inside, line))
+        open_fence = next_fence(line, open_fence)
+    return blocks, open_fence
+
+
+def drop_html_comments(text: str) -> str:
+    """Remove hidden HTML comments, keeping any written inside inline code."""
+    text = INLINE_CODE_OR_HTML_COMMENT_RE.sub(lambda m: m.group(0) if m.group(1) else "", text)
+    return re.sub(r"\n{3,}", "\n\n", text)
+
+
+def move_headings_down(text: str, shift: int) -> str:
+    """Add `shift` levels to every heading, up to the Markdown limit of six."""
+    def deeper(match: re.Match) -> str:
+        level = min(6, len(match.group(1)) + shift)
+        return match.group(0).replace(match.group(1), "#" * level, 1)
+    return BODY_HEADING_RE.sub(deeper, text) if shift else text
+
+
+def clean_body(body: str | None) -> str:
+    """Make a GitHub body predictable to translate and safe to put in one file.
+
+    - Hidden HTML comments are dropped: readers do not see them on GitHub,
+      and bots keep long hidden data there.
+    - Line endings become LF.
+    - Headings move down so the body's top heading is ###, below the ##
+      heading that starts each comment.
+    - A code fence left open is closed, so it cannot swallow the next comment.
+    - A line that looks like a localize marker is indented by one space, so
+      the script never mistakes it for one.
+    """
+    text = (body or "").replace("\r\n", "\n").replace("\r", "\n")
+    blocks, open_fence = fenced_blocks(text.splitlines(keepends=True))
+    blocks = [(inside, block if inside else drop_html_comments(block)) for inside, block in blocks]
+
+    outside = "".join(block for inside, block in blocks if not inside)
+    levels = [len(m.group(1)) for m in BODY_HEADING_RE.finditer(outside)]
+    shift = max(0, BODY_TOP_LEVEL - min(levels)) if levels else 0
+    text = "".join(block if inside else move_headings_down(block, shift) for inside, block in blocks)
+
+    text = text.strip("\n")
+    if text and open_fence is not None:
+        text += "\n" + open_fence
+    text = re.sub(r"^(?=<!-- localize)", " ", text, flags=re.MULTILINE)
+    return text + "\n" if text else ""
+
+
+def when(timestamp: str) -> str:
+    """Turn 2026-11-07T12:58:36Z into 2026-11-07 12:58 UTC."""
+    return timestamp[:10] + " " + timestamp[11:16] + " UTC"
+
+
+def comment_items(repo: str, number: int, is_pull: bool) -> list[tuple[str, int, str, str]]:
+    """Return every comment as (time, id, heading, body), oldest first."""
+    items = []
+    for comment in gh_list(f"repos/{repo}/issues/{number}/comments"):
+        heading = f"Comment by {comment['user']['login']} on {when(comment['created_at'])}"
+        items.append((comment["created_at"], comment["id"], heading, comment["body"]))
+    if is_pull:
+        for review in gh_list(f"repos/{repo}/pulls/{number}/reviews"):
+            if not review.get("submitted_at"):
+                continue  # a pending review is visible only to its author
+            state = review["state"].lower().replace("_", " ")
+            if state == "commented" and not clean_body(review["body"]):
+                continue  # only a container for the inline comments listed below
+            heading = f"Review by {review['user']['login']} on {when(review['submitted_at'])}: {state}"
+            items.append((review["submitted_at"], review["id"], heading, review["body"]))
+        for comment in gh_list(f"repos/{repo}/pulls/{number}/comments"):
+            line = comment.get("line") or comment.get("original_line")
+            place = f"`{comment['path']}`" + (f" line {line}" if line else "")
+            kind = "Reply" if comment.get("in_reply_to_id") else "Review comment"
+            heading = f"{kind} by {comment['user']['login']} on {when(comment['created_at'])} ({place})"
+            items.append((comment["created_at"], comment["id"], heading, comment["body"]))
+    return sorted(items)
+
+
+def render_github_source(issue: dict, items: list[tuple[str, int, str, str]]) -> str:
+    """Write the issue or pull request as Markdown, one section per comment."""
+    kind = "Pull request" if "pull_request" in issue else "Issue"
+    parts = [
+        f"# {issue['title']} (#{issue['number']})\n\n",
+        f"- {kind}: {issue['html_url']}\n",
+        f"- Opened by {issue['user']['login']} on {when(issue['created_at'])}\n",
+        f"- State: {issue['state']}\n\n",
+        "## Description\n\n",
+        (clean_body(issue["body"]) or "_No description provided._\n") + "\n",
+    ]
+    for _, _, heading, body in items:
+        text = clean_body(body)
+        if text:  # a comment with only hidden content shows nothing on GitHub either
+            parts.append(f"## {heading}\n\n{text}\n")
+    # Every section ends with a blank line, even the last one, so that a new
+    # comment does not change the section before it.
+    return "".join(parts)
+
+
+def cmd_fetch(number: int, repo: str | None) -> None:
+    """Save an issue or pull request, with its comments, as a local source file."""
+    root = repo_root()
+    refuse_tracked_keyturn_files(root)
+    repo = repo or gh("repo", "view", "--json", "nameWithOwner", "--jq", ".nameWithOwner").strip()
+    if not REPO_RE.fullmatch(repo):
+        raise LocalizeError(f"gh returned an unexpected repository name: {repo!r}")
+    issue = json.loads(gh("api", f"repos/{repo}/issues/{number}"))
+    is_pull = "pull_request" in issue
+
+    text = render_github_source(issue, comment_items(repo, number, is_pull))
+    rel_path = (GITHUB_DIR / repo / ("pulls" if is_pull else "issues") / f"{number}.md").as_posix()
+    write_text(root / rel_path, text)
+    print(f"source: {rel_path}")
+
+
 def cmd_ignore() -> None:
     """Add .keyturn/ to the local exclude file unless Git already ignores it."""
     root = repo_root()
@@ -372,6 +535,10 @@ def main() -> int:
         command.add_argument("lang", type=check_lang)
         command.add_argument("path")
 
+    fetch = commands.add_parser("fetch", help="save a GitHub issue or pull request as a local source file")
+    fetch.add_argument("number", type=check_number)
+    fetch.add_argument("--repo", type=check_repo, help="OWNER/REPO (default: the current repository)")
+
     commands.add_parser("ignore", help="git-ignore .keyturn/ without committing")
 
     args = parser.parse_args()
@@ -382,6 +549,8 @@ def main() -> int:
             cmd_prepare(args.lang, args.path)
         elif args.command == "apply":
             cmd_apply(args.lang, args.path)
+        elif args.command == "fetch":
+            cmd_fetch(args.number, args.repo)
         else:
             cmd_ignore()
     except LocalizeError as error:
