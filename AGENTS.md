@@ -15,6 +15,31 @@ This is the only committed instructions file. If your tool reads a different fil
 - Ask the human before starting on anything listed under Open Questions.
 - Record decisions as ADRs in `docs/adr/`. Check existing ADRs before making a decision.
 
+## Where things live
+
+- `docs/DESIGN.md`: the design and the phases.
+- `docs/adr/`: decisions about keyturn itself. Follow the rules in `docs/adr/README.md`: one decision per file, started from `template.md`, added to the index; never edit an accepted ADR, supersede it with a new one.
+- `skills/<name>/SKILL.md`: one skill per role, written to the Agent Skills standard. Frontmatter uses only `name` and `description`. A skill says what a role does (inputs, procedure, outputs), not which tool runs it. Scripts a skill needs go in `skills/<name>/scripts/`, with their tests next to them.
+- `templates/client/` and `templates/internal/`: document templates (from phase 2). Client-facing documents are written in the client's language by default; internal ones always in English.
+- `.claude-plugin/`: only the Claude Code plugin manifests. The repository root is the plugin root, so every other plugin file sits at the root ([ADR 0005](docs/adr/0005-repository-root-as-plugin-root.md)). Bump `version` in `plugin.json` in any pull request that changes what the plugin installs, such as a skill; installed copies update only when it changes.
+- `adapters/<tool>/`: tool-specific parts, such as subagent definitions and permission settings (from phase 3). Everything shared stays out of `adapters/`.
+- `.github/`: issue forms, the pull request template, and the security policy.
+- `.keyturn/`: local and git-ignored: translations, fetched GitHub content, and the maintainer's plan. Never commit anything under it.
+- The other folders in "Repository Layout" in `docs/DESIGN.md` (`gates/`, `profiles/`, `evals/`, `github/`) are created in the phase that needs them, not before.
+
+## Trying changes locally
+
+- Load the plugin from your working copy for one session: `claude --plugin-dir .` (Claude Code). This uses your edits without installing anything.
+- Try `localize` on this repository: ask for a document, issue, or pull request in another language (for example, "Translate docs/DESIGN.md into Japanese"). The translation is written under `.keyturn/i18n/<lang>/`, and `git status` must stay clean.
+
+## Before opening a pull request
+
+- Run the tests of every script you changed. For `localize`: `python3 -m unittest discover -s skills/localize/scripts` from the repository root.
+- If you changed `.claude-plugin/` or anything under `skills/`, run `claude plugin validate --strict .` and make sure it passes.
+- Check that nothing under `.keyturn/` and no tool-specific instructions file (such as a local symbolic link to `AGENTS.md`) is staged.
+- Check that links in the Markdown you changed point to files that exist.
+- Write what you ran, and the result, under "How It Was Verified" in the pull request.
+
 ## Task management
 
 - Work is tracked as GitHub issues. Each phase in `docs/DESIGN.md` is a milestone, and each piece of work in a phase is an issue in that milestone.
@@ -53,4 +78,6 @@ This is the only committed instructions file. If your tool reads a different fil
 - Everything committed to this repository is written in English.
 - Talk to the human in the language they use.
 
-This file is a starting point. Expand it in phase 1 as the repository takes shape.
+## Keeping this file current
+
+This file describes the repository as of phase 1. When a phase adds a folder, a tool, or a check, update "Where things live", "Trying changes locally", and "Before opening a pull request" in the same pull request.
