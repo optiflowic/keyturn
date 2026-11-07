@@ -50,10 +50,10 @@ Priority: <Must | Nice to have>
 
 <!--
 One heading per check that decides whether a requirement is met.
-- Each criterion covers at least one requirement, and every requirement that is not removed is covered by at least one criterion.
+- Each criterion covers at least one requirement, and every requirement that is not removed is covered by at least one criterion that is not removed.
 - The expected result must be something a person can observe, not "works correctly".
 - Numbering follows the same rules as requirements.
-- To remove a criterion, keep it, add "(removed)" to its heading, keep the Covers line, and replace the other lines with when and why it was removed.
+- To remove a criterion, keep it, add "(removed)" to its heading, keep the Covers line, and replace the other lines with when and why it was removed. A removed criterion no longer counts as covering its requirements.
 -->
 
 ### AC-1: <short title>
