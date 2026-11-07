@@ -32,9 +32,9 @@ claude plugin marketplace add optiflowic/keyturn
 claude plugin install keyturn@keyturn
 ```
 
-Then, in the repository you want to read, ask for a file in your language, for example: "Translate docs/DESIGN.md into Japanese."
+Then, in the repository you want to read, ask for a file, an issue, or a pull request in your language, for example: "Translate docs/DESIGN.md into Japanese" or "Translate issue #9 into Japanese, with its comments." Issues and pull requests are fetched with the GitHub CLI (`gh`); nothing is posted to GitHub.
 
-Translations are written to `.keyturn/i18n/<lang>/`, at the same paths as the originals. When a document changes, only the changed sections are translated again. The full procedure is in [`skills/localize/SKILL.md`](skills/localize/SKILL.md).
+Translations are written to `.keyturn/i18n/<lang>/`, at the same paths as the originals (an issue's translation sits under `.keyturn/i18n/<lang>/.keyturn/github/`). When a document changes, only the changed sections are translated again, and when an issue gets a new comment, only that comment is translated. The full procedure is in [`skills/localize/SKILL.md`](skills/localize/SKILL.md).
 
 ## Supported tools
 
