@@ -1,0 +1,18 @@
+{
+  "name": "keyturn",
+  "version": "0.1.0",
+  "description": "Turn AI agents into a contractor team, with the human as the client.",
+  "author": {
+    "name": "optiflowic",
+    "url": "https://github.com/optiflowic"
+  },
+  "homepage": "https://github.com/optiflowic/keyturn",
+  "repository": "https://github.com/optiflowic/keyturn",
+  "license": "MIT",
+  "keywords": [
+    "agents",
+    "skills",
+    "translation",
+    "quality-gates"
+  ]
+}

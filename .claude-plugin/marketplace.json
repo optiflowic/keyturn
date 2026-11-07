@@ -1,0 +1,15 @@
+{
+  "name": "keyturn",
+  "description": "Marketplace for the keyturn plugin.",
+  "owner": {
+    "name": "optiflowic",
+    "url": "https://github.com/optiflowic"
+  },
+  "plugins": [
+    {
+      "name": "keyturn",
+      "source": "./",
+      "description": "Turn AI agents into a contractor team, with the human as the client."
+    }
+  ]
+}

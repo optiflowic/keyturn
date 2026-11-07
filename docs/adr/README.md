@@ -19,3 +19,4 @@ See "Architecture decision records" in [`docs/DESIGN.md`](../DESIGN.md).
 | [0002](0002-mit-license.md) | MIT license | accepted |
 | [0003](0003-first-stack-profiles.md) | First stack profiles: `go` and `react-spa` | accepted |
 | [0004](0004-independent-ai-reviewer.md) | Independent AI reviewer from a different vendor | accepted |
+| [0005](0005-repository-root-as-plugin-root.md) | Repository root as the plugin root | accepted |
