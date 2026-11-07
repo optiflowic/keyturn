@@ -120,7 +120,7 @@ Profiles live in `profiles/<stack>/`. Add one profile at a time, and only after 
 | Backend | Go, Python, Rust |
 | Other | Neovim plugin (Lua), Rust CLI/TUI |
 
-Start with **one frontend profile and one backend profile**, enough to build and verify a real web application. Add the rest one at a time.
+Start with **one frontend profile and one backend profile**, enough to validate new-project mode end to end on a web application (see phase 6 in Phases). Add the rest one at a time.
 
 ## Modes
 
@@ -536,7 +536,7 @@ Stop at the end of each phase and report to the human whether the completion cri
    - Also: record the first evaluation baseline and make the eval suite runnable with one command.
 5. **Security checks in the profiles**: add SAST, dependency scanning, and secret scanning
    - Done when: the vulnerabilities planted in the evaluation requests are caught by the gate.
-6. **First real application**: build one real (not sample) web application end to end with keyturn
+6. **Validation on a real application**: validate new-project mode end to end on a real (not sample) application, using the first two stack profiles. Which application is used follows the maintainer's local plan (see Maintainer Notes).
    - Done when: the client can accept it using only the client-facing documents, without reading the code.
 7. **GitHub integration**: issues, Project board, labels, Actions, PR-based delivery
    - Done when: a task moves from issue to merged PR with the client only approving requirements and doing the final check.
