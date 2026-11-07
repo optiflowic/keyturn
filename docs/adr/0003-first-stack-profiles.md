@@ -13,7 +13,7 @@ The candidates are the planned profiles: Go, Python, and Rust for the backend; R
 
 Backend:
 
-1. **Go**: static types, a single fast toolchain (`go build`, `go test`, `go vet`), and mature security tooling (`govulncheck`, `gosec`). Small standard library surface for web servers.
+1. **Go**: static types, a single fast toolchain (`go build`, `go test`, `go vet`), and mature security tooling (`govulncheck`, `gosec`). The standard library covers HTTP servers, so a web backend needs few third-party dependencies, which keeps the supply-chain surface small.
 2. **Python**: very common, but type checking and packaging are split across several tools, which makes "verified" harder to define in the first profile.
 3. **Rust**: strong safety guarantees and good tooling, but longer build times slow down the test-and-fix loop that the gate runs many times per task.
 

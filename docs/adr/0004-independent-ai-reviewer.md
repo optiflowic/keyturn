@@ -20,7 +20,7 @@ Every keyturn pull request is also reviewed by an independent AI reviewer from a
 ## Reasons
 
 - A reviewer built on a different model family is less likely to share the builder's mistakes.
-- CodeRabbit runs automatically on pull requests, is free for public repositories, and can be told to review against `docs/DESIGN.md`, the ADRs, and `AGENTS.md`.
+- CodeRabbit runs automatically on pull requests, is free for public repositories ([plans](https://docs.coderabbit.ai/management/plans)), and can be told to review against `docs/DESIGN.md`, the ADRs, and `AGENTS.md`.
 - It adds a check without adding work for the maintainer, who still decides what is merged.
 
 ## Consequences
