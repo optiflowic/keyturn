@@ -46,6 +46,25 @@ class SplitSectionsTest(unittest.TestCase):
     def test_other_files_are_one_section(self):
         self.assertEqual(len(localize.split_sections(SOURCE, is_markdown=False)), 1)
 
+    def headings(self, text: str) -> list[str]:
+        return [s.text.splitlines()[0] for s in localize.split_sections(text, is_markdown=True)]
+
+    def test_a_shorter_fence_does_not_close_a_longer_one(self):
+        text = "# A\n````md\n```\n# inside\n```\n````\n# B\n"
+        self.assertEqual(self.headings(text), ["# A", "# B"])
+
+    def test_a_tilde_line_does_not_close_a_backtick_fence(self):
+        text = "# A\n```\n~~~\n# inside\n```\n# B\n"
+        self.assertEqual(self.headings(text), ["# A", "# B"])
+
+    def test_a_closer_with_trailing_text_does_not_close(self):
+        text = "# A\n```\n``` not a closer\n# inside\n```\n# B\n"
+        self.assertEqual(self.headings(text), ["# A", "# B"])
+
+    def test_a_fence_indented_four_spaces_is_not_a_fence(self):
+        text = "# A\n    ```\n# B\n"
+        self.assertEqual(self.headings(text), ["# A", "# B"])
+
 
 class CommandsTest(unittest.TestCase):
     def setUp(self):
@@ -126,6 +145,44 @@ class CommandsTest(unittest.TestCase):
         self.source.write_text(SOURCE + "\nMore.\n", encoding="utf-8")
         result = self.run_script("apply", "ja", "docs/GUIDE.md")
         self.assertIn("run prepare again", result.stderr)
+
+    def test_a_line_ending_change_makes_the_translation_stale(self):
+        self.first_translation()
+        self.source.write_bytes(SOURCE.replace("\n", "\r\n").encode("utf-8"))
+        self.assertEqual(self.run_script("status", "ja", "docs/GUIDE.md").stdout, "stale docs/GUIDE.md\n")
+
+    def test_crlf_files_round_trip(self):
+        self.source.write_bytes(SOURCE.replace("\n", "\r\n").encode("utf-8"))
+        self.first_translation()
+        self.assertEqual(self.run_script("status", "ja", "docs/GUIDE.md").stdout, "fresh docs/GUIDE.md\n")
+
+    def test_a_translation_with_a_damaged_marker_is_stale(self):
+        self.first_translation()
+        text = self.target.read_text(encoding="utf-8")
+        without_last_section = text.rsplit("<!-- localize-section", 1)[0]
+        self.target.write_text(without_last_section, encoding="utf-8")
+        self.assertEqual(self.run_script("status", "ja", "docs/GUIDE.md").stdout, "stale docs/GUIDE.md\n")
+        self.assertIn("sections to translate: 1 (reused: 2)", self.run_script("prepare", "ja", "docs/GUIDE.md").stdout)
+
+    def test_paths_are_relative_to_the_repository_root_from_any_folder(self):
+        result = subprocess.run(
+            [sys.executable, str(SCRIPT), "status", "ja", "docs/GUIDE.md"],
+            cwd=self.root / "docs", capture_output=True, text=True,
+        )
+        self.assertEqual(result.stdout, "missing docs/GUIDE.md\n")
+
+    def test_tracked_files_under_keyturn_stop_every_write(self):
+        tracked = self.root / ".keyturn/i18n/ja/docs/GUIDE.md"
+        tracked.parent.mkdir(parents=True)
+        tracked.write_text("tracked\n", encoding="utf-8")
+        subprocess.run(["git", "add", "-f", ".keyturn"], cwd=self.root, check=True)
+
+        for command in (["ignore"], ["prepare", "ja", "docs/GUIDE.md"], ["apply", "ja", "docs/GUIDE.md"]):
+            result = self.run_script(*command)
+            self.assertEqual(result.returncode, 1, command)
+            self.assertIn("Git tracks files under .keyturn/", result.stderr)
+        self.assertEqual(tracked.read_text(encoding="utf-8"), "tracked\n")
+        self.assertFalse(self.work_file.exists())
 
     def test_paths_outside_the_repository_are_refused(self):
         result = self.run_script("status", "ja", "../outside.md")

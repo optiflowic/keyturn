@@ -4,7 +4,8 @@
 The AI tool does the translating. This script only decides what needs
 translating and assembles the result, so it works with any tool.
 
-Commands (run from anywhere inside the repository):
+Commands (run from anywhere inside the repository; PATH is relative to the
+repository root):
 
   status  LANG PATH...  Print fresh, stale, or missing for each translation.
   prepare LANG PATH     Write a work file with the sections to translate.
@@ -32,7 +33,8 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-I18N_DIR = Path(".keyturn") / "i18n"
+KEYTURN_DIR = ".keyturn"
+I18N_DIR = Path(KEYTURN_DIR) / "i18n"
 WORK_DIR = I18N_DIR / ".work"
 
 SOURCE_MARKER = '<!-- localize source="{path}" lang="{lang}" sha256="{sha}" -->'
@@ -43,8 +45,8 @@ WORK_HEADER = "<!-- localize: translate the text between markers; keep every mar
 WORK_MARKER = "<!-- localize-section {number} -->"
 WORK_MARKER_RE = re.compile(r"^<!-- localize-section (\d+) -->$")
 
-HEADING_RE = re.compile(r"^#{1,6}\s")
-FENCE_RE = re.compile(r"^\s*(```|~~~)")
+HEADING_RE = re.compile(r"^ {0,3}#{1,6}(\s|$)")
+FENCE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$")
 MARKDOWN_SUFFIXES = {".md", ".markdown", ".mdx"}
 
 
@@ -54,12 +56,58 @@ class LocalizeError(Exception):
 
 @dataclass
 class Section:
+    """A piece of a file and the hash of its source text."""
+
     sha: str
     text: str
 
 
+@dataclass
+class Source:
+    """A source file: its path from the repository root, hash, and sections."""
+
+    rel_path: str
+    sha: str
+    sections: list[Section]
+
+
 def sha256(text: str) -> str:
+    """Hash text exactly as stored, line endings included."""
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def read_text(path: Path) -> str:
+    """Read UTF-8 text without translating line endings, so CRLF changes are seen."""
+    try:
+        with open(path, encoding="utf-8", newline="") as file:
+            return file.read()
+    except UnicodeDecodeError:
+        raise LocalizeError(f"{path} is not UTF-8 text") from None
+
+
+def write_text(path: Path, text: str) -> None:
+    """Write UTF-8 text without translating line endings."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8", newline="") as file:
+        file.write(text)
+
+
+def next_fence(line: str, open_fence: str | None) -> str | None:
+    """Return the open code fence after this line, following CommonMark.
+
+    A fence closes only with the same character, at least as many of them as
+    the opener, and nothing but spaces after it.
+    """
+    match = FENCE_RE.match(line.rstrip("\r\n"))
+    if not match:
+        return open_fence
+    marker, rest = match.groups()
+    if open_fence is None:
+        if marker[0] == "`" and "`" in rest:
+            return None  # not a fence: backtick fences cannot have backticks in the info string
+        return marker
+    closes = marker[0] == open_fence[0] and len(marker) >= len(open_fence) and rest.strip() == ""
+    return None if closes else open_fence
 
 
 def split_sections(text: str, is_markdown: bool) -> list[Section]:
@@ -68,46 +116,38 @@ def split_sections(text: str, is_markdown: bool) -> list[Section]:
         return [Section(sha256(text), text)] if text else []
 
     chunks: list[list[str]] = [[]]
-    in_fence = False
+    open_fence = None
     for line in text.splitlines(keepends=True):
-        if FENCE_RE.match(line):
-            in_fence = not in_fence
-        starts_section = HEADING_RE.match(line) and not in_fence
+        starts_section = open_fence is None and HEADING_RE.match(line)
         if starts_section and chunks[-1]:
             chunks.append([])
         chunks[-1].append(line)
+        open_fence = next_fence(line, open_fence)
 
     joined = ["".join(chunk) for chunk in chunks if chunk]
     return [Section(sha256(chunk), chunk) for chunk in joined]
 
 
-def parse_marked_file(text: str) -> tuple[str | None, dict[str, str]]:
-    """Read a translation or work file: (source sha, {section sha: translated text})."""
+def parse_translation(text: str) -> tuple[str | None, list[Section]]:
+    """Read a translation file: the recorded source hash and its sections in order."""
     source_sha = None
-    sections: dict[str, str] = {}
-    current_sha = None
-    current_lines: list[str] = []
-
+    sections: list[Section] = []
     for line in text.splitlines(keepends=True):
-        source_match = SOURCE_MARKER_RE.match(line.rstrip("\n"))
-        section_match = SECTION_MARKER_RE.match(line.rstrip("\n"))
-        if source_match and source_sha is None:
+        bare = line.rstrip("\r\n")
+        source_match = SOURCE_MARKER_RE.match(bare)
+        section_match = SECTION_MARKER_RE.match(bare)
+        if source_match and source_sha is None and not sections:
             source_sha = source_match.group(3)
         elif section_match:
-            if current_sha is not None:
-                sections[current_sha] = "".join(current_lines)
-            current_sha = section_match.group(1)
-            current_lines = []
-        elif current_sha is not None:
-            current_lines.append(line)
-
-    if current_sha is not None:
-        sections[current_sha] = "".join(current_lines)
+            sections.append(Section(section_match.group(1), ""))
+        elif sections:
+            sections[-1].text += line
     return source_sha, sections
 
 
-def render_marked_file(rel_path: str, lang: str, source_sha: str, sections: list[Section]) -> str:
-    parts = [SOURCE_MARKER.format(path=rel_path, lang=lang, sha=source_sha) + "\n"]
+def render_translation(source: Source, lang: str, sections: list[Section]) -> str:
+    """Write the source marker, then each section after its hash marker."""
+    parts = [SOURCE_MARKER.format(path=source.rel_path, lang=lang, sha=source.sha) + "\n"]
     for section in sections:
         parts.append(SECTION_MARKER.format(sha=section.sha) + "\n")
         parts.append(section.text)
@@ -116,69 +156,87 @@ def render_marked_file(rel_path: str, lang: str, source_sha: str, sections: list
     return "".join(parts)
 
 
+def git(root: Path, *args: str) -> subprocess.CompletedProcess:
+    """Run a Git command in the repository and capture its output."""
+    return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True)
+
+
 def repo_root() -> Path:
-    result = subprocess.run(
-        ["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True
-    )
+    """Return the root of the repository that contains the current folder."""
+    result = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True)
     if result.returncode != 0:
         raise LocalizeError("not inside a Git repository")
     return Path(result.stdout.strip())
 
 
+def refuse_tracked_keyturn_files(root: Path) -> None:
+    """Stop if Git tracks anything under .keyturn/, because ignore rules do not protect it."""
+    tracked = git(root, "ls-files", "--", KEYTURN_DIR).stdout.split()
+    if tracked:
+        listed = ", ".join(tracked[:5]) + (" ..." if len(tracked) > 5 else "")
+        raise LocalizeError(
+            f"Git tracks files under {KEYTURN_DIR}/ ({listed}); localize writes nothing "
+            "there until they are untracked"
+        )
+
+
 def check_lang(lang: str) -> str:
+    """Accept only language codes, so the code is safe to use as a folder name."""
     if not re.fullmatch(r"[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*", lang):
         raise argparse.ArgumentTypeError(f"not a language code: {lang!r} (use e.g. ja, de, pt-BR)")
     return lang
 
 
-def resolve_source(root: Path, path: str) -> tuple[Path, str]:
-    """Return the source file and its path relative to the root, refusing paths outside it."""
-    source = (Path.cwd() / path).resolve()
+def load_source(root: Path, path: str) -> Source:
+    """Read a source file given relative to the root, refusing paths outside it."""
+    source_file = (root / path).resolve()
     try:
-        rel_path = source.relative_to(root.resolve()).as_posix()
+        rel_path = source_file.relative_to(root.resolve()).as_posix()
     except ValueError:
         raise LocalizeError(f"{path} is outside the repository") from None
-    if rel_path.startswith(".keyturn/"):
-        raise LocalizeError(f"{path} is inside .keyturn/ and is not translated")
-    if not source.is_file():
-        raise LocalizeError(f"{path} is not a file")
-    return source, rel_path
+    if rel_path == KEYTURN_DIR or rel_path.startswith(KEYTURN_DIR + "/"):
+        raise LocalizeError(f"{path} is inside {KEYTURN_DIR}/ and is not translated")
+    if not source_file.is_file():
+        raise LocalizeError(f"{path} is not a file in the repository")
+
+    text = read_text(source_file)
+    is_markdown = source_file.suffix.lower() in MARKDOWN_SUFFIXES
+    return Source(rel_path, sha256(text), split_sections(text, is_markdown))
 
 
-def read_text(path: Path) -> str:
-    try:
-        return path.read_text(encoding="utf-8")
-    except UnicodeDecodeError:
-        raise LocalizeError(f"{path} is not UTF-8 text") from None
+def target_path(root: Path, lang: str, source: Source) -> Path:
+    """Return where the translation of the source lives."""
+    return root / I18N_DIR / lang / source.rel_path
 
 
-def translation_status(root: Path, lang: str, rel_path: str, source_sha: str) -> str:
-    target = root / I18N_DIR / lang / rel_path
-    if not target.is_file():
-        return "missing"
-    recorded_sha, _ = parse_marked_file(read_text(target))
-    return "fresh" if recorded_sha == source_sha else "stale"
-
-
-def cmd_status(lang: str, paths: list[str]) -> None:
-    root = repo_root()
-    for path in paths:
-        source, rel_path = resolve_source(root, path)
-        source_sha = sha256(read_text(source))
-        print(f"{translation_status(root, lang, rel_path, source_sha)} {rel_path}")
-
-
-def work_paths(root: Path, lang: str, rel_path: str) -> tuple[Path, Path]:
-    work_file = root / WORK_DIR / lang / rel_path
+def work_paths(root: Path, lang: str, source: Source) -> tuple[Path, Path]:
+    """Return the work file for the AI and the hashes file that only this script reads."""
+    work_file = root / WORK_DIR / lang / source.rel_path
     return work_file, work_file.with_name(work_file.name + ".localize.json")
 
 
+def existing_sections(target: Path) -> tuple[str | None, list[Section]]:
+    """Read a translation if there is one."""
+    return parse_translation(read_text(target)) if target.is_file() else (None, [])
+
+
+def translation_status(root: Path, lang: str, source: Source) -> str:
+    """fresh only if the recorded hash matches and every section marker is intact."""
+    target = target_path(root, lang, source)
+    if not target.is_file():
+        return "missing"
+    recorded_sha, sections = existing_sections(target)
+    intact = [s.sha for s in sections] == [s.sha for s in source.sections]
+    return "fresh" if recorded_sha == source.sha and intact else "stale"
+
+
 def write_work_file(work_file: Path, sections: list[Section]) -> None:
+    """Write the sections to translate, each after a short numbered marker."""
     parts = [WORK_HEADER + "\n"]
     for number, section in enumerate(sections, start=1):
         parts.append(WORK_MARKER.format(number=number) + "\n")
         parts.append(section.text)
-    work_file.write_text("".join(parts), encoding="utf-8")
+    write_text(work_file, "".join(parts))
 
 
 def read_work_file(work_file: Path, expected_count: int) -> list[str]:
@@ -186,7 +244,7 @@ def read_work_file(work_file: Path, expected_count: int) -> list[str]:
     texts: dict[int, list[str]] = {}
     current = None
     for line in read_text(work_file).splitlines(keepends=True):
-        marker = WORK_MARKER_RE.match(line.rstrip("\n"))
+        marker = WORK_MARKER_RE.match(line.rstrip("\r\n"))
         if marker:
             current = int(marker.group(1))
             if current in texts:
@@ -205,90 +263,91 @@ def read_work_file(work_file: Path, expected_count: int) -> list[str]:
     return ["".join(texts[number]) for number in sorted(texts)]
 
 
-def cmd_prepare(lang: str, path: str) -> None:
+def cmd_status(lang: str, paths: list[str]) -> None:
+    """Print fresh, stale, or missing for each path."""
     root = repo_root()
-    source, rel_path = resolve_source(root, path)
-    source_text = read_text(source)
-    source_sha = sha256(source_text)
+    for path in paths:
+        source = load_source(root, path)
+        print(f"{translation_status(root, lang, source)} {source.rel_path}")
 
-    if translation_status(root, lang, rel_path, source_sha) == "fresh":
-        print(f"fresh {rel_path}: nothing to translate")
+
+def cmd_prepare(lang: str, path: str) -> None:
+    """Write the sections that have no translation yet, numbered, plus their hashes."""
+    root = repo_root()
+    refuse_tracked_keyturn_files(root)
+    source = load_source(root, path)
+    if translation_status(root, lang, source) == "fresh":
+        print(f"fresh {source.rel_path}: nothing to translate")
         return
 
-    target = root / I18N_DIR / lang / rel_path
-    _, translated = parse_marked_file(read_text(target)) if target.is_file() else (None, {})
-    sections = split_sections(source_text, source.suffix.lower() in MARKDOWN_SUFFIXES)
-
+    _, old_sections = existing_sections(target_path(root, lang, source))
+    translated = {s.sha for s in old_sections}
     to_translate: list[Section] = []
-    for section in sections:
-        already_listed = any(s.sha == section.sha for s in to_translate)
-        if section.sha not in translated and not already_listed:
+    for section in source.sections:
+        if section.sha not in translated:
             to_translate.append(section)
+            translated.add(section.sha)  # a repeated section is translated once
 
-    work_file, hashes_file = work_paths(root, lang, rel_path)
-    work_file.parent.mkdir(parents=True, exist_ok=True)
+    work_file, hashes_file = work_paths(root, lang, source)
     write_work_file(work_file, to_translate)
-    hashes = {"source_sha256": source_sha, "sections": [s.sha for s in to_translate]}
-    hashes_file.write_text(json.dumps(hashes, indent=2) + "\n", encoding="utf-8")
+    hashes = {"source_sha256": source.sha, "sections": [s.sha for s in to_translate]}
+    write_text(hashes_file, json.dumps(hashes, indent=2) + "\n")
 
-    reused = len(sections) - len(to_translate)
+    reused = len(source.sections) - len(to_translate)
     print(f"work file: {work_file.relative_to(root).as_posix()}")
     print(f"sections to translate: {len(to_translate)} (reused: {reused})")
 
 
 def cmd_apply(lang: str, path: str) -> None:
+    """Merge the translated work file with the reused sections, in source order."""
     root = repo_root()
-    source, rel_path = resolve_source(root, path)
-    source_text = read_text(source)
-    source_sha = sha256(source_text)
+    refuse_tracked_keyturn_files(root)
+    source = load_source(root, path)
 
-    work_file, hashes_file = work_paths(root, lang, rel_path)
+    work_file, hashes_file = work_paths(root, lang, source)
     if not (work_file.is_file() and hashes_file.is_file()):
-        raise LocalizeError(f"no work file for {rel_path}; run prepare first")
+        raise LocalizeError(f"no work file for {source.rel_path}; run prepare first")
     hashes = json.loads(read_text(hashes_file))
-    if hashes["source_sha256"] != source_sha:
-        raise LocalizeError(f"{rel_path} changed after prepare; run prepare again")
+    if hashes["source_sha256"] != source.sha:
+        raise LocalizeError(f"{source.rel_path} changed after prepare; run prepare again")
     new_texts = read_work_file(work_file, len(hashes["sections"]))
-    new_sections = dict(zip(hashes["sections"], new_texts))
 
-    target = root / I18N_DIR / lang / rel_path
-    _, old_sections = parse_marked_file(read_text(target)) if target.is_file() else (None, {})
-    available = {**old_sections, **new_sections}
+    target = target_path(root, lang, source)
+    _, old_sections = existing_sections(target)
+    available = {s.sha: s.text for s in old_sections}
+    available.update(zip(hashes["sections"], new_texts))
 
     merged: list[Section] = []
-    for section in split_sections(source_text, source.suffix.lower() in MARKDOWN_SUFFIXES):
+    for section in source.sections:
         if section.sha not in available:
-            raise LocalizeError(f"no translation for a section of {rel_path}; run prepare again")
+            raise LocalizeError(f"no translation for a section of {source.rel_path}; run prepare again")
         merged.append(Section(section.sha, available[section.sha]))
 
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(render_marked_file(rel_path, lang, source_sha, merged), encoding="utf-8")
+    write_text(target, render_translation(source, lang, merged))
     work_file.unlink()
     hashes_file.unlink()
-    print(f"fresh {rel_path}: {target.relative_to(root).as_posix()}")
+    print(f"fresh {source.rel_path}: {target.relative_to(root).as_posix()}")
 
 
 def cmd_ignore() -> None:
+    """Add .keyturn/ to the local exclude file unless Git already ignores it."""
     root = repo_root()
+    refuse_tracked_keyturn_files(root)
     probe = (I18N_DIR / "probe").as_posix()
-    ignored = subprocess.run(["git", "check-ignore", "-q", probe], cwd=root).returncode == 0
-    if ignored:
-        print(".keyturn/ is already git-ignored")
+    if git(root, "check-ignore", "-q", probe).returncode == 0:
+        print(f"{KEYTURN_DIR}/ is already git-ignored")
         return
 
-    exclude_path = subprocess.run(
-        ["git", "rev-parse", "--git-path", "info/exclude"],
-        cwd=root, capture_output=True, text=True, check=True,
-    ).stdout.strip()
+    exclude_path = git(root, "rev-parse", "--git-path", "info/exclude").stdout.strip()
     exclude_file = root / exclude_path
-    exclude_file.parent.mkdir(parents=True, exist_ok=True)
-    existing = exclude_file.read_text(encoding="utf-8") if exclude_file.is_file() else ""
+    existing = read_text(exclude_file) if exclude_file.is_file() else ""
     separator = "" if existing == "" or existing.endswith("\n") else "\n"
-    exclude_file.write_text(existing + separator + ".keyturn/\n", encoding="utf-8")
-    print(f"added .keyturn/ to {exclude_path}")
+    write_text(exclude_file, existing + separator + KEYTURN_DIR + "/\n")
+    print(f"added {KEYTURN_DIR}/ to {exclude_path}")
 
 
 def main() -> int:
+    """Parse the command line and run one command."""
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     commands = parser.add_subparsers(dest="command", required=True)
 
