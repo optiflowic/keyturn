@@ -34,5 +34,5 @@ The bookkeeping is done by `skills/localize/scripts/localize.py`, a Python 3.9+ 
 - `localize` needs Python 3.9 or later and Git on the reader's machine. The skill says so.
 - The translation format is fixed by the script: the first line records the source path and SHA-256, and each section starts with a `localize-section` marker with the hash of its source section.
 - The agent never copies hashes. The work file it translates marks sections with short numbers, and the hashes stay in a separate file that only the script reads. (In the first trial, a small model dropped one character of a 64-character hash; the script refused the result, but numbered markers avoid the problem.)
-- The script has its own tests (`skills/localize/scripts/test_localize.py`, run with `python3 -m unittest`). Phase 4 can add them to the gate and CI.
+- The script has its own tests (`skills/localize/scripts/test_localize.py`, run from the repository root with `python3 -m unittest discover -s skills/localize/scripts`). Phase 4 can add them to the gate and CI.
 - Windows without Python is not supported yet.
