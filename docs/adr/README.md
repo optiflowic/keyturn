@@ -21,3 +21,4 @@ See "Architecture decision records" in [`docs/DESIGN.md`](../DESIGN.md).
 | [0004](0004-independent-ai-reviewer.md) | Independent AI reviewer from a different vendor | accepted |
 | [0005](0005-repository-root-as-plugin-root.md) | Repository root as the plugin root | accepted |
 | [0006](0006-localize-helper-script.md) | A Python helper script for `localize` bookkeeping | accepted |
+| [0007](0007-github-content-as-local-source-files.md) | GitHub content is translated as local source files | accepted |
