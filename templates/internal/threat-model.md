@@ -40,7 +40,7 @@ Every way input reaches the deliverable: pages, API endpoints, command-line argu
 
 <!--
 One heading per threat, numbered T-1, T-2, ... An ID is never changed or reused.
-- "Misuse" is yes when the threat is a misuse case from requirements.md (a legitimate user using the deliverable for harm).
+- "Misuse" is yes when the threat is a case from the "Misuse" section of requirements.md, whoever the actor is (another user, someone who is not signed in, or a user with harmful input).
 - Severity is high, medium, or low. High-severity findings block delivery.
 - Every threat needs a mitigation that is implemented, and a way to verify it:
   a QA test for an acceptance criterion (AC-n), a gate check, or the security review. Say which, and what exactly is checked.
