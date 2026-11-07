@@ -180,6 +180,7 @@ The client reads these to make decisions and to do the final check. They must be
 | design-summary.md | The main design decisions in plain language, with the reason for each and the alternatives considered. |
 | acceptance-guide.md | What the client should check by hand, in priority order, with steps and expected results. |
 | delivery-report.md | What was delivered, what was verified, what was not, and the remaining risks. |
+| decision-card.md | One question to the client: the context, the options, a recommendation, and what happens if the client does not answer. |
 
 Writing rules:
 
@@ -475,7 +476,7 @@ gates/
                           # plus guardrail checks (protected paths, suppressions, scope)
 profiles/                 # stack profiles (one frontend + one backend first)
 templates/
-  client/                 # requirements, design summary, acceptance guide, delivery report
+  client/                 # requirements, design summary, acceptance guide, delivery report, decision card
   internal/               # design, decisions, handoff, test report, review
 adapters/
   claude/                 # agents/*.md (listed in plugin.json), recommended permission settings

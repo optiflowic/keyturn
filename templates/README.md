@@ -15,3 +15,6 @@ See "Documents" in [`docs/DESIGN.md`](../docs/DESIGN.md).
 |---|---|---|
 | [`client/requirements.md`](client/requirements.md) | PM | What will be built and how it will be judged, with numbered requirements (`R-n`) and acceptance criteria (`AC-n`). The client approves it before work starts. |
 | [`client/design-summary.md`](client/design-summary.md) | Architect | The main design decisions in plain language, with the reason, the alternatives, and what each means for the client. The decisions that need the client's agreement come first and link to their ADRs. |
+| [`client/acceptance-guide.md`](client/acceptance-guide.md) | PM | What the client checks by hand at delivery, in priority order, with steps and expected results. Each check names the `AC-n` it covers and is "Must check" (around five at most) or "Optional". |
+| [`client/delivery-report.md`](client/delivery-report.md) | PM | What was delivered, what was verified and by whom (gate, QA, security, review), what was not verified, the remaining risks, triggered guardrails, and the models and tools used. |
+| [`client/decision-card.md`](client/decision-card.md) | Any role | One question to the client: the context, the options, a recommendation, and what happens if the client does not answer. Short enough to answer in a few minutes. |
