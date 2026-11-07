@@ -390,7 +390,9 @@ class FetchTest(unittest.TestCase):
                 {"id": 20, "user": user("carol"), "created_at": "2026-11-02T11:59:00Z",
                  "path": "src/app.py", "line": None, "original_line": 3, "body": "Typo."},
                 {"id": 21, "user": user("alice"), "created_at": "2026-11-02T13:00:00Z",
-                 "path": "src/app.py", "line": 3, "in_reply_to_id": 20, "body": "Fixed."},
+                 "path": "src/app.py", "line": 5, "original_line": 3, "in_reply_to_id": 20, "body": "Fixed."},
+                {"id": 22, "user": None, "created_at": "2026-11-02T14:00:00Z",
+                 "path": "README.md", "line": 1, "original_line": None, "body": "Old account."},
             ],
         })
         self.assertEqual(self.run_script("fetch", "7").stdout, "source: .keyturn/github/octo/demo/pulls/7.md\n")
@@ -402,6 +404,7 @@ class FetchTest(unittest.TestCase):
             "## Review comment by carol on 2026-11-02 11:59 UTC (`src/app.py` line 3)",
             "## Review by carol on 2026-11-02 12:00 UTC: changes requested",
             "## Reply by alice on 2026-11-02 13:00 UTC (`src/app.py` line 3)",
+            "## Review comment by ghost on 2026-11-02 14:00 UTC (`README.md` line 1)",
         ])
         self.assertIn("- Pull request: https://github.com/octo/demo/pull/7", text)
         self.assertNotIn("draft", text)

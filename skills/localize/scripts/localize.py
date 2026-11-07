@@ -444,11 +444,16 @@ def when(timestamp: str) -> str:
     return timestamp[:10] + " " + timestamp[11:16] + " UTC"
 
 
+def login(item: dict) -> str:
+    """Return the author's login; GitHub shows a deleted account as "ghost"."""
+    return (item.get("user") or {}).get("login") or "ghost"
+
+
 def comment_items(repo: str, number: int, is_pull: bool) -> list[tuple[str, int, str, str]]:
     """Return every comment as (time, id, heading, body), oldest first."""
     items = []
     for comment in gh_list(f"repos/{repo}/issues/{number}/comments"):
-        heading = f"Comment by {comment['user']['login']} on {when(comment['created_at'])}"
+        heading = f"Comment by {login(comment)} on {when(comment['created_at'])}"
         items.append((comment["created_at"], comment["id"], heading, comment["body"]))
     if is_pull:
         for review in gh_list(f"repos/{repo}/pulls/{number}/reviews"):
@@ -457,13 +462,15 @@ def comment_items(repo: str, number: int, is_pull: bool) -> list[tuple[str, int,
             state = review["state"].lower().replace("_", " ")
             if state == "commented" and not clean_body(review["body"]):
                 continue  # only a container for the inline comments listed below
-            heading = f"Review by {review['user']['login']} on {when(review['submitted_at'])}: {state}"
+            heading = f"Review by {login(review)} on {when(review['submitted_at'])}: {state}"
             items.append((review["submitted_at"], review["id"], heading, review["body"]))
         for comment in gh_list(f"repos/{repo}/pulls/{number}/comments"):
-            line = comment.get("line") or comment.get("original_line")
+            # The original line does not move when later commits shift the diff,
+            # so the heading (and the section hash) stays the same.
+            line = comment.get("original_line") or comment.get("line")
             place = f"`{comment['path']}`" + (f" line {line}" if line else "")
             kind = "Reply" if comment.get("in_reply_to_id") else "Review comment"
-            heading = f"{kind} by {comment['user']['login']} on {when(comment['created_at'])} ({place})"
+            heading = f"{kind} by {login(comment)} on {when(comment['created_at'])} ({place})"
             items.append((comment["created_at"], comment["id"], heading, comment["body"]))
     return sorted(items)
 
@@ -474,7 +481,7 @@ def render_github_source(issue: dict, items: list[tuple[str, int, str, str]]) ->
     parts = [
         f"# {issue['title']} (#{issue['number']})\n\n",
         f"- {kind}: {issue['html_url']}\n",
-        f"- Opened by {issue['user']['login']} on {when(issue['created_at'])}\n",
+        f"- Opened by {login(issue)} on {when(issue['created_at'])}\n",
         f"- State: {issue['state']}\n\n",
         "## Description\n\n",
         (clean_body(issue["body"]) or "_No description provided._\n") + "\n",
