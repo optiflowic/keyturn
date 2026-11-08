@@ -52,7 +52,7 @@ The error from closing the database at shutdown was ignored, so a failed final w
 | T-3 | yes | none | 12-character minimum; atomic counter and 15-minute block; `TestSignInBlockedAfterFiveFailures`; F-2 fixed |
 | T-4 | yes | none | no `dangerouslySetInnerHTML` (lint rule passes); `HttpOnly` cookie; `TestCreateTaskKeepsTitleAsTyped` |
 | T-5 | yes | none | Argon2id with a random salt in `api/internal/account/password.go`; session tokens stored as SHA-256 |
-| T-6 | partly | accepted: [decision card 2](../client/decision-card-2.md) | a blocked account's existing sessions keep working; `TestSessionWorksWhileBlocked`. Repeated blocking is not prevented; the client accepted it, and it is low and only blocks new sign-ins for a while, so it qualifies |
+| T-6 | partly | accepted: [decision card 2](../client/decision-card-2.md) | a blocked account's existing sessions keep working; `TestSessionWorksWhileBlocked`. Repeated blocking is not prevented; the client accepted it on a card that offered mitigating it and described the 7-day session limit. It is low and lets no one in, so it qualifies, and T-6, its severity, and R-8 are unchanged since the answer |
 
 ### Scan triage
 

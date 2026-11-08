@@ -11,12 +11,12 @@ Someone who knows a person's email address can block that person from signing in
 
 R-8 blocks signing in to an account for 15 minutes after 5 wrong passwords, to stop password guessing. A side effect is that anyone who knows a person's email address can trigger the block on purpose, and repeat it when it ends.
 
-People who are already signed in are not affected, and the block lets no one in and shows no tasks. The person only cannot sign in on a new device, or after signing out, until the block ends. We rate this risk as low: it is an annoyance, not a way in.
+The block lets no one in and shows no tasks. People who are already signed in keep working, but a sign-in lasts 7 days (decision card 1): if someone keeps the block going that long, the person loses access on that device too, until the blocking stops. While it lasts, the person cannot sign in on a new device or after signing out. We rate this risk as low: it is an annoyance, not a way in, and locking someone out completely takes days of blocking without a break.
 
 ## Options
 
 1. **Accept the risk (recommended)**: nothing changes. The risk is listed in every delivery report, so you can change your mind later.
-2. **Also limit wrong passwords by network address**: the block would apply only to the network the wrong passwords come from, so the owner could still sign in from elsewhere. This changes R-8, needs your approval of the new requirements, and adds about a day of work. People who share one network, such as a home or an office, could still block each other.
+2. **Block by network address instead**: after 5 wrong passwords, only the network they come from is blocked, so the owner can still sign in from elsewhere. Someone guessing a password could then try from many networks, so a looser limit for the whole account is also needed (for example, 50 wrong passwords in a day). That makes guessing a little easier than now, and blocking the owner harder but still possible. This changes R-8, needs your approval of the new requirements, and adds about a day of work. People who share one network, such as a home or an office, could still block each other.
 
 ## Our recommendation
 

@@ -114,7 +114,7 @@ The most serious threat is one user reaching another user's tasks (T-1).
 
 **Mitigation**: The block stops only new sign-ins, for 15 minutes; sessions already signed in keep working, so the owner stays signed in on their own devices (7-day sessions, ADR 0003). The block is shown with the time it ends (R-8).
 
-**What is left**: Blocking again and again is not prevented, so the owner cannot sign in on a new device while someone keeps doing it. Preventing it would change R-8. The client accepted this risk on decision card 2: it is low, it lets no one in and exposes no data, and the owner stays signed in on their own devices. It is listed under "Remaining risks" in the delivery report.
+**What is left**: Blocking again and again is not prevented, so the owner cannot sign in on a new device or after signing out while someone keeps doing it. Sessions end after 7 days (ADR 0003), so blocking kept up for that long also ends the owner's existing sessions, and they lose access until it stops. Severity stays low: it lets no one in and exposes no data, and a full lockout takes days of blocking without a break. Preventing it would change R-8, and blocking by network address instead would weaken the account-wide limit against T-3, so it would need a looser account-wide limit as well. The client accepted this risk on decision card 2, which offered that change. It is listed under "Remaining risks" in the delivery report.
 
 **How it is verified**: QA API test that a signed-in session keeps working while the account is blocked (`TestSessionWorksWhileBlocked`).
 
