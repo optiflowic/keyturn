@@ -63,6 +63,8 @@ This is the only committed instructions file. If your tool reads a different fil
 - Do not open pull requests in quick succession.
 - After opening a pull request or pushing a fix, check whether CodeRabbit has posted a rate limit comment.
 - If it has, wait until the time it states has passed, then comment `@coderabbitai review` once. Do not trigger it repeatedly.
+- While you wait, work on another issue that can be worked on. Do not rely on a timer or a scheduled wake-up to come back: the session may not run while the maintainer is not talking to it.
+- If no other issue can be worked on, report when the review can be requested again, and stop.
 - If there is still no review, stop and report to the maintainer. The maintainer decides whether to merge a pull request without a review.
 
 ## Commits
