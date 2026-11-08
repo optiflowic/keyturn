@@ -329,7 +329,7 @@ Tasks are managed on GitHub so the client can follow progress without opening a 
 | Delivery unit | Pull request |
 | Gates | GitHub Actions running `gate.sh` |
 | Client-facing reports | PR description (delivery report summary and acceptance guide) |
-| Questions to the client | Issue comments that mention the client and pause the task |
+| Questions to the client | Issue comments that mention the client. Work that depends on the answer waits; the task pauses only when nothing else can be done |
 
 ### Flow
 
