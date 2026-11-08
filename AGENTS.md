@@ -21,11 +21,12 @@ This is the only committed instructions file. If your tool reads a different fil
 - `docs/adr/`: decisions about keyturn itself. Follow the rules in `docs/adr/README.md`: one decision per file, started from `template.md`, added to the index; never edit an accepted ADR, supersede it with a new one.
 - `skills/<name>/SKILL.md`: one skill per role, written to the Agent Skills standard. Frontmatter uses only `name` and `description`. A skill says what a role does (inputs, procedure, outputs), not which tool runs it. Scripts a skill needs go in `skills/<name>/scripts/`, with their tests next to them.
 - `templates/client/` and `templates/internal/`: document templates (from phase 2). Client-facing documents are written in the client's language by default; internal ones always in English.
+- `evals/requests/<name>/`: evaluation requests (from phase 2). Each has `request.md`, written as a client would write it, and may have a worked example in `example/` with every template filled in by hand. Update the example when a template changes.
 - `.claude-plugin/`: only the Claude Code plugin manifests. The repository root is the plugin root, so every other plugin file sits at the root ([ADR 0005](docs/adr/0005-repository-root-as-plugin-root.md)). Bump `version` in `plugin.json` in any pull request that changes what someone who installed the plugin can use: a skill, a script a skill runs, or a file a skill reads (such as a template once a skill uses it). Files that no skill uses yet, and documentation, do not need a bump. Installed copies update only when the version changes.
 - `adapters/<tool>/`: tool-specific parts, such as subagent definitions and permission settings (from phase 3). Everything shared stays out of `adapters/`.
 - `.github/`: issue forms, the pull request template, and the security policy.
 - `.keyturn/`: local and git-ignored: translations, fetched GitHub content, and the maintainer's plan. Never commit anything under it.
-- The other folders in "Repository Layout" in `docs/DESIGN.md` (`gates/`, `profiles/`, `evals/`, `github/`) are created in the phase that needs them, not before.
+- The other folders in "Repository Layout" in `docs/DESIGN.md` (`gates/`, `profiles/`, `github/`) are created in the phase that needs them, not before.
 
 ## Trying changes locally
 
