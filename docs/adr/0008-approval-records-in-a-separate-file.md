@@ -21,7 +21,8 @@ Approvals are recorded in `keyturn/client/approvals.md` (option 1).
 
 - The row is added when the version is sent, with the hashes of the files sent, so a change before the client answers cannot be recorded as approved.
 - The source hash is the SHA-256 of the file's bytes, which is the `sha256` value on the first line of a fresh translation of it.
-- The translation hash is the SHA-256 of the translation file the client read. A source can be retranslated without changing its hash, so the source hash alone does not identify the text the client read. The translation itself stays local and is never committed; the PM keeps that file unchanged until the version is replaced.
+- The translation hash is the SHA-256 of the translation file the client read. A source can be retranslated without changing its hash, so the source hash alone does not identify the text the client read. The translation itself stays local and is never committed; the PM keeps that file unchanged until the version is replaced, and shows that copy (after checking its hash) whenever the approved text is shown again. A new translation of the same source is not approved until the client approves it.
+- `requirements.md` is committed before it is sent, so the version sent stays in Git history.
 - A "Current status" line at the top of the file says which version is approved and current, or which one is waiting. The PM updates it, and tells the client, when the requirements change.
 
 ## Reasons

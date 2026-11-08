@@ -1,6 +1,7 @@
 <!--
 Template: approval record (client-facing). Kept by the PM in keyturn/client/approvals.md. See ADR 0008 in keyturn's docs/adr/.
 
+- Commit requirements.md before you send it, so the version sent stays in Git history even after a new version starts.
 - Add a row when you send a version for approval, newest last. Fill in "Source SHA-256" and "Translation SHA-256" at that moment, from the files you send,
   never later: requirements.md or its translation may change before the client answers.
   - "Source SHA-256": the SHA-256 of requirements.md as sent. Compute it with `shasum -a 256 keyturn/client/requirements.md` or `sha256sum keyturn/client/requirements.md`.
@@ -8,6 +9,9 @@ Template: approval record (client-facing). Kept by the PM in keyturn/client/appr
   - "Translation SHA-256": the SHA-256 of the translation file the client reads, computed the same way. Write "none" when the client reads requirements.md itself.
     Keep that translation file unchanged, outside Git (for example, a copy under .keyturn/), until the version is replaced, so the approved text can be shown again;
     its SHA-256 proves it is the text that was approved. Translations are never committed.
+    When you show the approved requirements to the client again, show that kept copy, after checking that its SHA-256 matches the row.
+    A new translation of the same source (for example, after a full retranslation) is not the approved text, even though the source hash matches:
+    show it only as a new translation, and get a new approval if it is to replace the approved one.
 - "Language" is the language the client reads, with "(translation)" or "(original)".
 - When the client answers, fill in "Answer" (approved, or not approved with what they want changed) and "Date answered". Never change anything else in a row, and never delete a row.
 - An approval is current only if its "Source SHA-256" equals the SHA-256 of the current requirements.md. Check this whenever requirements.md changes.
