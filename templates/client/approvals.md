@@ -12,6 +12,8 @@ Template: approval record (client-facing). Kept by the PM in keyturn/client/appr
 - When the client answers, fill in "Answer" (approved, or not approved with what they want changed) and "Date answered". Never change anything else in a row, and never delete a row.
 - An approval is current only if its "Source SHA-256" equals the SHA-256 of the current requirements.md. Check this whenever requirements.md changes.
   When it no longer matches, update "Current status", and tell the client that the new version needs their approval.
+- When the client reads translations, update the translation of this file (localize) every time you change it, and before telling the client,
+  so that the link from the translated requirements opens the current status.
 - Write for a client who does not read code. Write the headings and the text in the client's language, unless the project uses English-only mode.
 - Delete these comments, and every placeholder in <angle brackets>, when you fill in the template.
 -->
@@ -24,11 +26,12 @@ This file records which version of the requirements you approved, and exactly wh
 
 <!--
 One or two lines, updated by the PM whenever an answer arrives or requirements.md changes. For example:
-"Version 2 is approved and current." or "Version 1 was approved, but the requirements changed on 2026-11-20. Version 2 is waiting for your approval."
+"Version 2 is approved and current.", "Version 1 was approved, but the requirements changed on 2026-11-20. Version 2 is waiting for your approval.",
+or "You did not approve version 1. We are changing R-3 as you asked, and will send you version 2 for approval."
 -->
 
 > [!IMPORTANT]
-> <the version that is approved and current, or the version waiting for your approval and what changed>
+> <the version that is approved and current; the version waiting for your approval and what changed; or, after "not approved", what we are changing and what comes next>
 
 ## How to tell whether an approval is still current
 
