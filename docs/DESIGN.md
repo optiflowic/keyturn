@@ -82,7 +82,8 @@ Used for this repository and for projects in English-only mode.
 Mistranslation in requirements is a real risk, because the client approves what they read in their own language, not the English source.
 
 - Requirements and acceptance criteria are numbered (e.g., `R-3`, `AC-5`), and the numbers are identical in the original and the translation, so every item can be matched 1:1.
-- The approval records which translation (by source hash) the client read.
+- The approval records which translation (by source hash) the client read, in a separate approval file (`approvals.md`), so that recording it does not change the approved document. See [ADR 0008](adr/0008-approval-records-in-a-separate-file.md).
+- An approval whose source hash does not match the current document is stale, and the new version needs a new approval.
 
 #### Keeping the cost down
 
@@ -180,6 +181,7 @@ The client reads these to make decisions and to do the final check. They must be
 | design-summary.md | The main design decisions in plain language, with the reason for each and the alternatives considered. |
 | acceptance-guide.md | What the client should check by hand, in priority order, with steps and expected results. |
 | delivery-report.md | What was delivered, what was verified, what was not, and the remaining risks. |
+| approvals.md | Which version of the requirements the client approved, in which language, identified by the source hash. |
 | decision-card.md | One question to the client: the context, the options, a recommendation, and what happens if the client does not answer. |
 
 Writing rules:
@@ -476,7 +478,7 @@ gates/
                           # plus guardrail checks (protected paths, suppressions, scope)
 profiles/                 # stack profiles (one frontend + one backend first)
 templates/
-  client/                 # requirements, design summary, acceptance guide, delivery report, decision card
+  client/                 # requirements, design summary, acceptance guide, delivery report, decision card, approvals
   internal/               # design, decisions, handoff, test report, review
 adapters/
   claude/                 # agents/*.md (listed in plugin.json), recommended permission settings
