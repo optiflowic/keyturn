@@ -3,7 +3,7 @@
 Every keyturn template, filled in by hand for [the task manager request](../request.md), as the roles would fill them in. Later skills and evaluations can compare their output with it.
 
 - Nothing was built. The commits, test names, results, findings, and tool versions are illustrative: they show what each document should contain, not the result of a real run.
-- Vulnerability IDs in the example, such as `GO-0000-0001`, are made up, so they cannot be mistaken for real advisories.
+- Versions and vulnerability IDs are made up or left out. Versions of real libraries and tools are not written down, because they go out of date; the documents say where the version is pinned instead (for example, `api/go.mod` or `web/package.json`). Vulnerability IDs, such as `GO-0000-0001`, are made up, so they cannot be mistaken for real advisories.
 - The example is public, so everything is in English, including the client-facing documents (as in a project in English-only mode). The client read the requirements in a local Japanese translation made with `localize`; the translation itself is not committed.
 - The folders mirror a project that uses keyturn: `keyturn/client/` for the client, `keyturn/internal/` for the roles.
 - It shows the project at the end of delivery 1. The work was split into two deliveries so that each acceptance guide has no more than five "Must check" items: delivery 1 covers R-1 to R-4, R-7, and R-8; delivery 2 (not shown) covers R-5, R-6, and R-9.

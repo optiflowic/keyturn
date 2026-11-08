@@ -88,10 +88,10 @@ Sign-up, sign-in, and task list pages. Task titles are rendered as React text, n
 
 | Name | Version | Purpose | Serves | New | Check |
 |---|---|---|---|---|---|
-| `modernc.org/sqlite` | v1.34.1 | SQLite driver without C code | R-1, R-3 to R-6 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), BSD-3-Clause |
-| `golang.org/x/crypto` | v0.58.0 | Argon2id password hashing (`argon2` package only) | R-1, R-2 | yes | exists, maintained by the Go team, BSD-3-Clause; one OSV entry for this version (GO-0000-0001, checked 2026-11-08), in the `openpgp` package, which the app does not import; `govulncheck` must keep reporting it as not called |
-| `react`, `react-dom` | 18.3.1 | web client | R-1 to R-9 | yes | exist, maintained, no OSV entries for this version (checked 2026-11-08), MIT |
-| `vite` | 8.3.5 | builds the web client (development only) | R-1 to R-9 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), MIT. Earlier versions, such as 5.4.11, have OSV entries |
+| `modernc.org/sqlite` | pinned in `api/go.mod` | SQLite driver without C code | R-1, R-3 to R-6 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), BSD-3-Clause |
+| `golang.org/x/crypto` | pinned in `api/go.mod` | Argon2id password hashing (`argon2` package only) | R-1, R-2 | yes | exists, maintained by the Go team, BSD-3-Clause; one OSV entry for this version (GO-0000-0001, checked 2026-11-08), in the `openpgp` package, which the app does not import; `govulncheck` must keep reporting it as not called |
+| `react`, `react-dom` | pinned in `web/package.json` | web client | R-1 to R-9 | yes | exist, maintained, no OSV entries for this version (checked 2026-11-08), MIT |
+| `vite` | pinned in `web/package.json` | builds the web client (development only) | R-1 to R-9 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), MIT |
 
 No external services.
 

@@ -23,7 +23,7 @@ SQLite, through `modernc.org/sqlite` (option 1).
 
 - It fits the size of the project: a few users on one server.
 - The client has one file to back up, and nothing else to run.
-- The dependency check passed: the package exists, is actively maintained, has no OSV entries for v1.34.1 (checked 2026-11-08), and uses the BSD-3-Clause license.
+- The dependency check passed: the package exists, is actively maintained, has no OSV entries for the version pinned in `api/go.mod` (checked 2026-11-08), and uses the BSD-3-Clause license.
 
 ## Consequences
 

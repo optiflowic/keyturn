@@ -35,7 +35,7 @@ Changing, deleting, and hiding tasks (R-5, R-6, R-9) are left for delivery 2.
 
 ## How to run
 
-1. Install Go 1.23 or later and Node.js 22 or later.
+1. Install the Go version required by `api/go.mod` and the Node.js version required by `web/package.json` (its `engines` field).
 2. In `web/`, run `npm ci` and `npm run build`.
 3. In `api/`, run `go run ./cmd/server -db ./tasks.db -addr localhost:8080`.
 4. Open `http://localhost:8080` in a browser. The database file is created on first start.

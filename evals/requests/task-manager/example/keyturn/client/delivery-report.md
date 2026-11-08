@@ -54,9 +54,9 @@ R-5, R-6, and R-9 are planned for delivery 2, so that this delivery has no more 
 
 | Used for | Model or tool | Version |
 |---|---|---|
-| PM, architect, reviewer, security | Claude Opus | claude-opus-5-5 |
-| Developer, QA | Claude Sonnet | claude-sonnet-5-5 |
-| AI tool | Claude Code | 2.3.0 |
-| Go tests and checks | Go, `go vet`, `gosec`, `govulncheck` | 1.23.4, 1.23.4, 2.21.4, 1.1.4 |
-| Web tests and checks | Node.js, ESLint, Vitest, Playwright | 22.11.0, 9.15.0, 2.1.8, 1.49.1 |
-| Secret scanning | gitleaks | 8.21.2 |
+| PM, architect, reviewer, security | Claude Opus | recorded in the run log |
+| Developer, QA | Claude Sonnet | recorded in the run log |
+| AI tool | Claude Code | recorded in the run log |
+| Go tests and checks | Go, `go vet`, `gosec`, `govulncheck` | Go as pinned in `api/go.mod`; the tools as recorded in the gate log |
+| Web tests and checks | Node.js, ESLint, Vitest, Playwright | as pinned in `web/package.json` |
+| Secret scanning | gitleaks | recorded in the gate log |
