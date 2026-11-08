@@ -33,6 +33,7 @@ The most serious threat is one user reaching another user's tasks (T-1).
 - Misuse: yes, from R-7
 - Severity: high
 - Status: verified: [security review F-1 and the threat model check](security-review.md)
+- Remaining risk: none
 
 **Threat**: A signed-in user changes the task ID in a link or request to read, change, or delete a task that belongs to someone else.
 
@@ -47,6 +48,7 @@ The most serious threat is one user reaching another user's tasks (T-1).
 - Misuse: yes, from R-2
 - Severity: high
 - Status: verified: [security review](security-review.md)
+- Remaining risk: none
 
 **Threat**: A request without a valid session reads or changes tasks.
 
@@ -61,6 +63,7 @@ The most serious threat is one user reaching another user's tasks (T-1).
 - Misuse: yes, from R-8
 - Severity: high
 - Status: verified: [security review F-2 and the threat model check](security-review.md)
+- Remaining risk: none
 
 **Threat**: Someone tries many passwords for one account until one works.
 
@@ -75,6 +78,7 @@ The most serious threat is one user reaching another user's tasks (T-1).
 - Misuse: yes, from R-3
 - Severity: medium
 - Status: verified: [security review](security-review.md)
+- Remaining risk: none
 
 **Threat**: A title containing HTML or script runs in the page when it is shown.
 
@@ -89,6 +93,7 @@ The most serious threat is one user reaching another user's tasks (T-1).
 - Misuse: no
 - Severity: medium
 - Status: verified: [security review](security-review.md)
+- Remaining risk: none
 
 **Threat**: Someone who copies the database file guesses the passwords offline, at high speed.
 
@@ -103,10 +108,13 @@ The most serious threat is one user reaching another user's tasks (T-1).
 - Misuse: yes, from R-8
 - Severity: low
 - Status: verified: [security review threat model check](security-review.md)
+- Remaining risk: accepted on 2026-11-08: [decision card 2](../client/decision-card-2.md)
 
 **Threat**: Someone who knows another person's email address types 5 wrong passwords, again and again, so the owner cannot sign in.
 
-**Mitigation**: The block stops only new sign-ins, for 15 minutes; sessions already signed in keep working, so the owner stays signed in on their own devices (7-day sessions, ADR 0003). The block is shown with the time it ends (R-8). Repeated blocking is not prevented; it is listed under "Remaining risks" in the delivery report.
+**Mitigation**: The block stops only new sign-ins, for 15 minutes; sessions already signed in keep working, so the owner stays signed in on their own devices (7-day sessions, ADR 0003). The block is shown with the time it ends (R-8).
+
+**What is left**: Blocking again and again is not prevented, so the owner cannot sign in on a new device while someone keeps doing it. Preventing it would change R-8. The client accepted this risk on decision card 2: it is low, it lets no one in and exposes no data, and the owner stays signed in on their own devices. It is listed under "Remaining risks" in the delivery report.
 
 **How it is verified**: QA API test that a signed-in session keeps working while the account is blocked (`TestSessionWorksWhileBlocked`).
 

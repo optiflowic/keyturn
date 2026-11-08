@@ -44,7 +44,7 @@ R-5, R-6, and R-9 are planned for delivery 2, so that this delivery has no more 
 
 - No way to reset a forgotten password (out of scope): a person who forgets their password loses access to their tasks. You can ask us to add it later.
 - If someone gets a copy of the database file, they can read everyone's tasks, and could try to guess passwords from it slowly. Keep the server and its backups private.
-- Someone who knows a person's email address can type wrong passwords on purpose to stop that person from signing in for 15 minutes, again and again. People already signed in are not affected. If this happens, tell us: limiting it by network address would change R-8, so it needs your approval.
+- Someone who knows a person's email address can type wrong passwords on purpose to stop that person from signing in for 15 minutes, again and again. People already signed in are not affected. You accepted this risk on 2026-11-08 ([decision card 2](decision-card-2.md)). If it happens, or you change your mind, tell us: we can also limit wrong passwords by network address, which changes R-8 and needs your approval.
 
 ## Guardrails triggered
 

@@ -45,14 +45,14 @@ The error from closing the database at shutdown was ignored, so a failed final w
 
 ### Threat model check
 
-| Threat | Mitigation implemented | Evidence |
-|---|---|---|
-| T-1 | yes | every query in `api/internal/task/` includes `user_id`; `TestOtherUserTaskIsNotFound`; F-1 fixed |
-| T-2 | yes | session middleware on every `/api/` route except sign-up and sign-in; `TestTasksNeedSession` |
-| T-3 | yes | 12-character minimum; atomic counter and 15-minute block; `TestSignInBlockedAfterFiveFailures`; F-2 fixed |
-| T-4 | yes | no `dangerouslySetInnerHTML` (lint rule passes); `HttpOnly` cookie; `TestCreateTaskKeepsTitleAsTyped` |
-| T-5 | yes | Argon2id with a random salt in `api/internal/account/password.go`; session tokens stored as SHA-256 |
-| T-6 | yes | a blocked account's existing sessions keep working; `TestSessionWorksWhileBlocked`; repeated blocking is a known remaining risk |
+| Threat | Mitigation implemented | Remaining risk | Evidence |
+|---|---|---|---|
+| T-1 | yes | none | every query in `api/internal/task/` includes `user_id`; `TestOtherUserTaskIsNotFound`; F-1 fixed |
+| T-2 | yes | none | session middleware on every `/api/` route except sign-up and sign-in; `TestTasksNeedSession` |
+| T-3 | yes | none | 12-character minimum; atomic counter and 15-minute block; `TestSignInBlockedAfterFiveFailures`; F-2 fixed |
+| T-4 | yes | none | no `dangerouslySetInnerHTML` (lint rule passes); `HttpOnly` cookie; `TestCreateTaskKeepsTitleAsTyped` |
+| T-5 | yes | none | Argon2id with a random salt in `api/internal/account/password.go`; session tokens stored as SHA-256 |
+| T-6 | partly | accepted: [decision card 2](../client/decision-card-2.md) | a blocked account's existing sessions keep working; `TestSessionWorksWhileBlocked`. Repeated blocking is not prevented; the client accepted it, and it is low and only blocks new sign-ins for a while, so it qualifies |
 
 ### Scan triage
 

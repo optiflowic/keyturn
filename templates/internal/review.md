@@ -58,12 +58,16 @@ Leave the section with "None." when there are no findings.
 
 <!--
 One row per threat in threat-model.md: is the mitigation implemented, and what evidence shows it (a test, a code location, a manual check).
-A threat whose mitigation is not implemented, or only partly, is a high-severity finding above.
+"Remaining risk" is copied from the threat model: none, waiting for the client, or accepted (with the decision card).
+A threat whose mitigation is not implemented, or only partly, is a high-severity finding above, unless the client accepted what is left on an answered decision card.
+Before counting a risk as accepted, check that the threat is low, and that it could not let anyone get in, get more rights, or read, change, or delete data they should not,
+and does not come through a dependency or an external service. If any of these does not hold, the acceptance does not count: report a high-severity finding.
+A card that is still waiting does not count as accepted.
 -->
 
-| Threat | Mitigation implemented | Evidence |
-|---|---|---|
-| T-<n> | <yes \| no \| partly> | <evidence> |
+| Threat | Mitigation implemented | Remaining risk | Evidence |
+|---|---|---|---|
+| T-<n> | <yes \| no \| partly> | <none \| waiting: card \| accepted: card> | <evidence> |
 
 ### Scan triage
 
