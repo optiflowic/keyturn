@@ -53,4 +53,3 @@ An accepted risk is accepted only as it was described. If its severity, its thre
 - `templates/client/delivery-report.md`: "Remaining risks" lists every accepted risk, with the card and the date it was accepted.
 - The worked example gets a second decision card, in which the client accepts the repeated blocking left over from T-6.
 - The `security-review` skill (phase 3) confirms the severity, checks the conditions, and treats a card that has not been answered as "not accepted": delivery stays blocked until it is answered or the threat is mitigated.
-- If 2a is chosen instead, T-6 cannot be accepted: the example would need a mitigation for repeated blocking, which changes R-8 and needs a new approval of the requirements.
