@@ -18,7 +18,7 @@ See "Documents" in [`docs/DESIGN.md`](../docs/DESIGN.md).
 | [`client/acceptance-guide.md`](client/acceptance-guide.md) | PM | What the client checks by hand at delivery, in priority order, with steps and expected results. Each check names the `AC-n` it covers and is "Must check" (around five at most) or "Optional". |
 | [`client/delivery-report.md`](client/delivery-report.md) | PM | What was delivered, what was verified and by whom (gate, QA, security, review), what was not verified, the remaining risks, triggered guardrails, and the models and tools used. |
 | [`client/decision-card.md`](client/decision-card.md) | Any role | One question to the client: the context, the options, a recommendation, and what happens if the client does not answer. Short enough to answer in a few minutes. |
-| [`client/approvals.md`](client/approvals.md) | PM | Which version of the requirements the client approved, in which language, and the source SHA-256 of what they read. An approval whose hash no longer matches `requirements.md` is stale. |
+| [`client/approvals.md`](client/approvals.md) | PM | Which version of the requirements the client approved, in which language, and the SHA-256 of the source and of the translation they read, recorded when the version was sent. A "Current status" line says when an approval has gone stale. |
 
 ## Internal templates
 
