@@ -11,9 +11,11 @@ Template: requirements (client-facing). Filled in by the PM.
 
 # Requirements: <name of what is being built>
 
-<!-- "Status" stops at "waiting for approval". Whether this version is approved is recorded in approvals.md. -->
+<!-- "Status" stops at "waiting for approval". Keep the sentence below it: the file is not changed after it is sent, so the client needs to know where the current state is. -->
 
 Status: <draft | waiting for approval>
+
+This status, and "What you need to do", describe this version as it was sent to you. Whether it is approved, and what to do now, is in [approvals.md](approvals.md).
 
 ## Summary
 
