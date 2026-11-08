@@ -73,6 +73,7 @@ This is the only committed instructions file. If your tool reads a different fil
 - Write the summary in the imperative mood, lowercase, without a trailing period (e.g., `feat(localize): add hash-based cache for translations`).
 - Keep each commit to one logical change. Mark breaking changes with `!` and a `BREAKING CHANGE:` footer.
 - Work on a branch per issue (e.g., `feat/12-localize-skill`) and merge through a pull request. Do not push directly to `main`.
+- If a pull request conflicts with `main`, merge `main` into the work branch and resolve the conflict there. Do not rebase a pushed branch: that needs a force push. Pull requests are squash-merged, so the merge commit never reaches `main`'s history.
 
 ## Language
 
