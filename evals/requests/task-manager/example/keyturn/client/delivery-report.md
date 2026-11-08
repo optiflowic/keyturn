@@ -31,7 +31,7 @@ R-5, R-6, and R-9 are planned for delivery 2, so that this delivery has no more 
 |---|---|---|---|---|
 | Automated tests, code style, and security scans | Automated checks | ran 38 tests, the code style checks for both parts of the app, a scan for known security mistakes, a scan of every component for known problems, and a scan for leaked passwords | all pass; one ignored error was fixed, and one false alarm about a test value was explained by the security reviewer | gate log (not part of this example) |
 | Behavior matches the requirements | Independent tester | automated tests written from the requirements only, without seeing the code | all 5 acceptance criteria of this delivery pass | [test report](../internal/test-report.md) |
-| Security issues tools cannot find | Security reviewer | tried to reach another account's tasks, tried many wrong passwords at the same moment, and checked every threat we listed | two serious problems were found and fixed; every listed threat is now prevented | [security review](../internal/security-review.md) |
+| Security issues tools cannot find | Security reviewer | tried to reach another account's tasks, tried many wrong passwords at the same moment, and checked every threat we listed | two serious problems were found and fixed; every listed threat now has a protection in place | [security review](../internal/security-review.md) |
 | The code follows the design and is easy to maintain | Code reviewer | read the changes against the design and the coding conventions | two problems were found and fixed | [code review](../internal/review.md) |
 
 ## What was not verified

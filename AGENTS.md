@@ -31,6 +31,7 @@ This is the only committed instructions file. If your tool reads a different fil
 ## Trying changes locally
 
 - Load the plugin from your working copy for one session: `claude --plugin-dir .` (Claude Code). This uses your edits without installing anything.
+- Try a template change on the worked example in `evals/requests/task-manager/example/`: fill in the changed part there as the role would, and check that it still reads well for someone who does not read code.
 - Try `localize` on this repository: ask for a document, issue, or pull request in another language (for example, "Translate docs/DESIGN.md into Japanese"). The translation is written under `.keyturn/i18n/<lang>/`, and `git status` must stay clean.
 
 ## Before opening a pull request
@@ -39,6 +40,7 @@ This is the only committed instructions file. If your tool reads a different fil
 - If you changed `.claude-plugin/` or anything under `skills/`, run `claude plugin validate --strict .` and make sure it passes.
 - Check that nothing under `.keyturn/` and no tool-specific instructions file (such as a local symbolic link to `AGENTS.md`) is staged.
 - Check that links in the Markdown you changed point to files that exist.
+- If you changed a template, update the worked example in `evals/requests/*/example/` in the same pull request. If you changed an example's `requirements.md`, its approval in `approvals.md` is stale: record a new one with the new hashes.
 - Write what you ran, and the result, under "How It Was Verified" in the pull request.
 
 ## Task management
@@ -82,4 +84,4 @@ This is the only committed instructions file. If your tool reads a different fil
 
 ## Keeping this file current
 
-This file describes the repository as of phase 1. When a phase adds a folder, a tool, or a check, update "Where things live", "Trying changes locally", and "Before opening a pull request" in the same pull request.
+This file describes the repository as of phase 2. When a phase adds a folder, a tool, or a check, update "Where things live", "Trying changes locally", and "Before opening a pull request" in the same pull request.

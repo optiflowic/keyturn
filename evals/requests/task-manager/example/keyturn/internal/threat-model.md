@@ -78,7 +78,7 @@ The most serious threat is one user reaching another user's tasks (T-1).
 
 **Threat**: A title containing HTML or script runs in the page when it is shown.
 
-**Mitigation**: Titles are rendered as React text, never as HTML (R-3); the session cookie is `HttpOnly`, so even injected code could not read it ([ADR 0003](adr/0003-password-sign-in-with-server-sessions.md)). Only the owner sees their titles (R-7).
+**Mitigation**: Titles are rendered as React text, never as HTML (R-3); the session cookie is `HttpOnly`, so injected code could not read it and take the session elsewhere (it could still send requests from the open page, so rendering titles as text is the main mitigation) ([ADR 0003](adr/0003-password-sign-in-with-server-sessions.md)). Only the owner sees their titles (R-7).
 
 **How it is verified**: AC-3; the gate's frontend lint rule that forbids `dangerouslySetInnerHTML`.
 
@@ -90,7 +90,7 @@ The most serious threat is one user reaching another user's tasks (T-1).
 - Severity: medium
 - Status: verified: [security review](security-review.md)
 
-**Threat**: Someone who copies the database file recovers the passwords.
+**Threat**: Someone who copies the database file guesses the passwords offline, at high speed.
 
 **Mitigation**: Passwords are stored only as Argon2id hashes with a random salt; session tokens are stored only as SHA-256 hashes ([ADR 0003](adr/0003-password-sign-in-with-server-sessions.md)).
 

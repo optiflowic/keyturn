@@ -31,7 +31,7 @@ You agreed to the two decisions that needed your agreement: where the data is ke
 - A separate database server (PostgreSQL): made for many users, but you would have to install, run, and back up a second program.
 - Plain files: no extra component, but two changes at the same moment could overwrite each other.
 
-**What it means for you**: To back up the app, you copy one file. We checked the extra component: it is maintained, has no known security problems, and its license lets you use it freely.
+**What it means for you**: To back up the app, you stop it and copy one file (copying it while the app runs can give a damaged copy). We checked the extra component: it is maintained, has no known security problems, and its license lets you use it freely.
 
 **If you do not answer**: We do not start storing accounts or tasks (R-1, R-3 to R-6), so no work on the app itself starts.
 
@@ -41,9 +41,9 @@ You agreed to the two decisions that needed your agreement: where the data is ke
 - Serves: R-1, R-2, R-7, R-8
 - Decision record (the full details): [decision record 0003](../internal/adr/0003-password-sign-in-with-server-sessions.md)
 
-**What we decided**: When a person signs in, the server remembers the sign-in for 7 days, or until they sign out. Passwords are stored in a scrambled form that cannot be turned back into the password. This uses one extra component from the team that makes the Go programming language.
+**What we decided**: When a person signs in, the server remembers the sign-in for 7 days, or until they sign out. Passwords are stored only in a scrambled form that is slow to check, so guessing them from a copied database is very hard, though a weak password can still be guessed. This uses one extra component from the team that makes the Go programming language.
 
-**Why**: Signing out takes effect at once, and a copied database does not reveal anyone's password.
+**Why**: Signing out takes effect at once, and someone who copies the database would have to guess each password, which the scrambled form makes slow.
 
 **Other options we considered**:
 

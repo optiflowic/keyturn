@@ -13,7 +13,7 @@ Changing, deleting, and hiding tasks (R-5, R-6, R-9) are left for delivery 2.
 ## What was done
 
 - Accounts and sessions: sign-up with the 12-character minimum, Argon2id hashing, sign-in, sign-out, 7-day sessions, and the 5-attempt block (R-1, R-2, R-8)
-- Tasks: create and list, filtered by the session's user ID (R-3, R-4, R-7)
+- Tasks: create, list, and view one task (`GET /api/tasks/{id}`), filtered by the session's user ID (R-3, R-4, R-7)
 - Storage: schema for `users`, `sessions`, and `tasks`, with migrations run at start-up (R-1, R-3, R-4)
 - HTTP server: routes, session middleware, and serving the built web client (R-1 to R-4, R-7, R-8)
 - Web client: sign-up, sign-in, and task list pages (R-1 to R-4, R-8)
@@ -26,7 +26,7 @@ Changing, deleting, and hiding tasks (R-5, R-6, R-9) are left for delivery 2.
 | R-2 | done | |
 | R-3 | done | |
 | R-4 | done | |
-| R-7 | done | for the routes in this delivery: list and create |
+| R-7 | done | for the routes in this delivery: create, list, and view one task |
 | R-8 | done | |
 
 ## What is left

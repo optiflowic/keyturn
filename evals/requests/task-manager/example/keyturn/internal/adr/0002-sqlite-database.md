@@ -27,5 +27,5 @@ SQLite, through `modernc.org/sqlite` (option 1).
 
 ## Consequences
 
-- Backing up the app means copying one file; the delivery explains how.
+- Backing up the app means copying one file while the app is stopped, or using SQLite's online backup; copying it while the app runs can give a damaged copy, and recent changes may still be in the `-wal` file. The delivery explains how.
 - If the app ever needs many users or several servers, a move to PostgreSQL needs a new ADR and a data migration.

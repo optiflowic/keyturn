@@ -7,7 +7,7 @@
 
 ## Context
 
-People sign up and sign in with an email address and a password (R-1, R-2), and every request must be tied to one person so that tasks stay private (R-7). This is a change to authentication, which always needs the client's approval. Passwords must be stored so that a stolen database does not reveal them.
+People sign up and sign in with an email address and a password (R-1, R-2), and every request must be tied to one person so that tasks stay private (R-7). This is a change to authentication, which always needs the client's approval. Passwords must be stored so that a stolen database makes them as slow to guess as possible.
 
 ## Options considered
 
@@ -22,7 +22,8 @@ Sessions stored on the server, with an `HttpOnly`, `Secure`, `SameSite=Lax` cook
 ## Reasons
 
 - Signing out works immediately, which the client can check by hand (AC-1).
-- Neither the cookie nor the password hashes can be used if the page is attacked with injected code or the database is copied.
+- Injected code in the page cannot read the session cookie, so it cannot take the session elsewhere. It can still send requests from the victim's open page while it runs, which is why titles are never rendered as HTML (threat T-4).
+- A copied database gives only Argon2id hashes, which make each password guess slow. Weak passwords can still be guessed, which is why passwords need at least 12 characters (R-1).
 - The dependency check passed: `golang.org/x/crypto` exists, is maintained by the Go team, has no known vulnerabilities in the version used, and uses the BSD-3-Clause license.
 
 ## Consequences

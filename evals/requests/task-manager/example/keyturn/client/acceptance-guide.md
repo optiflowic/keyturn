@@ -16,7 +16,7 @@ There are 5 "Must check" items and no optional ones. The check takes about 20 mi
 
 1. Start the app on your computer by following "Try it on your computer" in the project's README. It takes one command.
 2. Open `http://localhost:8080` in your web browser.
-3. Have two email addresses ready for two test accounts. They do not need to be real: no email is sent.
+3. Have four different email addresses ready, one for each test account below. They do not need to be real: no email is sent.
 
 ## Must check
 
@@ -56,7 +56,7 @@ Expected result: in step 3 you are not signed in, and the page says when you can
 
 Steps:
 
-1. Sign up with a new email address and a password of 12 or more characters.
+1. Sign up with your third email address and a password of 12 or more characters.
 2. Sign out.
 3. Open `http://localhost:8080/tasks`.
 4. Sign in with the same email address and password.
@@ -82,7 +82,7 @@ Expected result: the task appears in your list with the title `<b>Buy milk</b>`,
 
 Steps:
 
-1. Sign out, and sign up with a new email address and the 11-character password `abcdefghijk`.
+1. Sign out, and sign up with your fourth email address and the 11-character password `abcdefghijk`.
 
 Expected result: no account is created, and the page says the password must be at least 12 characters long.
 
