@@ -29,7 +29,7 @@ R-5, R-6, and R-9 are planned for delivery 2, so that this delivery has no more 
 
 | Check | Done by | How | Result | Details |
 |---|---|---|---|---|
-| Automated tests, code style, and security scans | Automated checks | ran 38 tests, the code style checks for both parts of the app, a scan for known security mistakes, a scan of every component for known problems, and a scan for leaked passwords | all pass; one ignored error was fixed, and one false alarm about a test value was explained by the security reviewer | gate log (not part of this example) |
+| Automated tests, code style, and security scans | Automated checks | ran 39 tests, the code style checks for both parts of the app, a scan for known security mistakes, a scan of every component for known problems, and a scan for leaked passwords | all pass; one ignored error was fixed, and one false alarm about a test value was explained by the security reviewer | gate log (not part of this example) |
 | Behavior matches the requirements | Independent tester | automated tests written from the requirements only, without seeing the code | all 5 acceptance criteria of this delivery pass | [test report](../internal/test-report.md) |
 | Security issues tools cannot find | Security reviewer | tried to reach another account's tasks, tried many wrong passwords at the same moment, and checked every threat we listed | two serious problems were found and fixed; every listed threat now has a protection in place | [security review](../internal/security-review.md) |
 | The code follows the design and is easy to maintain | Code reviewer | read the changes against the design and the coding conventions | two problems were found and fixed | [code review](../internal/review.md) |
@@ -43,7 +43,8 @@ R-5, R-6, and R-9 are planned for delivery 2, so that this delivery has no more 
 ## Remaining risks
 
 - No way to reset a forgotten password (out of scope): a person who forgets their password loses access to their tasks. You can ask us to add it later.
-- If someone gets a copy of the database file, they can read everyone's tasks (passwords stay protected). Keep the server and its backups private.
+- If someone gets a copy of the database file, they can read everyone's tasks, and could try to guess passwords from it slowly. Keep the server and its backups private.
+- Someone who knows a person's email address can type wrong passwords on purpose to stop that person from signing in for 15 minutes, again and again. People already signed in are not affected. If this happens, tell us: limiting it by network address would change R-8, so it needs your approval.
 
 ## Guardrails triggered
 

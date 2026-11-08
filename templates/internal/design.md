@@ -65,7 +65,7 @@ Leave the section with "No stored data." when there is none.
 Every dependency and external service the work adds or relies on.
 - A new dependency or a new external service always needs the client's approval before it is used, and is listed in design-summary.md.
 - Every new dependency is checked for existence, maintenance status, known vulnerabilities, and license, and the result is recorded in "Check".
-- "New" is no for a dependency the project already has, or one the stack profile includes by default (write "no: <profile>"). Everything else is new.
+- "New" is no only for a dependency the project already has. A dependency the stack profile suggests is still new the first time the project adds it, and needs the approval and the check.
 Leave the section with "None." when there are none.
 -->
 

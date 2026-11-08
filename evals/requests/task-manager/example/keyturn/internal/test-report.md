@@ -19,7 +19,7 @@ No failures in the final run.
 | AC-4 | R-7 | pass | `api/internal/http/task_test.go`: `TestOtherUserCannotListTasks`, `TestOtherUserTaskIsNotFound` |
 | AC-5 | R-5 | not tested | |
 | AC-6 | R-6 | not tested | |
-| AC-7 | R-8 | pass | `api/internal/http/account_test.go`: `TestSignInBlockedAfterFiveFailures`, `TestBlockEndsAfterFifteenMinutes` |
+| AC-7 | R-8 | pass | `api/internal/http/account_test.go`: `TestSignInBlockedAfterFiveFailures`, `TestBlockEndsAfterFifteenMinutes`, `TestSessionWorksWhileBlocked` |
 | AC-8 | R-9 | not tested | |
 
 ## Failures
@@ -34,6 +34,6 @@ None.
 
 ## Test counts
 
-- Tests: 38 (31 Go, 7 browser)
+- Tests: 39 (32 Go, 7 browser)
 - Skipped or disabled tests: 0
 - Coverage: 84% (Go); not measured (web)

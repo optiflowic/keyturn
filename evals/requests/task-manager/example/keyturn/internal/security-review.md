@@ -52,6 +52,7 @@ The error from closing the database at shutdown was ignored, so a failed final w
 | T-3 | yes | 12-character minimum; atomic counter and 15-minute block; `TestSignInBlockedAfterFiveFailures`; F-2 fixed |
 | T-4 | yes | no `dangerouslySetInnerHTML` (lint rule passes); `HttpOnly` cookie; `TestCreateTaskKeepsTitleAsTyped` |
 | T-5 | yes | Argon2id with a random salt in `api/internal/account/password.go`; session tokens stored as SHA-256 |
+| T-6 | yes | a blocked account's existing sessions keep working; `TestSessionWorksWhileBlocked`; repeated blocking is a known remaining risk |
 
 ### Scan triage
 

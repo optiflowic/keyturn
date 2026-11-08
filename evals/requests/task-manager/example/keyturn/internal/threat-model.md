@@ -96,6 +96,20 @@ The most serious threat is one user reaching another user's tasks (T-1).
 
 **How it is verified**: Security review of the account service and the schema.
 
+### T-6: Locking another person out on purpose
+
+- Entry point: `POST /api/signin`
+- Asset: the owner's access to their tasks
+- Misuse: yes, from R-8
+- Severity: low
+- Status: verified: [security review threat model check](security-review.md)
+
+**Threat**: Someone who knows another person's email address types 5 wrong passwords, again and again, so the owner cannot sign in.
+
+**Mitigation**: The block stops only new sign-ins, for 15 minutes; sessions already signed in keep working, so the owner stays signed in on their own devices (7-day sessions, ADR 0003). The block is shown with the time it ends (R-8). Repeated blocking is not prevented; it is listed under "Remaining risks" in the delivery report.
+
+**How it is verified**: QA API test that a signed-in session keeps working while the account is blocked (`TestSessionWorksWhileBlocked`).
+
 ## Out of scope
 
 - Attacks on the server, its operating system, or its network: the client runs the server (Requirements: Out of scope).

@@ -7,7 +7,7 @@ Based on requirements version 1.
 ## Summary
 
 The app is one program that serves the pages and keeps the data in a single file on your server. People sign in with an email address and a password, and the server checks on every request that a person only reaches their own tasks.
-You agreed to the two decisions that needed your agreement: where the data is kept, and how signing in works.
+You agreed to the three decisions that needed your agreement: where the data is kept, how signing in works, and the components the web pages are built with.
 
 ## What you need to do
 
@@ -53,6 +53,24 @@ You agreed to the two decisions that needed your agreement: where the data is ke
 **What it means for you**: People stay signed in for 7 days (you chose this in decision card 1). We checked the extra component: it is maintained, has no known security problems, and its license lets you use it freely.
 
 **If you do not answer**: We do not start on signing up, signing in, or anything that needs it (R-1, R-2, R-7, R-8).
+
+### Decision 0004: React and Vite for the web pages
+
+- Agreement: agreed
+- Serves: R-1, R-2, R-3, R-4, R-5, R-6, R-8, R-9
+- Decision record (the full details): [decision record 0004](../internal/adr/0004-react-and-vite-for-the-web-client.md)
+
+**What we decided**: The web pages are built with two widely used components from other teams: React, which draws the pages, and Vite, which prepares them for your server.
+
+**Why**: Our automatic checks fully cover them, and React shows task titles as plain text by default, which protects against harmful titles (R-3).
+
+**Other options we considered**:
+
+- Writing the pages without components: nothing extra to trust, but more code written by hand, where harmful text is most often let through by mistake, and fewer automatic checks.
+
+**What it means for you**: We checked both components: they are maintained, have no known security problems, and their license lets you use them freely.
+
+**If you do not answer**: We do not start on the web pages (everything you see in the browser).
 
 ## For information: other main decisions
 
