@@ -11,7 +11,7 @@ Someone who knows a person's email address can block that person from signing in
 
 R-8 blocks signing in to an account for 15 minutes after 5 wrong passwords, to stop password guessing. A side effect is that anyone who knows a person's email address can trigger the block on purpose, and repeat it when it ends.
 
-The block lets no one in and shows no tasks. People who are already signed in keep working, but a sign-in lasts 7 days (decision card 1): if someone keeps the block going that long, the person loses access on that device too, until the blocking stops. While it lasts, the person cannot sign in on a new device or after signing out. We rate this risk as low: it is an annoyance, not a way in, and locking someone out completely takes days of blocking without a break.
+The block lets no one in and shows no tasks. While it lasts, the person cannot sign in. Someone who is not signed in anywhere is locked out at once. Someone who is signed in keeps working until their sign-in runs out, which is 7 days after they signed in (decision card 1), so it can be soon after the blocking starts. Access comes back once the blocking stops. We rate this risk as low: it is an annoyance, not a way in, no data is lost or shown, and the person blocking must know the email address and repeat the block every 15 minutes.
 
 ## Options
 
