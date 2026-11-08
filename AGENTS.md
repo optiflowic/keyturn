@@ -21,15 +21,17 @@ This is the only committed instructions file. If your tool reads a different fil
 - `docs/adr/`: decisions about keyturn itself. Follow the rules in `docs/adr/README.md`: one decision per file, started from `template.md`, added to the index; never edit an accepted ADR, supersede it with a new one.
 - `skills/<name>/SKILL.md`: one skill per role, written to the Agent Skills standard. Frontmatter uses only `name` and `description`. A skill says what a role does (inputs, procedure, outputs), not which tool runs it. Scripts a skill needs go in `skills/<name>/scripts/`, with their tests next to them.
 - `templates/client/` and `templates/internal/`: document templates (from phase 2). Client-facing documents are written in the client's language by default; internal ones always in English.
+- `evals/requests/<name>/`: evaluation requests (from phase 2). Each has `request.md`, written as a client would write it, and may have a worked example in `example/` with every template filled in by hand. Update the example when a template changes.
 - `.claude-plugin/`: only the Claude Code plugin manifests. The repository root is the plugin root, so every other plugin file sits at the root ([ADR 0005](docs/adr/0005-repository-root-as-plugin-root.md)). Bump `version` in `plugin.json` in any pull request that changes what someone who installed the plugin can use: a skill, a script a skill runs, or a file a skill reads (such as a template once a skill uses it). Files that no skill uses yet, and documentation, do not need a bump. Installed copies update only when the version changes.
 - `adapters/<tool>/`: tool-specific parts, such as subagent definitions and permission settings (from phase 3). Everything shared stays out of `adapters/`.
 - `.github/`: issue forms, the pull request template, and the security policy.
 - `.keyturn/`: local and git-ignored: translations, fetched GitHub content, and the maintainer's plan. Never commit anything under it.
-- The other folders in "Repository Layout" in `docs/DESIGN.md` (`gates/`, `profiles/`, `evals/`, `github/`) are created in the phase that needs them, not before.
+- The other folders in "Repository Layout" in `docs/DESIGN.md` (`gates/`, `profiles/`, `github/`) are created in the phase that needs them, not before.
 
 ## Trying changes locally
 
 - Load the plugin from your working copy for one session: `claude --plugin-dir .` (Claude Code). This uses your edits without installing anything.
+- Try a template change on the worked example in `evals/requests/task-manager/example/`: fill in the changed part there as the role would, and check that it still reads well for someone who does not read code.
 - Try `localize` on this repository: ask for a document, issue, or pull request in another language (for example, "Translate docs/DESIGN.md into Japanese"). The translation is written under `.keyturn/i18n/<lang>/`, and `git status` must stay clean.
 
 ## Before opening a pull request
@@ -38,6 +40,7 @@ This is the only committed instructions file. If your tool reads a different fil
 - If you changed `.claude-plugin/` or anything under `skills/`, run `claude plugin validate --strict .` and make sure it passes.
 - Check that nothing under `.keyturn/` and no tool-specific instructions file (such as a local symbolic link to `AGENTS.md`) is staged.
 - Check that links in the Markdown you changed point to files that exist.
+- If you changed a template, update the worked example in `evals/requests/*/example/` in the same pull request. If you changed an example's `requirements.md`, its approval in `approvals.md` is stale: record a new one with the new hashes.
 - Write what you ran, and the result, under "How It Was Verified" in the pull request.
 
 ## Task management
@@ -83,4 +86,4 @@ This is the only committed instructions file. If your tool reads a different fil
 
 ## Keeping this file current
 
-This file describes the repository as of phase 1. When a phase adds a folder, a tool, or a check, update "Where things live", "Trying changes locally", and "Before opening a pull request" in the same pull request.
+This file describes the repository as of phase 2. When a phase adds a folder, a tool, or a check, update "Where things live", "Trying changes locally", and "Before opening a pull request" in the same pull request.

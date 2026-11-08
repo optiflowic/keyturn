@@ -6,6 +6,7 @@ Template: architecture decision record (internal). Filled in by the role that ma
 - Search the existing ADRs first. If an accepted ADR already covers the question, follow it instead of writing a new one.
 - Never edit an accepted ADR, except to mark it superseded. To change a decision, write a new ADR that supersedes it.
 - If the decision needs the client's agreement (cost, scope, how the client works, or a change that always needs approval), summarize it in design-summary.md.
+  It stays "proposed" until the client agrees there; nothing that depends on it starts before that.
 - Delete these comments, and every placeholder in <angle brackets>, when you fill in the template.
 -->
 
