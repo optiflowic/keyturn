@@ -50,7 +50,7 @@ You agreed to the three decisions that needed your agreement: where the data is 
 - Keeping the sign-in only in the browser: signing out could not end it at once, and it is easier to steal.
 - Signing in with an outside account (for example, Google): you asked for email and password, and it would send sign-ins to an outside company.
 
-**What it means for you**: People stay signed in for 7 days (you chose this in decision card 1). We checked the extra component: it is maintained, has no known security problems, and its license lets you use it freely.
+**What it means for you**: People stay signed in for 7 days (you chose this in decision card 1). We checked the extra component: it is maintained, and its license lets you use it freely. It has one known security problem, in a part the app does not use; our automatic checks confirm that it stays unused.
 
 **If you do not answer**: We do not start on signing up, signing in, or anything that needs it (R-1, R-2, R-7, R-8).
 
@@ -68,7 +68,7 @@ You agreed to the three decisions that needed your agreement: where the data is 
 
 - Writing the pages without components: nothing extra to trust, but more code written by hand, where harmful text is most often let through by mistake, and fewer automatic checks.
 
-**What it means for you**: We checked both components: they are maintained, have no known security problems, and their license lets you use them freely.
+**What it means for you**: We checked both components: they are maintained, the versions we use have no known security problems, and their license lets you use them freely.
 
 **If you do not answer**: We do not start on the web pages (everything you see in the browser).
 

@@ -24,7 +24,7 @@ Sessions stored on the server, with an `HttpOnly`, `Secure`, `SameSite=Lax` cook
 - Signing out works immediately, which the client can check by hand (AC-1).
 - Injected code in the page cannot read the session cookie, so it cannot take the session elsewhere. It can still send requests from the victim's open page while it runs, which is why titles are never rendered as HTML (threat T-4).
 - A copied database gives only Argon2id hashes, which make each password guess slow. Weak passwords can still be guessed, which is why passwords need at least 12 characters (R-1).
-- The dependency check passed: `golang.org/x/crypto` exists, is maintained by the Go team, has no known vulnerabilities in the version used, and uses the BSD-3-Clause license.
+- The dependency check passed: `golang.org/x/crypto` v0.58.0 exists, is maintained by the Go team, and uses the BSD-3-Clause license. Its one OSV entry (GO-2026-5932, checked 2026-11-08) is in the `openpgp` package, which the app does not import; only the `argon2` package is used, and `govulncheck` reports the entry as not called.
 
 ## Consequences
 

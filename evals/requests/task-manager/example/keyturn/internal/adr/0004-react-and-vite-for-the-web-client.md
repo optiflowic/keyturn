@@ -16,13 +16,13 @@ The web client needs sign-up, sign-in, and task pages that call the Go API. The 
 
 ## Decision
 
-React 18 with Vite 5, following the `react-spa` profile (option 1).
+React 18.3.1 with Vite 8.3.5, following the `react-spa` profile (option 1).
 
 ## Reasons
 
 - The gate fully covers the profile, so the web client is checked like the API.
 - Rendering titles as text is the default, which is the main mitigation for T-4.
-- The dependency check passed for all three: they exist, are actively maintained, have no OSV entries for the versions used, and use the MIT license.
+- The dependency check passed for all three: they exist, are actively maintained, have no OSV entries for the versions chosen (checked 2026-11-08), and use the MIT license. Older Vite versions (for example, 5.4.11) have OSV entries, so the version is part of the decision.
 
 ## Consequences
 
