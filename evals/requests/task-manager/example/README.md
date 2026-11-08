@@ -27,7 +27,7 @@ Every keyturn template, filled in by hand for [the task manager request](../requ
 
 ## Checking the approval record
 
-[`approvals.md`](keyturn/client/approvals.md) records the SHA-256 of `requirements.md` as the client approved it, which is also the `sha256` on the first line of the Japanese translation. To check that the approval is still current, from the repository root:
+[`approvals.md`](keyturn/client/approvals.md) records two hashes, taken when version 1 was sent: the SHA-256 of `requirements.md` (also the `sha256` on the first line of the Japanese translation), and the SHA-256 of the translation file the client read. The translation is kept only locally, so only the first one can be checked from this repository. To check that the approval is still current, from the repository root:
 
 ```sh
 shasum -a 256 evals/requests/task-manager/example/keyturn/client/requirements.md

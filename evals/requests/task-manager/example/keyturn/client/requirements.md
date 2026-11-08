@@ -2,6 +2,8 @@
 
 Status: waiting for approval
 
+This status, and "What you need to do", describe this version as it was sent to you. Whether it is approved, and what to do now, is in [approvals.md](approvals.md).
+
 ## Summary
 
 A to-do list web app for you and a few friends. Each person signs up, signs in, and keeps a private list of tasks that nobody else can see or change.
