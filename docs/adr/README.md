@@ -23,3 +23,4 @@ See "Architecture decision records" in [`docs/DESIGN.md`](../DESIGN.md).
 | [0006](0006-localize-helper-script.md) | A Python helper script for `localize` bookkeeping | accepted |
 | [0007](0007-github-content-as-local-source-files.md) | GitHub content is translated as local source files | accepted |
 | [0008](0008-approval-records-in-a-separate-file.md) | Approval records live in a separate file | accepted |
+| [0011](0011-task-state-file.md) | The task state file is a Markdown file with fixed fields | proposed |
