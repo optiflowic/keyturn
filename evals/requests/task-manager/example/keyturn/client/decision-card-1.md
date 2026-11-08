@@ -23,7 +23,7 @@ After signing in, people stay signed in until they sign out or until the sign-in
 
 ## If you do not answer
 
-We keep building the parts that do not depend on it. Signing in (R-2) is not finished until you answer: how sign-in works always needs your approval, so we do not choose for you.
+We keep building the parts that do not depend on it. Signing in (R-2) is not finished until you answer: we never choose for you, not even our recommendation.
 
 ## Your answer
 
