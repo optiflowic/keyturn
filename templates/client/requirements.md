@@ -4,12 +4,18 @@ Template: requirements (client-facing). Filled in by the PM.
 - Write for a client who does not read code: no code, no unexplained jargon.
 - Write in the client's language, unless the project uses English-only mode.
 - Keep every ID (R-n, AC-n) exactly as it is, in every language.
+- Once a version is sent for approval, do not change this file, not even "Status" or "What you need to do".
+  The approval is recorded in approvals.md by the file's SHA-256, so any edit makes it stale. A change starts a new version (see Changelog).
 - Delete these comments, and every placeholder in <angle brackets>, when you fill in the template.
 -->
 
 # Requirements: <name of what is being built>
 
-Status: <draft | waiting for approval | approved>
+<!-- "Status" stops at "waiting for approval". Keep the sentence below it: the file is not changed after it is sent, so the client needs to know where the current state is. -->
+
+Status: <draft | waiting for approval>
+
+This status, and "What you need to do", describe this version as it was sent to you. Whether it is approved, and what to do now, is in [approvals.md](approvals.md).
 
 ## Summary
 
@@ -83,7 +89,10 @@ Add this as a requirement.
 
 ## Changelog
 
-<!-- One row per approved version. Version 1 is the first one the client approves. -->
+<!--
+One row per version sent for approval. Version 1 is the first one.
+Add the row before sending the version for approval: the client approves the file as it is, with this row in it.
+-->
 
 | Version | Date | Change |
 |---|---|---|
