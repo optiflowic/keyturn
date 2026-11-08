@@ -59,4 +59,5 @@ The error from closing the database at shutdown was ignored, so a failed final w
 | Tool | Finding | Location | Triage | Reason |
 |---|---|---|---|---|
 | gosec | G104 (unhandled error) | `api/cmd/server/main.go:52` | real | listed as F-3 |
+| govulncheck | GO-0000-0001 | `golang.org/x/crypto` v0.58.0, `openpgp` package | false positive | the advisory is in the `openpgp` package, which the app does not import; govulncheck reports it as not called, because only the `argon2` package is used. Check again if the app ever imports `openpgp` |
 | gitleaks | generic-api-key | `api/internal/account/password_test.go:12` | false positive | a fixed test salt used only to make a test repeatable, not a secret; it is not used outside the test |
