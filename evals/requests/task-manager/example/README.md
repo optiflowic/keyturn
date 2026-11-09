@@ -37,3 +37,5 @@ shasum -a 256 evals/requests/task-manager/example/keyturn/client/requirements.md
 ```
 
 If the result differs from the row in `approvals.md`, the requirements changed after the approval, and the approval is stale.
+
+The repository's `.gitattributes` makes Git write these documents with LF in every checkout, whatever `core.autocrlf` says, so the hash is the same on every platform, as it must be in a real project ([ADR 0012](../../../../docs/adr/0012-stable-approval-hashes.md)). In the project, the PM would keep the Japanese translation the client approved next to the current translation, as `.keyturn/i18n/ja/keyturn/client/requirements.v1.approved.md`, so that its link to `approvals.md` still opens the current status.
