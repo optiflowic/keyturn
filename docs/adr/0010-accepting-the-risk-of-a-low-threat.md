@@ -1,6 +1,6 @@
 # 0010. The client may accept the risk of a low threat, on a decision card
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-11-08
 
 ## Context
@@ -13,7 +13,7 @@ The question is whether the client may accept such a risk instead of the threat 
 
 What constrains the answer:
 
-- The client decides what risk they take on; a role cannot accept a risk for them (and, as proposed in ADR 0009, an unanswered card is never decided for them).
+- The client decides what risk they take on; a role cannot accept a risk for them (and, by ADR 0009, an unanswered card is never decided for them).
 - Some changes always need the client's approval: new dependencies, new external services, changes to authentication, authorization, or data handling, and anything that deletes data ("Guardrails", 2). Threats in these areas are the ones that hurt most when they go wrong.
 - High-severity findings block delivery like a failing gate.
 - Every accepted risk has to stay visible to the client, not only on the day it was accepted.
