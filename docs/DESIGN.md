@@ -200,6 +200,7 @@ If the client is asked too often, or given too much at once, they stop reading a
 - **Keep each request small.** One request should take a few minutes to read. Each question is a short "decision card": the context, the options, a recommendation, and what happens if the client does not answer.
 - **Limit "Must check" items.** An acceptance guide has only a few "Must check" items (around five). If a delivery needs more, it is too big and must be split into smaller deliveries.
 - **Ask only when it matters.** Low-risk changes that stay within approved requirements do not need extra approval. The changes listed in Guardrails always do.
+- **No answer is not consent.** An unanswered card is never decided on the client's behalf, not even with its recommendation. Work that depends on the answer waits and everything else goes on; if nothing else can be done, the task stops with the card as an open question (see Resuming Work). See [ADR 0009](adr/0009-no-answer-is-not-consent.md).
 - Track how many requests the client receives and how long they wait, as part of the cost data.
 
 ### Internal documents
@@ -328,7 +329,7 @@ Tasks are managed on GitHub so the client can follow progress without opening a 
 | Delivery unit | Pull request |
 | Gates | GitHub Actions running `gate.sh` |
 | Client-facing reports | PR description (delivery report summary and acceptance guide) |
-| Questions to the client | Issue comments that mention the client and pause the task |
+| Questions to the client | Issue comments that mention the client. Work that depends on the answer waits; the task pauses only when nothing else can be done |
 
 ### Flow
 
