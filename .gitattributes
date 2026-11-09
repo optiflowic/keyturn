@@ -1,0 +1,2 @@
+# Client-facing documents are approved by the SHA-256 of their bytes, so every checkout must write them with LF (ADR 0012).
+evals/requests/*/example/keyturn/client/*.md text eol=lf
