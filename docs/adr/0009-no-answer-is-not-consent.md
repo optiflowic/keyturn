@@ -1,6 +1,6 @@
 # 0009. An unanswered decision card is never decided on the client's behalf
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-11-08
 
 ## Context
