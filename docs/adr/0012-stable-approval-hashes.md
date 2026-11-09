@@ -28,7 +28,8 @@ For the kept copy:
 ## Decision
 
 - Every project that uses keyturn has `keyturn/client/*.md text eol=lf` in its `.gitattributes` (line endings, option 1). The PM adds the line before it sends the first version for approval, and checks it each time.
-- Before recording a hash, the PM checks that the file sent is the committed version: its SHA-256 equals the SHA-256 of `git show HEAD:keyturn/client/requirements.md`. If not, it commits first or stops; it never records the hash of a file that differs from the commit.
+- When the PM adds the line to a project that already tracks client documents, it also runs `git add --renormalize keyturn/client/` and commits the result with the line. The attribute does not change blobs that are already committed with CRLF; renormalizing does, so no later normalization can change the bytes of an approved document.
+- Before recording a hash, the PM checks that the file sent is the committed version and has LF line endings: its SHA-256 equals the SHA-256 of `git show HEAD:keyturn/client/requirements.md`, and it contains no carriage return (CR). If not, it renormalizes and commits first, or stops; it never records the hash of a file that differs from the commit or contains CR.
 - The approved translation is kept next to the current translation, as `.keyturn/i18n/<lang>/keyturn/client/requirements.v<n>.approved.md`, unchanged (kept copy, option 1).
 
 ## Reasons

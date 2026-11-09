@@ -76,7 +76,8 @@ class CommandsTest(unittest.TestCase):
         subprocess.run(["git", "init", "-q"], cwd=self.root, check=True)
         (self.root / "docs").mkdir()
         self.source = self.root / "docs" / "GUIDE.md"
-        self.source.write_text(SOURCE, encoding="utf-8")
+        # Write bytes, not text: on Windows, write_text would turn "\n" into CRLF and the line-ending tests would compare the wrong things.
+        self.source.write_bytes(SOURCE.encode("utf-8"))
         self.work_file = self.root / ".keyturn/i18n/.work/ja/docs/GUIDE.md"
         self.target = self.root / ".keyturn/i18n/ja/docs/GUIDE.md"
 
