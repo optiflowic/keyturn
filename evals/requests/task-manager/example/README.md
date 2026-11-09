@@ -15,6 +15,7 @@ Every keyturn template, filled in by hand for [the task manager request](../requ
 | [`keyturn/client/requirements.md`](keyturn/client/requirements.md) | `templates/client/requirements.md` | PM |
 | [`keyturn/client/approvals.md`](keyturn/client/approvals.md) | `templates/client/approvals.md` | PM |
 | [`keyturn/client/decision-card-1.md`](keyturn/client/decision-card-1.md) | `templates/client/decision-card.md` | Architect |
+| [`keyturn/client/decision-card-2.md`](keyturn/client/decision-card-2.md) | `templates/client/decision-card.md` | Architect |
 | [`keyturn/client/design-summary.md`](keyturn/client/design-summary.md) | `templates/client/design-summary.md` | Architect |
 | [`keyturn/client/acceptance-guide.md`](keyturn/client/acceptance-guide.md) | `templates/client/acceptance-guide.md` | PM |
 | [`keyturn/client/delivery-report.md`](keyturn/client/delivery-report.md) | `templates/client/delivery-report.md` | PM |

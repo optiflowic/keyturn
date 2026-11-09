@@ -200,6 +200,7 @@ If the client is asked too often, or given too much at once, they stop reading a
 - **Keep each request small.** One request should take a few minutes to read. Each question is a short "decision card": the context, the options, a recommendation, and what happens if the client does not answer.
 - **Limit "Must check" items.** An acceptance guide has only a few "Must check" items (around five). If a delivery needs more, it is too big and must be split into smaller deliveries.
 - **Ask only when it matters.** Low-risk changes that stay within approved requirements do not need extra approval. The changes listed in Guardrails always do.
+- **No answer is not consent.** An unanswered card is never decided on the client's behalf, not even with its recommendation. Work that depends on the answer waits and everything else goes on; if nothing else can be done, the task stops with the card as an open question (see Resuming Work). See [ADR 0009](adr/0009-no-answer-is-not-consent.md).
 - Track how many requests the client receives and how long they wait, as part of the cost data.
 
 ### Internal documents
@@ -285,6 +286,7 @@ The developer fixes what any of them report; none of them fix the code themselve
 The security role reviews the deliverable from an attacker's point of view, in a context separate from the developer and the reviewer.
 
 - Checks the change against the architect's threat model: every listed threat must have a mitigation that is actually implemented.
+- The only exception is a risk the client accepted. The client may accept the risk of a low threat, or of the part of a threat that its mitigation does not cover, on a decision card that also offers mitigating it. The security role confirms that the threat is low. A threat that could let someone get in, get more rights, or read, change, or delete data they should not, or that comes through a dependency or an external service, is never accepted. Every accepted risk is listed under "Remaining risks" in each delivery report. See [ADR 0010](adr/0010-accepting-the-risk-of-a-low-threat.md).
 - Looks for what scanners usually miss: missing authorization checks, one user reaching another user's data, insecure handling of tokens and sessions, and abuse of business logic.
 - Triages scan results from the gate. A finding can only be marked as a false positive by the security role, with a recorded reason; the developer cannot dismiss findings.
 - Reports findings with a severity. High-severity findings block delivery like a failing gate.
@@ -329,7 +331,7 @@ Tasks are managed on GitHub so the client can follow progress without opening a 
 | Delivery unit | Pull request |
 | Gates | GitHub Actions running `gate.sh` |
 | Client-facing reports | PR description (delivery report summary and acceptance guide) |
-| Questions to the client | Issue comments that mention the client and pause the task |
+| Questions to the client | Issue comments that mention the client. Work that depends on the answer waits; the task pauses only when nothing else can be done |
 
 ### Flow
 
