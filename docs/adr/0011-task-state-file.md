@@ -26,13 +26,14 @@ Option 1. Each task has one Markdown file at `keyturn/internal/state/<task>.md`,
 
 - The fields at the top, the steps table, and their allowed values are fixed by the template. A skill writes only those values.
 - Times are in UTC, in the form `YYYY-MM-DDTHH:MMZ`.
-- The file is updated and committed at every step boundary, and when the task stops.
+- The file is updated and committed at every step boundary, and when the task stops, on the task's branch, `task/<task>`.
+- `resume` with no argument finds the tasks it can continue on every task branch, not only in the current checkout: for each local or remote branch named `task/<task>`, it reads `keyturn/internal/state/<task>.md` from that branch (for example, with `git show task/<task>:keyturn/internal/state/<task>.md`), and lists the tasks whose status is not `done`.
 
 ## Reasons
 
 - It is readable as it is, in a diff and on GitHub, and keeps the shape of the other keyturn documents.
 - Fixed field names and values make it as easy to check as a data file, with Python's standard library only (ADR 0006 keeps helper scripts that way).
-- One file per task, in its own folder, lets `resume` list the tasks it can continue by listing the folder.
+- One file per task, at a path built from the task's name, on a branch named after the task, lets `resume` find every task from the branch list alone, without a shared index that every task would have to update.
 
 ## Consequences
 
