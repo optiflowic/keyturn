@@ -45,9 +45,9 @@ Mark the recommended option.
 ## If you do not answer
 
 <!--
-What happens if there is no answer: which work waits, and what does not.
-Never choose an option on the client's behalf for anything that always needs the client's approval
-(new dependencies, new external services, changes to authentication, authorization, or data handling, anything that deletes data).
+What happens if there is no answer: which work waits for the answer, and which work goes on.
+Never choose an option on the client's behalf, not even the recommended one: the work that depends on the answer waits until the client answers.
+If nothing else can be done meanwhile, say that the work stops until the answer comes.
 -->
 
 <what happens>
