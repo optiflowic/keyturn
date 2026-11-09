@@ -25,4 +25,4 @@ See "Architecture decision records" in [`docs/DESIGN.md`](../DESIGN.md).
 | [0008](0008-approval-records-in-a-separate-file.md) | Approval records live in a separate file | accepted |
 | [0009](0009-no-answer-is-not-consent.md) | An unanswered decision card is never decided on the client's behalf | accepted |
 | [0010](0010-accepting-the-risk-of-a-low-threat.md) | The client may accept the risk of a low threat, on a decision card | accepted |
-| [0011](0011-task-state-file.md) | The task state file is a Markdown file with fixed fields | proposed |
+| [0011](0011-task-state-file.md) | The task state file is a Markdown file with fixed fields | accepted |

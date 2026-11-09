@@ -1,6 +1,6 @@
 # 0011. The task state file is a Markdown file with fixed fields
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-11-08
 
 ## Context
