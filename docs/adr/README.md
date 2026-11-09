@@ -24,3 +24,4 @@ See "Architecture decision records" in [`docs/DESIGN.md`](../DESIGN.md).
 | [0007](0007-github-content-as-local-source-files.md) | GitHub content is translated as local source files | accepted |
 | [0008](0008-approval-records-in-a-separate-file.md) | Approval records live in a separate file | accepted |
 | [0009](0009-no-answer-is-not-consent.md) | An unanswered decision card is never decided on the client's behalf | accepted |
+| [0010](0010-accepting-the-risk-of-a-low-threat.md) | The client may accept the risk of a low threat, on a decision card | accepted |

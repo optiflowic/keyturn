@@ -44,9 +44,13 @@ One heading per threat, numbered T-1, T-2, ... An ID is never changed or reused.
 - Severity is high, medium, or low. High-severity findings block delivery.
 - Every threat needs a mitigation that is implemented, and a way to verify it:
   a QA test for an acceptance criterion (AC-n), a gate check, or the security review. Say which, and what exactly is checked.
-- If a threat cannot be mitigated, stop and ask the client with a decision card (for example, whether to change the requirement that creates it),
-  and record the answer here. Until the threat has an implemented mitigation, it blocks delivery.
-- "Status" is updated by the security role: planned, implemented, or verified (with the finding that confirmed it).
+- If a threat cannot be mitigated, or its mitigation leaves part of it open, stop and ask the client with a decision card, and record the answer here.
+  The card offers mitigating it (with what that costs) or changing the requirement that creates it.
+  Accepting the risk is an option only when the threat is low and could not let anyone get in, get more rights, or read, change, or delete data they should not,
+  and does not come through a dependency or an external service. The security role confirms that it is low.
+  Until the threat is mitigated or the client has accepted what is left, it blocks delivery.
+- "Remaining risk" is what the mitigation does not cover: none, waiting for the client (with the card), or accepted (with the card and the date of the answer).
+- "Status" is updated by the security role: planned, implemented, verified (with the finding that confirmed it), or accepted (the client accepted the whole risk, so nothing is implemented).
 -->
 
 ### T-1: <short title>
@@ -55,13 +59,18 @@ One heading per threat, numbered T-1, T-2, ... An ID is never changed or reused.
 - Asset: <asset>
 - Misuse: <yes, from R-<n> | no>
 - Severity: <high | medium | low>
-- Status: <planned | implemented | verified: link to the finding>
+- Status: <planned | implemented | verified: link to the finding | accepted: link to the decision card>
+- Remaining risk: <none | waiting for the client: link to the decision card | accepted on <YYYY-MM-DD>: link to the decision card>
 
 **Threat**: <who does what, and what they gain>
 
-**Mitigation**: <what prevents it, where in the design it lives, and the requirement it comes from (R-n)>
+**Mitigation**: <what prevents it, where in the design it lives, and the requirement it comes from (R-n); or "None: the client accepted the risk.">
 
-**How it is verified**: <AC-n | gate check: which | security review: what is checked>
+<!-- Delete the paragraph below when the remaining risk is none. -->
+
+**What is left**: <what the mitigation does not prevent, and what could happen>
+
+**How it is verified**: <AC-n | gate check: which | security review: what is checked | none: the client accepted the risk>
 
 ## Out of scope
 

@@ -71,10 +71,13 @@ Never leave this section empty: if everything listed in the stack profile ran, s
 <!--
 Problems that are known but not fixed, and risks that follow from "What was not verified".
 For each: what could happen, how likely and how serious it is in plain words, and what the client can do about it.
+List every risk the client accepted on a decision card (the "Remaining risk" of a threat in the threat model), in every delivery report while the threat is in the threat model,
+with the card and the date it was accepted, so the client can change their mind.
 Leave the section with "None known." only when there is nothing to report.
 -->
 
 - <risk>: <what could happen>. <what you can do>
+- <risk you accepted>: <what could happen>. You accepted this risk on <YYYY-MM-DD> ([decision card <n>](<link>)). <what you can do if you change your mind>
 
 ## Guardrails triggered
 
