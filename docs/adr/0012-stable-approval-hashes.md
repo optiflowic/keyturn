@@ -1,6 +1,6 @@
 # 0012. Approved documents are checked out with LF, and the approved translation is kept next to the current one
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-11-09
 
 ## Context
