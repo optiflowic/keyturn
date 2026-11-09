@@ -224,6 +224,7 @@ keyturn/
   client/     # client-facing documents
   internal/   # agent-to-agent documents
     adr/      # architecture decision records
+    state/    # one state file per task (see Resuming Work)
 ```
 
 When GitHub integration is used, client-facing content also appears in issues and pull requests (see below). The files in the repository remain the source of truth. In a multi-repository project, the project-wide documents live in the home repository (see Repository Structure).
@@ -409,7 +410,7 @@ Every action leaves a record: commits, PRs, comments, gate logs, and decision re
 
 A task can stop at any point: a usage limit, a closed terminal, a crash, a question waiting for the client, or the rework limit. It must always be possible to resume it later without losing work or repeating finished steps.
 
-- **State lives outside the session.** Each task has a state file in `keyturn/internal/` recording the current step, completed steps, open questions, and why it stopped. GitHub (issue labels, PR status) reflects the same state when integration is used.
+- **State lives outside the session.** Each task has a state file, `keyturn/internal/state/<task>.md`, recording the current step, completed steps, open questions, and why it stopped ([ADR 0011](adr/0011-task-state-file.md)). GitHub (issue labels, PR status) reflects the same state when integration is used.
 - **Checkpoint at every step boundary.** When a step finishes, its outputs are written to documents and committed to the task branch, and the state file is updated. A stop never loses more than the step in progress.
 - **Steps are safe to rerun.** If a stop happens in the middle of a step, resuming reruns that step from its inputs. Steps must not depend on anything that exists only in the previous session's context.
 - **One command resumes.** A `resume` skill reads the state file and continues from the right step. With no argument, it lists the tasks that can be resumed.
@@ -481,7 +482,7 @@ gates/
 profiles/                 # stack profiles (one frontend + one backend first)
 templates/
   client/                 # requirements, design summary, acceptance guide, delivery report, decision card, approvals
-  internal/               # design, decisions, handoff, test report, review
+  internal/               # design, decisions, handoff, test report, review, task state
 adapters/
   claude/                 # agents/*.md (listed in plugin.json), recommended permission settings
   codex/                  # agents/*.toml, recommended sandbox settings

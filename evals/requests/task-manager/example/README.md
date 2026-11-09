@@ -26,6 +26,7 @@ Every keyturn template, filled in by hand for [the task manager request](../requ
 | [`keyturn/internal/test-report.md`](keyturn/internal/test-report.md) | `templates/internal/test-report.md` | QA |
 | [`keyturn/internal/review.md`](keyturn/internal/review.md) | `templates/internal/review.md` | Reviewer |
 | [`keyturn/internal/security-review.md`](keyturn/internal/security-review.md) | `templates/internal/review.md` | Security |
+| [`keyturn/internal/state/delivery-1.md`](keyturn/internal/state/delivery-1.md) | `templates/internal/state.md` | `deliver` |
 
 ## Checking the approval record
 
