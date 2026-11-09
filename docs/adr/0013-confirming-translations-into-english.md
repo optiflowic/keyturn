@@ -1,6 +1,6 @@
 # 0013. The client confirms a translation into English by reading it translated back
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-11-09
 
 ## Context
@@ -38,7 +38,7 @@ For the script: a translation into English is used once and is not kept in sync 
 
 - Confirmation option 2: for anything that changes what will be built, the client sees the English and a back-translation made from the English alone, and confirms the meaning before anything is posted or committed. If the meaning differs, the English is corrected and translated back again.
 - Requirements keep their own check: a request turned into requirements is confirmed through the approval of `requirements.md`, so the request itself needs no separate confirmation.
-- Other content (for example, a general comment) is translated and posted without a confirmation step.
+- Everything else is translated and posted without a confirmation step: a short reply, thanks, an acknowledgement, a question about progress, or a general comment. Only content that changes what will be built (an answer to a decision card, a change request, an answer to a question about the work) is translated back, so the client's attention goes only where it matters ("Client attention budget").
 - Original text option 1: the client's original goes in `.keyturn/i18n/inbound/<lang>/`, local and git-ignored, and only the English is committed or posted.
 - `localize.py` does not change. Both directions use the same glossary, `.keyturn/i18n/glossary/<lang>.md`, so a term is translated the same way both ways.
 

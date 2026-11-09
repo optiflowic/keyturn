@@ -58,7 +58,7 @@ Use this when someone writes in their own language (a request, an answer to a de
    - If it does not, correct the English (ask them what they meant if it is unclear), and translate it back again. Repeat until they confirm.
    - Record the confirmation under `## Confirmed`: the date, and their words.
    - Hand the English back only after the confirmation. Until then, nothing based on it is posted or committed.
-5. **Otherwise, hand the English back.** Content that does not change what will be built (for example, a general comment) is handed back without a back-translation.
+5. **Otherwise, hand the English back.** Content that does not change what will be built is handed back without a back-translation and without asking the writer anything: a short reply, thanks, an acknowledgement, a question about progress, or a general comment. Asking them to confirm these would only add to their load.
 6. **Update the glossary** with any term that will come up again, as in step 7 above, so both directions use it.
 
 ## Notes
