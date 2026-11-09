@@ -2,12 +2,18 @@
 Template: approval record (client-facing). Kept by the PM in keyturn/client/approvals.md. See ADR 0008 in keyturn's docs/adr/.
 
 - Commit requirements.md before you send it, so the version sent stays in Git history even after a new version starts.
+- Check two things before you record a hash (ADR 0012 in keyturn's docs/adr/), and stop if either fails:
+  - the project's .gitattributes has `keyturn/client/*.md text eol=lf`, so every checkout writes the same bytes. If the line is missing, add it,
+    run `git add --renormalize keyturn/client/` so documents already committed with CRLF are stored with LF, and commit both;
+  - the file you send is the committed version with LF line endings: its SHA-256 equals the SHA-256 of `git show HEAD:keyturn/client/requirements.md`,
+    and it contains no carriage return (CR).
 - Add a row when you send a version for approval, newest last. Fill in "Source SHA-256" and "Translation SHA-256" at that moment, from the files you send,
   never later: requirements.md or its translation may change before the client answers.
   - "Source SHA-256": the SHA-256 of requirements.md as sent. Compute it with `shasum -a 256 keyturn/client/requirements.md` or `sha256sum keyturn/client/requirements.md`.
     When you send a translation, first check that it is fresh (localize status); its first line then shows the same value as sha256.
   - "Translation SHA-256": the SHA-256 of the translation file the client reads, computed the same way. Write "none" when the client reads requirements.md itself.
-    Keep that translation file unchanged, outside Git (for example, a copy under .keyturn/), until the version is replaced, so the approved text can be shown again;
+    Keep that translation file unchanged, outside Git, next to the current translation, as .keyturn/i18n/<lang>/keyturn/client/requirements.v<n>.approved.md,
+    until the version is replaced, so the approved text can be shown again and its links (including the one to this file) still open the current translations;
     its SHA-256 proves it is the text that was approved. Translations are never committed.
     When you show the approved requirements to the client again, show that kept copy, after checking that its SHA-256 matches the row.
     A new translation of the same source (for example, after a full retranslation) is not the approved text, even though the source hash matches:

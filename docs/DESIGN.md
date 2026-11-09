@@ -84,6 +84,7 @@ Mistranslation in requirements is a real risk, because the client approves what 
 - Requirements and acceptance criteria are numbered (e.g., `R-3`, `AC-5`), and the numbers are identical in the original and the translation, so every item can be matched 1:1.
 - The approval records which translation (by source hash) the client read, in a separate approval file (`approvals.md`), so that recording it does not change the approved document. See [ADR 0008](adr/0008-approval-records-in-a-separate-file.md).
 - An approval whose source hash does not match the current document is stale, and the new version needs a new approval.
+- So that an unchanged approval stays current in every checkout, client-facing documents are always checked out with LF (`keyturn/client/*.md text eol=lf` in `.gitattributes`), and a hash is recorded only for the committed version. The approved translation is kept, unchanged, next to the current translation, so its links still work. See [ADR 0012](adr/0012-stable-approval-hashes.md).
 
 #### Keeping the cost down
 

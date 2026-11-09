@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import subprocess
@@ -75,7 +76,8 @@ class CommandsTest(unittest.TestCase):
         subprocess.run(["git", "init", "-q"], cwd=self.root, check=True)
         (self.root / "docs").mkdir()
         self.source = self.root / "docs" / "GUIDE.md"
-        self.source.write_text(SOURCE, encoding="utf-8")
+        # Write bytes, not text: on Windows, write_text would turn "\n" into CRLF and the line-ending tests would compare the wrong things.
+        self.source.write_bytes(SOURCE.encode("utf-8"))
         self.work_file = self.root / ".keyturn/i18n/.work/ja/docs/GUIDE.md"
         self.target = self.root / ".keyturn/i18n/ja/docs/GUIDE.md"
 
@@ -152,6 +154,52 @@ class CommandsTest(unittest.TestCase):
         self.first_translation()
         self.source.write_bytes(SOURCE.replace("\n", "\r\n").encode("utf-8"))
         self.assertEqual(self.run_script("status", "ja", "docs/GUIDE.md").stdout, "stale docs/GUIDE.md\n")
+
+    def recorded_source_sha(self) -> str:
+        first_line = self.target.read_text(encoding="utf-8").splitlines()[0]
+        return first_line.split('sha256="')[1][:64]
+
+    def test_lf_and_crlf_give_different_source_hashes(self):
+        # The source hash is the SHA-256 of the file's bytes (ADR 0008), so the same text with CRLF has another hash.
+        self.first_translation()
+        lf_sha = self.recorded_source_sha()
+        self.assertEqual(lf_sha, hashlib.sha256(self.source.read_bytes()).hexdigest())
+
+        self.target.unlink()
+        self.source.write_bytes(SOURCE.replace("\n", "\r\n").encode("utf-8"))
+        self.first_translation()
+        crlf_sha = self.recorded_source_sha()
+        self.assertEqual(crlf_sha, hashlib.sha256(self.source.read_bytes()).hexdigest())
+        self.assertNotEqual(lf_sha, crlf_sha)
+
+    def test_an_eol_lf_attribute_keeps_the_source_hash_in_a_crlf_checkout(self):
+        # With `eol=lf`, a checkout with core.autocrlf=true still writes LF, so the hash matches (ADR 0012).
+        git = ["git", "-c", "user.name=test", "-c", "user.email=test@example.com"]
+        (self.root / ".gitattributes").write_text("docs/*.md text eol=lf\n", encoding="utf-8")
+        subprocess.run(git + ["add", "."], cwd=self.root, check=True)
+        subprocess.run(git + ["commit", "-q", "-m", "add guide"], cwd=self.root, check=True)
+        self.first_translation()
+        committed_sha = self.recorded_source_sha()
+
+        with tempfile.TemporaryDirectory() as other:
+            subprocess.run(["git", "-c", "core.autocrlf=true", "clone", "-q", str(self.root), other], check=True)
+            checked_out = Path(other) / "docs" / "GUIDE.md"
+            self.assertNotIn(b"\r\n", checked_out.read_bytes())
+            self.assertEqual(hashlib.sha256(checked_out.read_bytes()).hexdigest(), committed_sha)
+
+    def test_without_the_attribute_a_crlf_checkout_changes_the_hash(self):
+        # The problem the attribute solves: core.autocrlf=true alone writes CRLF, and the hash no longer matches.
+        git = ["git", "-c", "user.name=test", "-c", "user.email=test@example.com"]
+        subprocess.run(git + ["add", "."], cwd=self.root, check=True)
+        subprocess.run(git + ["commit", "-q", "-m", "add guide"], cwd=self.root, check=True)
+        self.first_translation()
+        committed_sha = self.recorded_source_sha()
+
+        with tempfile.TemporaryDirectory() as other:
+            subprocess.run(["git", "-c", "core.autocrlf=true", "clone", "-q", str(self.root), other], check=True)
+            checked_out = Path(other) / "docs" / "GUIDE.md"
+            self.assertIn(b"\r\n", checked_out.read_bytes())
+            self.assertNotEqual(hashlib.sha256(checked_out.read_bytes()).hexdigest(), committed_sha)
 
     def test_crlf_files_round_trip(self):
         self.source.write_bytes(SOURCE.replace("\n", "\r\n").encode("utf-8"))
