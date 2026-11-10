@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -81,18 +82,19 @@ def load(root: Path) -> dict:
     except OSError as error:
         raise ConfigError([f"{CONFIG_PATH}: cannot read: {error.strerror or error}"]) from None
 
-    def no_duplicates(pairs: list[tuple[str, object]]) -> dict:
+    duplicates: set[str] = set()
+
+    def note_duplicates(pairs: list[tuple[str, object]]) -> dict:
+        # Record keys given more than once, and keep parsing, so every other problem is reported too.
         seen = [key for key, _ in pairs]
-        duplicates = sorted({key for key in seen if seen.count(key) > 1})
-        if duplicates:
-            raise ConfigError([f"{key}: set more than once" for key in duplicates])
+        duplicates.update(key for key in seen if seen.count(key) > 1)
         return dict(pairs)
 
     try:
-        data = json.loads(text, object_pairs_hook=no_duplicates)
+        data = json.loads(text, object_pairs_hook=note_duplicates)
     except json.JSONDecodeError as error:
         raise ConfigError([f"{CONFIG_PATH}: not valid JSON: {error.msg} (line {error.lineno}, column {error.colno})"]) from None
-    problems = validate(data)
+    problems = [f"{key}: set more than once" for key in sorted(duplicates)] + validate(data)
     if problems:
         raise ConfigError(problems)
     return data
@@ -116,15 +118,23 @@ def cmd_get(root: Path, name: str) -> None:
 
 def cmd_init(root: Path, client_language: str, english_only: bool) -> None:
     path = root / CONFIG_PATH
-    if path.exists():
-        raise ConfigError([f"{CONFIG_PATH}: already exists; edit it, then run check"])
+    exists = ConfigError([f"{CONFIG_PATH}: already exists; edit it, then run check"])
+    if os.path.lexists(path):  # also true for a broken symbolic link, which exists() misses
+        raise exists
     data = {"client_language": client_language, "english_only": english_only}
     problems = validate(data)
     if problems:
         raise ConfigError(problems)
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(render(data).encode("utf-8"))
+    except OSError as error:  # for example, "keyturn" is a file, or the folder is read-only
+        raise ConfigError([f"{CONFIG_PATH}: cannot write: {error.strerror or error}"]) from None
+    try:
+        # "x" fails if anything appeared at the path since the check above, so nothing is ever overwritten.
+        with open(path, "xb") as file:
+            file.write(render(data).encode("utf-8"))
+    except FileExistsError:
+        raise exists from None
     except OSError as error:
         raise ConfigError([f"{CONFIG_PATH}: cannot write: {error.strerror or error}"]) from None
     print(f"wrote {CONFIG_PATH}")

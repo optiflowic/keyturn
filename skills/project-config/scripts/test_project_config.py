@@ -85,6 +85,10 @@ class ProjectConfigTest(unittest.TestCase):
         self.write(b'{"client_language": "ja", "client_language": "de", "english_only": false}')
         self.assert_problems("client_language: set more than once")
 
+    def test_a_duplicate_does_not_hide_the_other_problems(self):
+        self.write(b'{"client_language": "ja", "client_language": "de", "extra": 1}')
+        self.assert_problems("client_language: set more than once", "english_only: missing", "extra: unknown setting")
+
     def test_malformed_json_is_reported_with_its_position(self):
         self.write(b'{"client_language": "ja",, "english_only": false}')
         result = self.run_script("check")
@@ -127,6 +131,15 @@ class ProjectConfigTest(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("already exists", result.stderr)
         self.assertEqual(self.config.read_bytes(), b'{"client_language": "de", "english_only": true}')
+
+    def test_init_does_not_write_through_a_broken_symbolic_link(self):
+        target = self.root / "elsewhere.json"
+        self.config.parent.mkdir(parents=True)
+        self.config.symlink_to(target)
+        result = self.run_script("init", "--client-language", "ja", "--english-only")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("already exists", result.stderr)
+        self.assertFalse(target.exists())
 
     def test_init_reports_a_file_it_cannot_write_without_a_traceback(self):
         (self.root / "keyturn").write_bytes(b"a file where the folder should be")
