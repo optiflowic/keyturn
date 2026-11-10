@@ -50,12 +50,26 @@ class ApprovalError(Exception):
         self.problems = problems
 
 
+# Variables that tell Git which repository to use. They would override the current folder and `-C root`,
+# for example when a Git hook runs this script, and the checks and staging would hit another repository.
+GIT_LOCATION_VARIABLES = (
+    "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY",
+    "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_COMMON_DIR", "GIT_PREFIX", "GIT_NAMESPACE",
+)
+
+
+def git_environment() -> dict[str, str]:
+    return {name: value for name, value in os.environ.items() if name not in GIT_LOCATION_VARIABLES}
+
+
 def git(root: Path, *args: str) -> subprocess.CompletedProcess:
-    return subprocess.run(["git", "-C", str(root), *args], capture_output=True)
+    return subprocess.run(["git", "-C", str(root), *args], capture_output=True, env=git_environment())
 
 
 def repo_root() -> Path:
-    result = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True)
+    result = subprocess.run(
+        ["git", "rev-parse", "--show-toplevel"], capture_output=True, encoding="utf-8", env=git_environment()
+    )
     if result.returncode != 0:
         raise ApprovalError(["not inside a Git repository"])
     return Path(result.stdout.strip())
@@ -146,55 +160,76 @@ def tracked_keyturn_problems(root: Path) -> list[str]:
     return []
 
 
-def cmd_send(root: Path, version: int, lang: str | None) -> None:
+def source_problems(root: Path, version: int, source: bytes) -> list[str]:
+    """Problems with requirements.md itself: it must be the committed version, with LF, and list this version."""
     problems = attribute_problems(root)
-    source = read_bytes(root, REQUIREMENTS)
-    source_sha = sha256(source)
-
     if b"\r" in source:
         problems.append(f"{REQUIREMENTS}: contains a carriage return (CR); save it with LF line endings and commit it")
     committed = git(root, "show", f"HEAD:{REQUIREMENTS}")
     if committed.returncode != 0:
         problems.append(f"{REQUIREMENTS}: not committed; commit it before sending it")
-    elif sha256(committed.stdout) != source_sha:
+    elif sha256(committed.stdout) != sha256(source):
         problems.append(f"{REQUIREMENTS}: differs from the committed version; commit it before sending it")
     newest = changelog_version(source.decode("utf-8", errors="replace"))
     if newest != version:
         found = "no changelog row" if newest is None else f"the newest changelog row is version {newest}"
         problems.append(f"{REQUIREMENTS}: {found}; add the row for version {version} before sending it")
+    return problems
 
-    translation = b""
-    if lang:
-        problems += tracked_keyturn_problems(root)
-        rel_translation = translation_path(lang)
-        try:
-            translation = read_bytes(root, rel_translation)
-        except ApprovalError as error:
-            problems += [f"{problem} (translate {REQUIREMENTS} with localize first)" for problem in error.problems]
-        else:
-            header = TRANSLATION_HEADER_RE.match(translation)
-            if not header or header.group(1).decode() != source_sha:
-                problems.append(f"{rel_translation}: not a fresh translation of {REQUIREMENTS}; translate it with localize first")
-        kept = root / kept_copy_path(lang, version)
-        if os.path.lexists(kept) and translation and (kept.is_symlink() or kept.read_bytes() != translation):
-            problems.append(f"{kept_copy_path(lang, version)}: a different translation was already kept for version {version}")
 
-    if problems:
-        raise ApprovalError(problems)
+def translation_problems(root: Path, lang: str, source_sha: str, rel_kept: str) -> tuple[bytes, list[str]]:
+    """Read the translation the client will read, and return it with its problems.
 
-    print(f"source-sha256: {source_sha}")
-    if not lang:
+    It must be fresh, stay outside Git, and match any copy already kept for this version.
+    """
+    problems = tracked_keyturn_problems(root)
+    rel_translation = translation_path(lang)
+    try:
+        translation = read_bytes(root, rel_translation)
+    except ApprovalError as error:
+        problems += [f"{problem} (translate {REQUIREMENTS} with localize first)" for problem in error.problems]
+        return b"", problems
+    header = TRANSLATION_HEADER_RE.match(translation)
+    if not header or header.group(1).decode() != source_sha:
+        problems.append(f"{rel_translation}: not a fresh translation of {REQUIREMENTS}; translate it with localize first")
+    kept = root / rel_kept
+    if os.path.lexists(kept) and (kept.is_symlink() or kept.read_bytes() != translation):
+        problems.append(f"{rel_kept}: a different translation was already kept for this version")
+    return translation, problems
+
+
+def keep_translation(root: Path, rel_kept: str, translation: bytes) -> None:
+    """Keep the translation sent for approval. A copy that exists was checked to be identical, so it stays as it is."""
+    kept = root / rel_kept
+    if kept.exists():
+        return
+    try:
+        with open(kept, "xb") as file:  # "x": never overwrite a kept copy
+            file.write(translation)
+    except OSError as error:
+        raise ApprovalError([f"{rel_kept}: cannot write: {error.strerror or error}"]) from None
+
+
+def cmd_send(root: Path, version: int, lang: str | None) -> None:
+    source = read_bytes(root, REQUIREMENTS)
+    source_sha = sha256(source)
+    problems = source_problems(root, version, source)
+    if not lang:  # the client reads requirements.md itself
+        if problems:
+            raise ApprovalError(problems)
+        print(f"source-sha256: {source_sha}")
         print("translation-sha256: none")
         return
-    kept = root / kept_copy_path(lang, version)
-    if not kept.exists():
-        try:
-            with open(kept, "xb") as file:  # "x": never overwrite a kept copy
-                file.write(translation)
-        except OSError as error:
-            raise ApprovalError([f"{kept_copy_path(lang, version)}: cannot write: {error.strerror or error}"]) from None
+
+    rel_kept = kept_copy_path(lang, version)
+    translation, translation_issues = translation_problems(root, lang, source_sha, rel_kept)
+    problems += translation_issues
+    if problems:
+        raise ApprovalError(problems)
+    print(f"source-sha256: {source_sha}")
+    keep_translation(root, rel_kept, translation)
     print(f"translation-sha256: {sha256(translation)}")
-    print(f"kept: {kept_copy_path(lang, version)}")
+    print(f"kept: {rel_kept}")
 
 
 def approval_rows(text: str) -> list[list[str]]:

@@ -12,6 +12,12 @@ from pathlib import Path
 
 SCRIPT = Path(__file__).with_name("approval.py")
 
+# Keep the throwaway repositories apart from the developer's Git setup: no variable that points Git at another
+# repository, and no global or system configuration (signing, global ignore or attributes files).
+ENV = {name: value for name, value in os.environ.items() if not name.startswith("GIT_")}
+ENV["GIT_CONFIG_GLOBAL"] = os.devnull
+ENV["GIT_CONFIG_SYSTEM"] = os.devnull
+
 REQUIREMENTS_V1 = """# Requirements: task manager
 
 ## Requirements
@@ -63,7 +69,13 @@ class Repo:
         self.write(".git/info/exclude", ".keyturn/\n")  # as localize.py ignore leaves it
 
     def git(self, *args: str) -> subprocess.CompletedProcess:
-        return subprocess.run(["git", "-C", str(self.root), *args], capture_output=True, text=True, check=True)
+        return subprocess.run(["git", "-C", str(self.root), *args], capture_output=True, text=True, check=True, env=ENV)
+
+    def show(self, rel_path: str) -> bytes:
+        """The committed bytes of a file."""
+        return subprocess.run(
+            ["git", "-C", str(self.root), "show", f"HEAD:{rel_path}"], capture_output=True, check=True, env=ENV
+        ).stdout
 
     def write(self, rel_path: str, text: str | bytes) -> None:
         path = self.root / rel_path
@@ -78,7 +90,7 @@ class Repo:
         self.git("commit", "-q", "-m", message)
 
     def run(self, *args: str) -> subprocess.CompletedProcess:
-        return subprocess.run([sys.executable, str(SCRIPT), *args], cwd=self.root, capture_output=True, text=True)
+        return subprocess.run([sys.executable, str(SCRIPT), *args], cwd=self.root, capture_output=True, text=True, env=ENV)
 
     def close(self) -> None:
         self.temp.cleanup()
@@ -125,10 +137,7 @@ class AttributesTest(RepoTest):
         self.assertTrue(attributes.startswith("*.png binary\n"))
         self.assertTrue(attributes.endswith("keyturn/client/*.md text eol=lf\n"))
         self.repo.git("commit", "-q", "-m", "renormalize")
-        committed = subprocess.run(
-            ["git", "-C", str(self.repo.root), "show", "HEAD:keyturn/client/requirements.md"], capture_output=True, check=True
-        ).stdout
-        self.assertNotIn(b"\r", committed)
+        self.assertNotIn(b"\r", self.repo.show("keyturn/client/requirements.md"))
         self.assertEqual(self.repo.run("attributes").stdout, "ok\n")
 
     def test_fix_without_client_documents(self):
@@ -172,7 +181,7 @@ class SendTest(RepoTest):
         self.repo.write(".keyturn/i18n/ja/keyturn/client/requirements.md", translation_of(REQUIREMENTS_V1))
         self.repo.run("send", "1", "--lang", "ja")
         self.repo.write(".keyturn/i18n/ja/keyturn/client/requirements.md", translation_of(REQUIREMENTS_V1, "# 別の訳\n"))
-        self.assertFails(self.repo.run("send", "1", "--lang", "ja"), "a different translation was already kept for version 1")
+        self.assertFails(self.repo.run("send", "1", "--lang", "ja"), "requirements.v1.approved.md: a different translation was already kept")
         kept = self.repo.read(".keyturn/i18n/ja/keyturn/client/requirements.v1.approved.md")
         self.assertEqual(kept, translation_of(REQUIREMENTS_V1).encode())
 
@@ -223,6 +232,18 @@ class SendTest(RepoTest):
         self.repo.git("add", "-f", ".keyturn")
         self.repo.git("commit", "-q", "-m", "tracked")
         self.assertFails(self.repo.run("send", "1", "--lang", "ja"), "Git tracks files under .keyturn/")
+
+    def test_ignores_git_variables_pointing_elsewhere(self):
+        other = Repo()
+        self.addCleanup(other.close)
+        other.write("README.md", "x\n")
+        other.commit()
+        env = dict(ENV, GIT_DIR=str(other.root / ".git"), GIT_WORK_TREE=str(other.root))
+        result = subprocess.run(
+            [sys.executable, str(SCRIPT), "send", "1"], cwd=self.repo.root, capture_output=True, text=True, env=env
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(sha(REQUIREMENTS_V1), result.stdout)
 
     def test_bad_arguments(self):
         self.assertEqual(self.repo.run("send", "0").returncode, 2)
@@ -291,7 +312,7 @@ class StatusTest(RepoTest):
 class OutsideRepositoryTest(unittest.TestCase):
     def test_reports_it(self):
         with tempfile.TemporaryDirectory() as folder:
-            result = subprocess.run([sys.executable, str(SCRIPT), "status"], cwd=folder, capture_output=True, text=True)
+            result = subprocess.run([sys.executable, str(SCRIPT), "status"], cwd=folder, capture_output=True, text=True, env=ENV)
         self.assertEqual(result.returncode, 1)
         self.assertIn("not inside a Git repository", result.stderr)
 
