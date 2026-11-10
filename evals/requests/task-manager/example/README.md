@@ -4,7 +4,7 @@ Every keyturn template, filled in by hand for [the task manager request](../requ
 
 - Nothing was built. The commits, test names, results, findings, and tool versions are illustrative: they show what each document should contain, not the result of a real run.
 - Versions and vulnerability IDs are made up or left out. Versions of real libraries and tools are not written down, because they go out of date; the documents say where the version is pinned instead (for example, `api/go.mod` or `web/package.json`). Vulnerability IDs, such as `GO-0000-0001`, are made up, so they cannot be mistaken for real advisories.
-- The example is public, so everything is in English, including the client-facing documents (as in a project in English-only mode). The client read the requirements in a local Japanese translation made with `localize`; the translation itself is not committed.
+- The example is public, so everything is in English, including the client-facing documents: its [`keyturn/config.json`](keyturn/config.json) sets English-only mode, with Japanese as the client's language. The client read the requirements in a local Japanese translation made with `localize`; the translation itself is not committed.
 - The folders mirror a project that uses keyturn: `keyturn/client/` for the client, `keyturn/internal/` for the roles.
 - It shows the project at the end of delivery 1. The work was split into two deliveries so that each acceptance guide has no more than five "Must check" items: delivery 1 covers R-1 to R-4, R-7, and R-8; delivery 2 (not shown) covers R-5, R-6, and R-9.
 
@@ -12,6 +12,7 @@ Every keyturn template, filled in by hand for [the task manager request](../requ
 
 | Document | Template | Filled in by |
 |---|---|---|
+| [`keyturn/config.json`](keyturn/config.json) | written by `project-config` (no template) | PM, with the client |
 | [`keyturn/client/requirements.md`](keyturn/client/requirements.md) | `templates/client/requirements.md` | PM |
 | [`keyturn/client/approvals.md`](keyturn/client/approvals.md) | `templates/client/approvals.md` | PM |
 | [`keyturn/client/decision-card-1.md`](keyturn/client/decision-card-1.md) | `templates/client/decision-card.md` | Architect |

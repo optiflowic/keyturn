@@ -28,3 +28,4 @@ See "Architecture decision records" in [`docs/DESIGN.md`](../DESIGN.md).
 | [0011](0011-task-state-file.md) | The task state file is a Markdown file with fixed fields | accepted |
 | [0012](0012-stable-approval-hashes.md) | Approved documents are checked out with LF, and the approved translation is kept next to the current one | accepted |
 | [0013](0013-confirming-translations-into-english.md) | The client confirms a translation into English by reading it translated back | accepted |
+| [0014](0014-project-configuration-in-json.md) | The project configuration is a JSON file, checked by a script before use | proposed |

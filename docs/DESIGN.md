@@ -59,7 +59,7 @@ There are two different contexts: this repository itself, and the projects that 
 - **Internal documents** (agent-to-agent) are written in English.
 - A project can choose **English-only mode** instead, for example a public OSS project whose published content should all be in English. In this mode, client-facing documents, issues, PRs, and comments are all in English, and the client reads them through local translations.
 
-The language settings are stored per project in keyturn's project configuration.
+The language settings are stored per project in keyturn's project configuration, `keyturn/config.json`: the client's language and whether the project uses English-only mode. Every role checks the file with a script before reading it, and stops if it is missing or invalid. Other settings are added by the role that first needs them. See [ADR 0014](adr/0014-project-configuration-in-json.md).
 
 ### Local translations (`localize`)
 
@@ -223,6 +223,7 @@ Separate the two tiers so the client knows which folder is theirs.
 
 ```
 keyturn/
+  config.json # project configuration (language settings)
   client/     # client-facing documents
   internal/   # agent-to-agent documents
     adr/      # architecture decision records
@@ -476,6 +477,7 @@ skills/                   # role procedures (shared across tools)
   review/SKILL.md         # review against design and readability rules
   security-review/SKILL.md # security review against the threat model
   localize/SKILL.md       # local translation for the client (never committed)
+  project-config/SKILL.md # create and check the project configuration
   deliver/SKILL.md        # full pipeline
   resume/SKILL.md         # resume a stopped task from its state file
 gates/
