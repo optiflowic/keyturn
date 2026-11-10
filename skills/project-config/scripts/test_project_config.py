@@ -85,6 +85,13 @@ class ProjectConfigTest(unittest.TestCase):
         self.write(b'{"client_language": "ja", "client_language": "de", "english_only": false}')
         self.assert_problems("client_language: set more than once")
 
+    def test_an_invalid_first_value_is_not_hidden_by_a_valid_later_one(self):
+        self.write(b'{"client_language": "Japanese!", "client_language": "ja", "english_only": false}')
+        self.assert_problems(
+            "client_language: set more than once",
+            'client_language: not a language code: "Japanese!" (use e.g. "ja", "de", "pt-BR")',
+        )
+
     def test_a_duplicate_does_not_hide_the_other_problems(self):
         self.write(b'{"client_language": "ja", "client_language": "de", "extra": 1}')
         self.assert_problems("client_language: set more than once", "english_only: missing", "extra: unknown setting")

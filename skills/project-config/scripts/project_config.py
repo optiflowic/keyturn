@@ -55,17 +55,33 @@ def setting_problems(name: str, value: object) -> list[str]:
     return []
 
 
+class Pairs(dict):
+    """A parsed JSON object that also keeps every key-value pair as written, repeated keys included."""
+
+    def __init__(self, pairs: list[tuple[str, object]]):
+        super().__init__(pairs)
+        self.pairs = pairs
+
+
 def validate(data: object) -> list[str]:
-    """Return every problem with parsed configuration data, in a fixed order."""
+    """Return every problem with parsed configuration data, in a fixed order.
+
+    Order: settings given more than once, then each known setting (missing, or each invalid value as written), then unknown settings.
+    """
     if not isinstance(data, dict):
         return ["the configuration must be a JSON object ({...})"]
-    problems = []
+    pairs = data.pairs if isinstance(data, Pairs) else list(data.items())
+    names = [name for name, _ in pairs]
+    problems = [f"{name}: set more than once" for name in sorted({n for n in names if names.count(n) > 1})]
     for name in SETTINGS:
-        if name not in data:
+        values = [value for key, value in pairs if key == name]
+        if not values:
             problems.append(f"{name}: missing")
-        else:
-            problems.extend(setting_problems(name, data[name]))
-    for name in sorted(set(data) - set(SETTINGS)):
+        for value in values:  # every occurrence, so an invalid first value is not hidden by a valid later one
+            for problem in setting_problems(name, value):
+                if problem not in problems:
+                    problems.append(problem)
+    for name in sorted(set(names) - set(SETTINGS)):
         problems.append(f"{name}: unknown setting")
     return problems
 
@@ -82,19 +98,12 @@ def load(root: Path) -> dict:
     except OSError as error:
         raise ConfigError([f"{CONFIG_PATH}: cannot read: {error.strerror or error}"]) from None
 
-    duplicates: set[str] = set()
-
-    def note_duplicates(pairs: list[tuple[str, object]]) -> dict:
-        # Record keys given more than once, and keep parsing, so every other problem is reported too.
-        seen = [key for key, _ in pairs]
-        duplicates.update(key for key in seen if seen.count(key) > 1)
-        return dict(pairs)
-
     try:
-        data = json.loads(text, object_pairs_hook=note_duplicates)
+        # Keep every pair as written, so repeated settings and each of their values are checked, not only the last one.
+        data = json.loads(text, object_pairs_hook=Pairs)
     except json.JSONDecodeError as error:
         raise ConfigError([f"{CONFIG_PATH}: not valid JSON: {error.msg} (line {error.lineno}, column {error.colno})"]) from None
-    problems = [f"{key}: set more than once" for key in sorted(duplicates)] + validate(data)
+    problems = validate(data)
     if problems:
         raise ConfigError(problems)
     return data
