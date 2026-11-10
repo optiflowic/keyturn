@@ -76,6 +76,7 @@ Used for this repository and for projects in English-only mode.
 
 - When the client writes in their language (a request, an answer to a question, a comment), agents translate it into English before posting.
 - For anything that changes what will be built (requirements, answers to questions), the client confirms the translated meaning before it is posted.
+- The client confirms by reading the English translated back into their language, from the English alone, so that a mistranslation shows up in their own language. Requirements are confirmed through their approval (see below), so a request is not confirmed twice. Short replies, thanks, and general comments are posted without a confirmation, so the client is not asked more than needed. The client's original stays local, under `.keyturn/i18n/inbound/`, and only the English is committed or posted. See [ADR 0013](adr/0013-confirming-translations-into-english.md).
 
 #### Approving translated content
 

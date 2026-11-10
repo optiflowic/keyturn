@@ -32,7 +32,7 @@ This is the only committed instructions file. If your tool reads a different fil
 
 - Load the plugin from your working copy for one session: `claude --plugin-dir .` (Claude Code). This uses your edits without installing anything.
 - Try a template change on the worked example in `evals/requests/task-manager/example/`: fill in the changed part there as the role would, and check that it still reads well for someone who does not read code.
-- Try `localize` on this repository: ask for a document, issue, or pull request in another language (for example, "Translate docs/DESIGN.md into Japanese"). The translation is written under `.keyturn/i18n/<lang>/`, and `git status` must stay clean.
+- Try `localize` on this repository: ask for a document, issue, or pull request in another language (for example, "Translate docs/DESIGN.md into Japanese"). The translation is written under `.keyturn/i18n/<lang>/`, and `git status` must stay clean. To try the other direction, write a few lines in another language and ask for them in English as an answer to a decision card: the original, the English, and the back-translation go under `.keyturn/i18n/inbound/<lang>/`, and `git status` must still stay clean.
 
 ## Before opening a pull request
 
