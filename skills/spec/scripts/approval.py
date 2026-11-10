@@ -10,7 +10,8 @@ Usage:
                                        --lang is the language of the translation the client reads; leave it out
                                        when the client reads requirements.md itself.
   approval.py status [--lang LANG]     Check the newest approvals.md row: whether requirements.md is still the
-                                       version that was sent, and whether the kept translation is unchanged.
+                                       version that was sent, the client's answer as written, and whether the kept
+                                       translation is unchanged. "current" alone does not mean approved.
 
 Every command prints its result, or every problem (one per line) and exits 1.
 Paths are resolved from the root of the Git repository, whatever the current folder.
@@ -129,7 +130,7 @@ def cmd_attributes(root: Path, fix: bool) -> None:
             raise ApprovalError([f"git add --renormalize failed: {result.stderr.decode('utf-8').strip()}"])
         staged.append(f"{CLIENT_DIR}/")
     git(root, "add", "--", ".gitattributes")
-    print(f"added `{ATTRIBUTES_LINE}` to .gitattributes and staged {', '.join(staged)}: commit them now")
+    print(f"added `{ATTRIBUTES_LINE}` to .gitattributes and staged {' and '.join(staged)}: commit now")
 
 
 def changelog_version(text: str) -> int | None:
@@ -212,12 +213,14 @@ def cmd_status(root: Path, lang: str | None) -> None:
     if not rows:
         raise ApprovalError([f"{APPROVALS}: no row for requirements.md"])
     version, row_source, row_translation = int(rows[-1][1]), rows[-1][3], rows[-1][4]
+    answer = rows[-1][6] if len(rows[-1]) > 6 and rows[-1][6] else "(empty)"
     if not SHA_RE.fullmatch(row_source):
         raise ApprovalError([f"{APPROVALS}: version {version}: the source SHA-256 is not a SHA-256"])
 
     problems = []
     if sha256(read_bytes(root, REQUIREMENTS)) == row_source:
-        print(f"version {version}: current")
+        # "current" only means the file is the one sent; whether it is approved is the client's answer, shown as written.
+        print(f"version {version}: current, answer: {answer}")
     else:
         problems.append(f"version {version}: stale ({REQUIREMENTS} changed since it was sent)")
 

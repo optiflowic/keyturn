@@ -27,7 +27,7 @@ Turn what the client asked for into requirements they can approve without readin
 - `keyturn/client/requirements.md`: the requirements, committed.
 - `keyturn/client/approvals.md`: one row per version sent for approval, with its answer, committed.
 - `.gitattributes` with `keyturn/client/*.md text eol=lf`, committed (ADR 0012).
-- In English-only mode, kept locally and never committed: the client's request and its English (`.keyturn/i18n/inbound/<lang>/`), the translation the client reads (`.keyturn/i18n/<lang>/keyturn/client/`), and the copy of the translation sent for approval (`requirements.v<n>.approved.md` next to it).
+- In English-only mode, kept locally and never committed: the client's request and its English, when the request was not in English (`.keyturn/i18n/inbound/<lang>/`), the translation the client reads (`.keyturn/i18n/<lang>/keyturn/client/`), and the copy of the translation sent for approval (`requirements.v<n>.approved.md` next to it).
 
 ## Procedure
 
@@ -35,7 +35,12 @@ The helper script `scripts/approval.py` (in this skill's folder) does the checks
 
 ### 1. Read the language settings
 
-Run `project_config.py check`. If it reports problems, stop and follow the `project-config` skill (a missing file is created by asking the client). Then read `client_language` and `english_only` with `project_config.py get`.
+Run `project_config.py check`.
+
+- If the file is missing, create it with the `project-config` skill: ask the client, run `init`, run `check`, commit the file, and go on.
+- If it reports any other problem, stop and show the client every line it printed; go on only after the file is fixed as the `project-config` skill says.
+
+Then read `client_language` and `english_only` with `project_config.py get`.
 
 - `english_only` is `true`: `requirements.md` and `approvals.md` are written in English, and the client reads them translated into `client_language`.
 - `english_only` is `false`: they are written in `client_language`, and the client reads them as they are.
@@ -58,12 +63,14 @@ If `keyturn/client/requirements.md` already exists, this is a change: follow "Ch
 Start from `templates/client/requirements.md`, write `keyturn/client/requirements.md` in the document language, and remove the template's comments and placeholders.
 
 - **Requirements**: one per thing the deliverable does, numbered `R-1`, `R-2`, ... Make each one specific enough to test: numbers instead of "short" or "many", and what happens in the case that goes wrong (a wrong password, a missing item, someone else's data).
+- **What, not how**: write what the client needs to decide or check. How a requirement is met, including protections the client cannot see (how passwords are stored, protection against forged requests from other websites), is left to the architect's design and threat model, which must cover every misuse entry. Keep the document short enough to read in a few minutes.
+- **Easily missed questions**: cover the ones that apply, as requirements or out-of-scope items. For anything with accounts: who may sign up, what happens when a password is forgotten, and whether an account can be changed or deleted. For anything with screens: the language of the screens and messages, which is separate from the language of these documents (English-only mode does not decide it).
 - **Priority**: propose Must for what the deliverable is useless or unsafe without, and Nice to have for the rest. A requirement that prevents misuse is Must.
-- **Acceptance criteria**: `AC-1`, `AC-2`, ... Each says what the client does and what they see, so they can check it by hand in the delivered deliverable. Every requirement is covered by at least one criterion.
+- **Acceptance criteria**: `AC-1`, `AC-2`, ... Each says what the client does and what they see, so they can check it by hand in the delivered deliverable. Every requirement is covered by at least one criterion. Never ask the client to inspect a server, a database, or code; if a requirement cannot be seen by hand, its expected result is what the delivery report shows about it (for example, "the delivery report shows that R-4 was tested and passed").
 - **Misuse**: think about how the deliverable could be misused or attacked: by another user, by someone who is not signed in, with wrong or harmful input (for example, text that looks like code), by repeated tries, and by using it against systems or data that are not the user's own. Each entry names the requirement that prevents it; if none does, add one. If the deliverable can act on systems or data that are not the user's own (for example, a vulnerability scanner), add a requirement that it acts only on targets the user is authorized to use, checked before it acts ("Requirements must cover misuse" in `docs/DESIGN.md`).
 - **Out of scope**: what the client might expect but will not get, including what you assumed away, so there is no surprise at delivery.
 - **Unclear points**: when something is unclear, propose the most likely answer as a requirement or an out-of-scope item, so that approving or changing it answers the question. Ask a separate question (a decision card from `templates/client/decision-card.md`) only when no reasonable proposal exists, and send it together with the approval request.
-- **What you need to do**: ask the client to read the requirements and acceptance criteria by ID range, check the priorities, and approve them or say what to change.
+- **What you need to do**: ask the client to read the requirements and acceptance criteria by ID range, check the priorities, and approve them or say what to change. Point out by ID every requirement the client did not ask for (for example, one added to prevent misuse) and every assumption they should check.
 - **Status**: "waiting for approval". It stays so in this version, even after the client answers; `approvals.md` holds the current state.
 - **Changelog**: add the row for this version (version 1, today's date) before sending.
 
@@ -71,15 +78,15 @@ Before going on, check that:
 
 - IDs are in order, each used once, and every requirement that is not removed is covered by an acceptance criterion that is not removed;
 - every misuse entry names a requirement;
-- there is no code and no unexplained jargon, and every expected result is something a person can see.
+- there is no code and no unexplained jargon, and every expected result is something a person can see. Exact text the client types in a check (for example, a title that looks like code) is not code: write it in inline code, so it is typed exactly and is not translated.
 
 ### 5. Send it for approval
 
-1. **Line endings.** Run `approval.py attributes`. If it reports a problem, run `approval.py attributes --fix` and commit what it staged. Client documents are approved by the SHA-256 of their bytes, so every checkout must write them with LF (ADR 0012).
+1. **Line endings.** Run `approval.py attributes`. If it reports a problem, run `approval.py attributes --fix` and commit what it staged, on its own commit. Client documents are approved by the SHA-256 of their bytes, so every checkout must write them with LF (ADR 0012).
 2. **Commit `requirements.md`**, so the version sent stays in Git history.
-3. **In English-only mode, translate it.** Translate `keyturn/client/requirements.md` into `client_language` with the `localize` skill, and run `localize.py status <lang> keyturn/client/requirements.md` until it reports `fresh`. The `R-n` and `AC-n` IDs stay the same in both, so the client can match every item.
+3. **In English-only mode, translate it.** Translate `keyturn/client/requirements.md` into `client_language` with the `localize` skill, and run `localize.py status <lang> keyturn/client/requirements.md` until it reports `fresh`. Follow the `localize` skill for the translation itself, including its advice to use a smaller model. The `R-n` and `AC-n` IDs stay the same in both, so the client can match every item. Then add to the glossary the terms that must read the same in later versions and in the client's answers (requirement titles, terms the client used).
 4. **Check it and keep the copy.** Run `approval.py send <version>`, adding `--lang <client_language>` in English-only mode. It checks that the file is committed, has LF line endings, and has a changelog row for this version, and that the translation is fresh. It keeps the translation unchanged as `requirements.v<version>.approved.md` next to the current translation, and prints the hashes. If it reports problems, fix them and run it again; never record a hash it did not print.
-5. **Record the row.** If `keyturn/client/approvals.md` does not exist, start it from `templates/client/approvals.md`, in the document language. Add a row with the hashes `send` printed (`none` for the translation when there is none), today's date as the date sent, and `waiting` as the answer. Update "Current status". Commit the file.
+5. **Record the row.** If `keyturn/client/approvals.md` does not exist, start it from `templates/client/approvals.md`, in the document language. Add a row with the hashes `send` printed (`none` for the translation when there is none), the name of the language the client reads, written in the document language, with "(translation)" or "(original)" (for example, "Japanese (translation)"), today's date as the date sent, `waiting` as the answer, and "Date answered" left empty. Update "Current status" (for example, "Version 1 is waiting for your approval. Nothing is built until you approve it."). Commit the file. The row's "Date sent" is the record that the version was sent.
 6. **In English-only mode, translate `approvals.md`** too, so the link from the translated requirements opens the current status.
 7. **Send it.** Give the client the requirements in their language (the kept copy, or `requirements.md` itself when there is no translation), with any decision cards, and ask them to approve or say what to change. Say where to find it, and that nothing is built until they approve.
 
@@ -88,11 +95,11 @@ Before going on, check that:
 When the client answers:
 
 1. **In English-only mode, if the answer is not in English**, translate it into English with the `localize` skill ("Writing into English"). Changes the client asks for become a new version, which they approve again, so they need no back-translation; a short "approved" needs none either.
-2. **Check the row is still current.** Run `approval.py status`, adding `--lang <client_language>` in English-only mode. It reports whether `requirements.md` is still the version in the newest row, and whether the kept copy is unchanged.
+2. **Check the row is still current.** Run `approval.py status`, adding `--lang <client_language>` in English-only mode. It reports whether `requirements.md` is still the version in the newest row, the answer recorded in that row, and whether the kept copy is unchanged.
 3. **Fill in the answer.** Fill in "Answer" (approved, or not approved with what they want changed) and "Date answered" in that row. Never change anything else in a row, and never delete a row. Update "Current status", commit the file, and, in English-only mode, translate it again.
 4. **If they did not approve**, change the requirements as they asked: follow "Changing requirements" below.
 
-An approval counts only while `approval.py status` reports the version as `current` and its answer is approved. Check this whenever another role asks whether it can start.
+An approval counts only while `approval.py status` reports the version as `current` and the answer it shows is approved. `current` alone only means the file has not changed since it was sent. Check this whenever another role asks whether it can start.
 
 ### Changing requirements
 
@@ -109,7 +116,7 @@ A change comes from the client: a new request, an answer that asks for changes, 
 ## When inputs are missing
 
 - **No request**: ask the client what they want built.
-- **No `keyturn/config.json`**: stop and create it with the `project-config` skill, by asking the client. Do not guess the language.
+- **No `keyturn/config.json`**: create it with the `project-config` skill, by asking the client, then go on (step 1). Do not guess the language.
 - **No templates**: stop and report it; the documents must follow keyturn's templates.
 - **No Git repository**: stop and report it; an approval can only be recorded for a committed version.
 - **Run on its own** (without `deliver`): the same procedure applies. `deliver` records this step in the task's state file; this skill does not write the state file.

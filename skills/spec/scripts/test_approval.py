@@ -119,7 +119,7 @@ class AttributesTest(RepoTest):
 
         result = self.repo.run("attributes", "--fix")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("commit them now", result.stdout)
+        self.assertIn("and staged .gitattributes and keyturn/client/: commit now", result.stdout)
         attributes = self.repo.read(".gitattributes").decode()
         self.assertTrue(attributes.startswith("*.png binary\n"))
         self.assertTrue(attributes.endswith("keyturn/client/*.md text eol=lf\n"))
@@ -133,7 +133,7 @@ class AttributesTest(RepoTest):
     def test_fix_without_client_documents(self):
         result = self.repo.run("attributes", "--fix")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("staged .gitattributes:", result.stdout)
+        self.assertIn("staged .gitattributes: commit now", result.stdout)
 
     def test_fix_never_writes_through_a_link(self):
         self.repo.write("elsewhere", "")
@@ -234,7 +234,7 @@ class StatusTest(RepoTest):
     def test_current_with_kept_copy(self):
         self.repo.write("keyturn/client/approvals.md", approvals_with(row(1, sha(REQUIREMENTS_V1), sha(self.translation), "approved")))
         result = self.repo.run("status", "--lang", "ja")
-        self.assertEqual((result.returncode, result.stdout), (0, f"version 1: current\nkept: {self.kept}\n"), result.stderr)
+        self.assertEqual((result.returncode, result.stdout), (0, f"version 1: current, answer: approved\nkept: {self.kept}\n"), result.stderr)
 
     def test_without_translation(self):
         self.repo.write("keyturn/client/approvals.md", approvals_with(row(1, sha(REQUIREMENTS_V1))))
@@ -249,7 +249,7 @@ class StatusTest(RepoTest):
         self.repo.write("keyturn/client/approvals.md", text)
         result = self.repo.run("status")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("version 1: current", result.stdout)
+        self.assertIn("version 1: current, answer: 承認", result.stdout)
 
     def test_newest_row_is_checked(self):
         rows = row(1, sha(REQUIREMENTS_V1), sha(self.translation), "approved") + row(2, sha(REQUIREMENTS_V2), "none")
