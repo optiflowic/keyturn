@@ -1,6 +1,6 @@
 # 0014. The project configuration is a JSON file, checked by a script before use
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-11-10
 
 ## Context
