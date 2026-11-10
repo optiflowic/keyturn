@@ -60,6 +60,7 @@ class Repo:
         self.git("config", "core.autocrlf", "false")
         if attributes:
             self.write(".gitattributes", "keyturn/client/*.md text eol=lf\n")
+        self.write(".git/info/exclude", ".keyturn/\n")  # as localize.py ignore leaves it
 
     def git(self, *args: str) -> subprocess.CompletedProcess:
         return subprocess.run(["git", "-C", str(self.root), *args], capture_output=True, text=True, check=True)
@@ -211,9 +212,16 @@ class SendTest(RepoTest):
         result = self.repo.run("send", "3", "--lang", "ja")
         self.assertFails(result, "differs from the committed version", "version 2; add the row for version 3", "localize first")
 
+    def test_keyturn_folder_not_ignored(self):
+        self.repo.write(".git/info/exclude", "")
+        self.repo.write(".keyturn/i18n/ja/keyturn/client/requirements.md", translation_of(REQUIREMENTS_V1))
+        self.assertFails(self.repo.run("send", "1", "--lang", "ja"), ".keyturn/ is not ignored by Git")
+        self.assertFalse((self.repo.root / ".keyturn/i18n/ja/keyturn/client/requirements.v1.approved.md").exists())
+
     def test_tracked_keyturn_folder(self):
         self.repo.write(".keyturn/i18n/ja/keyturn/client/requirements.md", translation_of(REQUIREMENTS_V1))
-        self.repo.commit()
+        self.repo.git("add", "-f", ".keyturn")
+        self.repo.git("commit", "-q", "-m", "tracked")
         self.assertFails(self.repo.run("send", "1", "--lang", "ja"), "Git tracks files under .keyturn/")
 
     def test_bad_arguments(self):

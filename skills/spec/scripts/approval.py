@@ -141,6 +141,8 @@ def changelog_version(text: str) -> int | None:
 def tracked_keyturn_problems(root: Path) -> list[str]:
     if git(root, "ls-files", "--", KEYTURN_DIR).stdout.strip():
         return [f"Git tracks files under {KEYTURN_DIR}/; translations are never committed, so nothing is kept there"]
+    if git(root, "check-ignore", "-q", f"{KEYTURN_DIR}/").returncode != 0:
+        return [f"{KEYTURN_DIR}/ is not ignored by Git, so a translation could be committed (run: localize.py ignore)"]
     return []
 
 
