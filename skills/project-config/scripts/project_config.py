@@ -78,6 +78,8 @@ def load(root: Path) -> dict:
         text = path.read_bytes().decode("utf-8")
     except UnicodeDecodeError:
         raise ConfigError([f"{CONFIG_PATH}: not UTF-8 text"]) from None
+    except OSError as error:
+        raise ConfigError([f"{CONFIG_PATH}: cannot read: {error.strerror or error}"]) from None
 
     def no_duplicates(pairs: list[tuple[str, object]]) -> dict:
         seen = [key for key, _ in pairs]
@@ -120,8 +122,11 @@ def cmd_init(root: Path, client_language: str, english_only: bool) -> None:
     problems = validate(data)
     if problems:
         raise ConfigError(problems)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(render(data).encode("utf-8"))
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(render(data).encode("utf-8"))
+    except OSError as error:
+        raise ConfigError([f"{CONFIG_PATH}: cannot write: {error.strerror or error}"]) from None
     print(f"wrote {CONFIG_PATH}")
 
 

@@ -128,6 +128,13 @@ class ProjectConfigTest(unittest.TestCase):
         self.assertIn("already exists", result.stderr)
         self.assertEqual(self.config.read_bytes(), b'{"client_language": "de", "english_only": true}')
 
+    def test_init_reports_a_file_it_cannot_write_without_a_traceback(self):
+        (self.root / "keyturn").write_bytes(b"a file where the folder should be")
+        result = self.run_script("init", "--client-language", "ja", "--english-only")
+        self.assertEqual(result.returncode, 1)
+        self.assertRegex(result.stderr, r"^error: keyturn/config.json: cannot write: .+\n$")
+        self.assertNotIn("Traceback", result.stderr)
+
     def test_init_refuses_an_invalid_language_and_needs_a_mode(self):
         result = self.run_script("init", "--client-language", "../x", "--english-only")
         self.assertEqual(result.returncode, 1)
