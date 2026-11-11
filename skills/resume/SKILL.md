@@ -36,7 +36,7 @@ The helper script `scripts/task_state.py` checks state files and lists task bran
 
 - `task_state.py list [--task <task>]` checks the state file on every `task/<task>` branch, local and remote, without checking anything out. For each task that is not done (with `--task`, for that task even when it is done) it prints `<task> (<branch>):` and, indented, its status, current step (with that step's status in the steps table), why it stopped, and when it can continue.
 - `task_state.py check <file>` checks one file and prints `ok` and the same lines.
-- Both print every problem on its own line, `error: <where>: <problem>`, and then exit 1. The check never depends on the clock: the same file always gives the same verdict and the same problems. `--now YYYY-MM-DDTHH:MMZ` (default: the current UTC time) only decides whether a reset time has passed.
+- Both print every problem on its own line, `error: <where>: <problem>` (in `list`, indented under the task's heading), and then exit 1. In the full `list`, exit 1 means that some task has problems; the tasks without problems are still listed. The check never depends on the clock: the same file always gives the same verdict and the same problems. `--now YYYY-MM-DDTHH:MMZ` (default: the current UTC time) only decides whether a reset time has passed.
 
 ### 1. Bring the branches up to date
 
@@ -44,12 +44,12 @@ Run `git remote`. If it prints nothing, there is no remote: only this machine's 
 
 ### 2. With no task named: list the tasks, then stop
 
-Run `task_state.py list`. Tell the person, in their language, which tasks can continue now, which are waiting and for what, and which have problems (the `error:` lines). Ask which one to resume, and stop. If it prints `no tasks to resume`, say so; a new task is started with the `deliver` skill.
+Run `task_state.py list`. Tell the person, in their language, which tasks can continue now, which are waiting and for what, and which have problems (the `error:` lines under a task's heading), and that done tasks are left out. Ask which one to resume, and stop. If it prints `no tasks to resume`, say so; a new task is started with the `deliver` skill.
 
 ### 3. With a task named: check it and check out its branch
 
 1. Run `task_state.py list --task <task>`. Look only at this output; other tasks do not matter here.
-   - Any `error:` line: stop. Show the person every line, and say the task cannot be resumed until they are fixed. Do not fix the state file by guessing: it is fixed by hand, to what the task branch shows, by someone who can tell, and checked again. The lines you may see besides problems in the file itself:
+   - Any `error:` line (indented under the task's heading): stop. Show the person every line, and say the task cannot be resumed until they are fixed. Do not fix the state file by guessing: it is fixed by hand, to what the task branch shows, by someone who can tell, and checked again. The lines you may see besides problems in the file itself:
      - `error: task/<task>: has no local or remote branch`: there is no such task.
      - `error: task/<task>: should not have diverged: <branches>; ...`: the local and remote branches both have commits the other lacks. Ask the person how to merge them.
      - `error: <branch>:keyturn/internal/state/<task>.md: is missing`: where the task stopped cannot be told; do not work it out from the outputs.
@@ -61,14 +61,18 @@ Run `task_state.py list`. Tell the person, in their language, which tasks can co
 
 Use the lines `list` printed.
 
-- **`status: running`**: the session that ran it ended without recording a stop (a crash or a closed terminal), or it is still running somewhere else. Ask the person to confirm that no other session is working on this task, and go on only after they confirm. Their confirmation is recorded in the History line in step 5.
+- **`status: running`**: the session that ran it ended without recording a stop (a crash or a closed terminal), or it is still running somewhere else. Ask the person who asked you to resume it to confirm that no other session is working on this task, and go on only after they confirm. Their confirmation is recorded in the History line in step 5.
 - Then **`can continue:`**:
   - `now`, or `not applicable` with status `running`: go on.
   - `after <time>`: if the line ends with `not yet (now ...)`, stop and tell the person the task can continue after `<time>` (UTC). If it ends with `the time has passed`, go on. This skill does not check the current usage itself; `deliver` checks it before it starts each step and stops again if the limit is still near.
-  - `when the client approves: requirements version <n>`: run `project_config.py get english_only` and, if it prints `true`, `project_config.py get client_language`. Then run `approval.py status`, adding `--lang <client_language>` when `english_only` is `true`. Go on only if it exits 0 and its first line is `version <n>: current, answer: <answer>` with that same `<n>` and an answer that says the client approved (answers are written in the language of `approvals.md`, so it may not be the English word). Otherwise stop, and say that the requirements are waiting for the client's approval.
-  - `when the client answers: decision card <n>`: open the card linked in "Open questions". Go on only if its `Status:` line is `answered` and, under "Your answer", the `Answer:` and `Date:` lines are filled in (not placeholders). Otherwise stop, and say what is waiting for the client.
-  - `when the maintainer decides: <what>`: stop and ask the maintainer. Go on only after they have decided, and follow their decision.
-- Even when it can continue, do not run a step that a waiting item in "Open questions" blocks ("Blocks: ...").
+  - `when the client approves: requirements version <n>: only once the client's answer is recorded` or `when the client answers: decision card <n>: only once the client's answer is recorded`: check whether the client has answered, as below. If they have, go on. If not, only the work that depends on the answer waits: the "Blocks:" part of that item in "Open questions" says which steps. If it blocks the current step (for example, "design and every later step" when the current step is design), stop and say what is waiting for the client. If it does not, go on: the item stays in "Open questions", and `deliver` stops again before a step it blocks.
+  - `when the maintainer decides: <what>: only once the maintainer has decided`: stop and ask the maintainer. Go on only after they have decided, and follow their decision.
+- Whatever "Can continue" says, do not run the current step while any unanswered item in "Open questions" lists it under "Blocks:".
+
+How to tell whether the client has answered:
+
+- **Requirements version `<n>`**: run `project_config.py get english_only` and, if it prints `true`, `project_config.py get client_language`. Then run `approval.py status`, adding `--lang <client_language>` when `english_only` is `true`. The client has approved only if its first line is `version <n>: current, answer: <answer>` with that same `<n>`, and `<answer>` is exactly `approved` (or, when `approvals.md` is written in another language, that one word in its language) and nothing else. `waiting`, an empty answer, "not approved", and an approval with conditions are not approvals. If the only errors it prints are about the kept copy of the translation, the approval still counts; tell the person, because the `spec` skill needs to know. When you are unsure what an answer means, ask whoever runs `spec`; do not decide it.
+- **Decision card `<n>`**: open the card linked in "Open questions". The client has answered only if its `Status:` line is `answered` and, under "Your answer", the `Answer:` and `Date:` lines are filled in: not empty, and no longer the template's text in angle brackets (`<option, and any comment>`, `<YYYY-MM-DD>`).
 - **Before writing anything**, check that the `deliver` skill (`../deliver/SKILL.md`) is available. If it is not, stop and report it: `resume` does not run the pipeline itself, and recording a resume that nothing runs would leave the task marked `running`.
 
 ### 5. Record the resume
@@ -76,13 +80,13 @@ Use the lines `list` printed.
 Edit `keyturn/internal/state/<task>.md`, keeping to the fields and values of `../../templates/internal/state.md`:
 
 - `Status: running`, `Stopped because: none`, `Can continue: not applicable`.
-- `Updated:` the current UTC time, rounded down to the minute, in the form `YYYY-MM-DDTHH:MMZ` (for example, the output of `date -u +%Y-%m-%dT%H:%MZ`).
+- `Updated:` the current UTC time, rounded down to the minute, in the form `YYYY-MM-DDTHH:MMZ`. Take it once (for example, with `date -u +%Y-%m-%dT%H:%MZ`) and use the same time in the History line below; if you pass `--now` to the script, pass that time too.
 - Leave the steps table as it is, including the current step's row when it says `in progress`: the step is rerun from its start in step 6, and `deliver` updates the row when it runs it.
-- In "Open questions", remove the items that were answered or approved; write `None.` when nothing is left.
-- In "Summary", say in one or two lines a client can read that the task was resumed, naming the step by its name in the steps table (for example, "Resumed in the implement step after the usage limit reset.").
-- In "History", add one line at the end, and never change the earlier lines: ``- <time>: resumed: in <step>, from commit `<short hash of HEAD>` ``, where HEAD is the commit before this one. For a task that was `running`, add ` (the earlier session ended without recording a stop; confirmed that no other session runs it)`.
+- In "Open questions", remove the items that were answered or approved, and keep the ones still waiting; write `None.` when nothing is left.
+- In "Summary", say in one or two lines that the task was resumed, naming the step by its name in the steps table (for example, "Resumed in the implement step after the usage limit reset."). Like the whole state file, it is written in English, in plain words (the template asks for lines a client could follow).
+- In "History", add one line at the end, and never change the earlier lines: ``- <time>: resumed: in <step>, from commit `<hash>` ``, where `<hash>` is the short hash that `git rev-parse --short HEAD` prints before you commit (usually 7 characters). The check does not read hashes in History; in the steps table it accepts 7 to 40 hexadecimal characters in backticks. For a task that was `running`, add ` (the earlier session ended without recording a stop; confirmed that no other session runs it)`.
 
-Run `task_state.py check keyturn/internal/state/<task>.md` until it prints `ok`. Commit only that file on the task branch, with the message `resume <task> in <step>`, written in the project's commit style (for example, `chore: resume delivery-1 in implement` with Conventional Commits).
+Run `task_state.py check keyturn/internal/state/<task>.md` until it prints `ok`. Commit only that file on the task branch, with the message `chore(state): resume <task> in <step>` (for example, `chore(state): resume delivery-1 in implement`).
 
 ### 6. Continue from the step
 
