@@ -7,9 +7,12 @@ Usage:
   task_state.py list [--task TASK] [--now TIME]
                                          For every local and remote branch task/<task>, check the state file on
                                          that branch and list the tasks that are not done. With --task, only that
-                                         task, even when it is done. Exits 1 if anything it lists has a problem.
+                                         task, even when it is done. Each task's problems are printed under
+                                         its heading. Exits 1 if any task it lists has a problem; the others are
+                                         still listed.
 
-Both commands print every problem as one line, "error: <where>: <problem>", on standard output.
+Both commands print every problem as one line, "error: <where>: <problem>", on standard output
+(indented under the task's heading in `list`).
 
 --now is the current time, YYYY-MM-DDTHH:MMZ in UTC (default: the clock). It only decides whether a
 "Can continue: after ..." time has passed; the check of the file itself never depends on it, so the same file
@@ -616,23 +619,28 @@ def newest_branch(root: Path, branches: list[str]) -> tuple[str | None, str]:
     return None, f"should not have diverged: {', '.join(branches)}; merge them before resuming, the newest state cannot be chosen"
 
 
-def list_one(root: Path, task: str, branches: list[str], template: Template, now: str, show_done: bool) -> bool:
-    """Print one task, or its problems. Returns False if it has problems."""
+def branch_state(root: Path, task: str, branches: list[str], template: Template) -> tuple[str, StateFile | None, str, list[str]]:
+    """The branch to read, the checked state file, a note, and the problems, each problem with where it is."""
     if not TASK_RE.fullmatch(task):
-        print_problems(branches[0], ["should be named task/<task>, with a task name of lowercase letters, digits, and hyphens"])
-        return False
+        return branches[0], None, "", [f"{branches[0]}: should be named task/<task>, with a task name of lowercase letters, digits, and hyphens"]
     branch, note = newest_branch(root, branches)
     if branch is None:
-        print_problems(f"task/{task}", [note])
-        return False
+        return f"task/{task}", None, "", [f"task/{task}: {note}"]
     where = f"{branch}:{STATE_DIR}/{task}.md"
     shown = git(root, "show", where)
     if shown.returncode != 0:
-        print_problems(where, ["is missing"])
-        return False
+        return branch, None, note, [f"{where}: is missing"]
     state, problems = check_state(shown.stdout.decode("utf-8", errors="replace"), template, f"{task}.md")
+    return branch, state, note, [f"{where}: {problem}" for problem in problems]
+
+
+def list_one(root: Path, task: str, branches: list[str], template: Template, now: str, show_done: bool) -> bool:
+    """Print one task under its heading, with its problems if it has any. Returns False if it has problems."""
+    branch, state, note, problems = branch_state(root, task, branches, template)
     if problems:
-        print_problems(where, problems)
+        print(f"{task} ({branch}):")
+        for problem in problems:
+            print(f"  error: {problem}")
         return False
     if state.fields["Status"] != "done" or show_done:
         print(f"{task} ({branch}):")
@@ -646,7 +654,7 @@ def cmd_list(template: Template, now: str, only_task: str | None) -> int:
     branches_by_task = task_branches(root)
     if only_task is not None:
         if only_task not in branches_by_task:
-            print_problems(f"task/{only_task}", ["has no local or remote branch"])
+            print(f"{only_task} (task/{only_task}):\n  error: task/{only_task}: has no local or remote branch")
             return 1
         branches_by_task = {only_task: branches_by_task[only_task]}
     if not branches_by_task:

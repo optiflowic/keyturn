@@ -368,8 +368,8 @@ class ListTest(unittest.TestCase):
 
         result = self.repo.run("list")
         self.assertEqual(result.returncode, 1)
-        self.assertIn("error: task/delivery-1: should not have diverged: task/delivery-1, origin/task/delivery-1", result.stdout)
-        self.assertIn("error: task/delivery-9:keyturn/internal/state/delivery-9.md: is missing", result.stdout)
+        self.assertIn("delivery-1 (task/delivery-1):\n  error: task/delivery-1: should not have diverged: task/delivery-1, origin/task/delivery-1", result.stdout)
+        self.assertIn("delivery-9 (task/delivery-9):\n  error: task/delivery-9:keyturn/internal/state/delivery-9.md: is missing", result.stdout)
 
     def test_no_task_branches(self):
         result = self.repo.run("list")
@@ -380,15 +380,18 @@ class ListTest(unittest.TestCase):
         self.repo.task_branch(self.repo.root, "delivery-2", STOPPED.replace("- Status: stopped", "- Status: paused"))
         self.repo.task_branch(self.repo.root, "delivery-3", WORKED_EXAMPLE.read_text(encoding="utf-8"))
 
-        self.assertEqual(self.repo.run("list").returncode, 1)
-        result = self.repo.run("list", "--task", "delivery-1")
+        full = self.repo.run("list")
+        self.assertEqual(full.returncode, 1)
+        self.assertIn("delivery-1 (task/delivery-1):\n  status: stopped\n", full.stdout)
+        self.assertIn('delivery-2 (task/delivery-2):\n  error: task/delivery-2:keyturn/internal/state/delivery-2.md: line 6: field "Status"', full.stdout)
+        result =self.repo.run("list", "--task", "delivery-1")
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertTrue(result.stdout.startswith("delivery-1 (task/delivery-1):\n"))
         self.assertNotIn("delivery-2", result.stdout)
         done = self.repo.run("list", "--task", "delivery-3")
         self.assertIn("  status: done\n", done.stdout)
         missing = self.repo.run("list", "--task", "delivery-7")
-        self.assertEqual((missing.returncode, missing.stdout), (1, "error: task/delivery-7: has no local or remote branch\n"))
+        self.assertEqual((missing.returncode, missing.stdout), (1, "delivery-7 (task/delivery-7):\n  error: task/delivery-7: has no local or remote branch\n"))
 
 
 class CheckCommandTest(unittest.TestCase):
