@@ -33,7 +33,7 @@ Make the project's coding conventions checkable. Everything a tool can check bec
 
 ## Procedure
 
-Below, `project_config.py` means the full path of the `project-config` skill's script, `scripts/project_config.py`.
+Below, `project_config.py` means the full path of the `project-config` skill's script, `../project-config/scripts/project_config.py` from this skill's folder.
 
 ### 1. Check the project configuration
 
@@ -69,7 +69,7 @@ Use a profile tool or an other tool only when the design's "Libraries and extern
 
 ### 4. Write the tool rules
 
-Put each config where its tool finds it by default, at the root of the part it checks (for example, `api/.golangci.yml` and `web/eslint.config.js`). Never put a config, a rule file, or `conventions.md` inside QA's test folders (the design's "QA's tests", ADR 0017 in keyturn's `docs/adr/`) or inside the design's "Areas the work may change": the developer or QA could change it there. Cover:
+Put each config where its tool finds it by default, at the root of the part it checks (for example, `api/.golangci.yml` and `web/eslint.config.js`). If that folder is inside the design's "Areas the work may change", put the config in the nearest folder above it that is not (often the repository root), and point the tool to it if it does not find it there by default. Never put a config, a rule file, or `conventions.md` inside QA's test folders (the design's "QA's tests", ADR 0017 in keyturn's `docs/adr/`) or inside the design's "Areas the work may change": the developer or QA could change it there. Cover:
 
 - **Formatting**: the formatter's output is the only accepted layout.
 - **Correctness**: the linter's recommended rule set, including unused code and unchecked errors.
@@ -116,7 +116,7 @@ A change comes from the developer (in the handoff notes), the reviewer, or the a
 
 ## When inputs are missing
 
-- **No stack profile** (always, until phase 4): start from the design document, choose the defaults as in step 3, and list every one under "Assumed defaults", with "No profile" on the "Stack profile" line. Every development tool you assume is then an other tool: until the client has approved it through the design, use only toolchain tools and gate scanners' rule files, and report the rest as waiting.
+- **No stack profile** (always, until phase 4): start from the design document, choose the defaults as in step 3, and list every one under "Assumed defaults", with "No profile" on the "Stack profile" line. Every development tool you assume is then an other tool: until the client has approved it through the design, use only toolchain tools and gate scanners' rule files, and report the rest as waiting. List each waiting tool under "Assumed defaults" with the rules it would enforce and "not enforced until the design lists it", so the gap is visible: the readability limits stay tool rules even then, never checklist items.
 - **No design document**: ask whether the design should be written first. If the human wants conventions on their own, work from the repository: find its languages from its files (for example, `go.mod`, `package.json`), skip the boundary rules and the design checks, and write "No design document: conventions are based on the repository only." under "Summary".
 - **No threat model**: skip the forbidden patterns that would come from it, and say so in your report.
 - **Existing tool configs, without `conventions.md`** (an existing repository): they are the baseline. Keep their rules, add the missing ones, list them all, and loosen nothing.
