@@ -16,8 +16,8 @@ The reviewer checks names, comments, unused abstractions, and whether code sits 
 | File | Tool | Tool kind | What it enforces | Based on |
 |---|---|---|---|---|
 | none | `gofmt` | toolchain | the only accepted layout for `api/`, including QA's tests in `api/qa/` | profile `go` |
-| `api/.golangci.yml` | golangci-lint | gate scanner | on all of `api/`, including `api/qa/`: `govet`, `staticcheck`, `errcheck`, `unused`; `gocyclo` at most 10; `funlen` at most 60 lines and 40 statements; `nestif` at most 4 | profile `go` |
-| `api/.golangci.yml` | golangci-lint (`depguard`) | gate scanner | `api/internal/http/` may not import `api/internal/store` or `database/sql` | design "HTTP server" (handlers never query the database directly) |
+| `api/.golangci.yml` | golangci-lint | profile tool (`go`) | on all of `api/`, including `api/qa/`: `govet`, `staticcheck`, `errcheck`, `unused`; `gocyclo` at most 10; `funlen` at most 60 lines and 40 statements; `nestif` at most 4 | profile `go` |
+| `api/.golangci.yml` | golangci-lint (`depguard`) | profile tool (`go`) | `api/internal/http/` may not import `api/internal/store` or `database/sql` | design "HTTP server" (handlers never query the database directly) |
 | `.semgrep/task-queries.yml` | Semgrep | gate scanner | every SQL string in `api/internal/` that names the `tasks` table also names `user_id` | design "Tasks", T-1 |
 | `web/.prettierrc.json` | Prettier | profile tool (`react-spa`) | the only accepted layout for `web/`, including QA's tests in `web/e2e/`; excludes `web/dist/` (build output) | profile `react-spa` |
 | `web/eslint.config.js` | ESLint | profile tool (`react-spa`) | on `web/src/` and `web/e2e/`: `@eslint/js` and `typescript-eslint` recommended rules; `complexity` at most 10; `max-lines-per-function` at most 60; `max-depth` at most 4; excludes `web/dist/` (build output) | profile `react-spa` |
