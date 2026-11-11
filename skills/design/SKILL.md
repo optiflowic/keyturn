@@ -107,7 +107,7 @@ Mark each dependency's kind in the "Kind" column of `design.md` (ADR 0015 in key
 
 Until stack profiles exist (phase 4), no tool is approved by a profile: every development tool you assume (a linter, a formatter, a test tool) is an other tool and needs the client's agreement. Group them as one decision the client would weigh as one (step 7, "Keeping it small").
 
-Two things are not dependencies and are not listed: the language toolchain and its standard library (for example Go, Node.js, or Python), which approving the stack covers, and the gate's scanners (for example Semgrep, gitleaks, or Trivy), which the gate installs and which are never added to the project.
+Two things are not dependencies and are not listed: the language toolchain and its standard library (for example Go, Node.js, or Python), which approving the stack covers, including the tools that ship with the toolchain (for example `gofmt`, `go vet`, and `go test`), which are not other tools even though they format, lint, or test, and the gate's scanners (for example Semgrep, gitleaks, or Trivy), which the gate installs and which are never added to the project.
 
 Every new dependency, of every kind, is checked for existence, maintenance status, known vulnerabilities (for example, in OSV, sending only the name and version), and license, and the result goes in "Check" in `design.md`. Write the version, or the file where it will be pinned. A check from memory is not a check: it needs current data.
 
@@ -164,6 +164,7 @@ Before writing, look at everything the client would be asked: decisions to agree
 - **Group decisions the client would weigh as one**: for example, all the components the pages are built with are one decision, and how people sign in and what they may reach is one decision. One ADR per decision still.
 - **Fold a question into its decision.** If a question belongs to a decision that already needs agreement (for example, how long a sign-in lasts, within the sign-in decision), write the recommended answer into that decision, with the alternatives under "Other options we considered"; agreeing to the decision answers it. Use a separate card only when the question stands on its own.
 - One card still asks one question.
+- **Never ask the same thing twice.** When a decision cannot be made until a card is answered (for example, a requirement change the card asks about), the card is the question: give the decision its "Must agree" entry, but say there that answering the card is how the client agrees to it, link the card, and do not ask again.
 
 #### Writing and sending
 
