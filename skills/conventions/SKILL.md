@@ -13,7 +13,7 @@ Make the project's coding conventions checkable. Everything a tool can check bec
 - **Conventions are protected.** The developer never changes `conventions.md` or a tool config it lists. After the first version, every change, including allowing one suppression comment, is an ADR in `keyturn/internal/adr/` ("Guardrails" 1 in `docs/DESIGN.md`).
 - **Never loosen a rule to make code pass.** When code breaks a rule, report it; the developer fixes the code. Do not fix the code yourself.
 - **Follow the design, do not change it.** Use the parts, locations, and decisions in the design document and its ADRs as they are. If a rule would need a design change, stop and report it to the architect.
-- **No new dependency without approval.** A tool that has to be added to the project's dependencies (for example, a linter in `package.json`) is a new dependency: it needs the dependency check and the client's approval through the design ("Guardrails" 2).
+- **Add only the tools the design allows.** Which tools need the client's approval depends on their kind (ADR 0015 in keyturn's `docs/adr/`). Every tool you add to the project, of any kind, must be in the design's "Libraries and external services" with its dependency check; you never approve or check a tool yourself.
 
 ## Inputs
 
@@ -57,7 +57,15 @@ For each language in the design, choose one formatter and one linter.
 - With a stack profile: use its tools and defaults. Adapt a default only to the design or the size of the project, and say why under "Based on".
 - Without one: choose the formatter and linter most widely used for the language, and list each choice under "Assumed defaults".
 - For a project-specific pattern the linter cannot express (for example, "every query on the tasks table includes the user ID"), add a custom static-analysis rule, such as a Semgrep rule.
-- Prefer tools that need no project dependency (a formatter that ships with the language, or a tool the gate installs). If a tool must be added to the project's dependencies and the design does not list it under "Libraries and external services" with its check, do not add it: report it to the architect, so it goes through the design and the client's approval, and go on with the other tools.
+
+Then sort every tool by its kind (ADR 0015), and write the kind in "Tool kind":
+
+- **Toolchain**: part of the language's toolchain (for example, `gofmt` and `go vet`). Covered by approving the stack; use it.
+- **Gate scanner**: Semgrep, gitleaks, Trivy, and the other scanners the gate installs. Never add the scanner to the project's dependencies; only its rule file goes in the project.
+- **Profile tool**: a development tool the stack profile names (a linter, a formatter, their plugins). It needs no client approval, but it is used only when the design lists it as `profile tool` with its check.
+- **Other tool**: any development tool no profile names. While no profile exists, every tool you assume is an other tool. It needs the client's approval, through the design and `design-summary.md` ("Must agree").
+
+Use a profile tool or an other tool only when the design's "Libraries and external services" lists it, with that kind and a passing check. If it is not listed, do not add it, its config, or its rules: report it to the architect, with its name, kind, and what it would check, so it is checked and recorded (and, for an other tool, approved by the client) in the design. Go on with the other tools, and list what is waiting in your report. Prefer a toolchain tool whenever it does the same job.
 
 ### 4. Write the tool rules
 
@@ -86,6 +94,8 @@ Add a check for a design statement only when no tool rule can express it. For ea
 
 Before committing, check that:
 
+- every tool under "Tool rules" is a toolchain tool, a gate scanner whose scanner is not in the project's dependencies, or a tool the design lists with its kind and a passing check;
+
 - every file under "Tool rules" exists, and contains every rule its row names;
 - no file under "Tool rules", and not `conventions.md`, is in the design's "Areas the work may change", directly or through a glob. If one is, stop and report it to the architect: the developer could change it;
 - each tool that is installed loads its config without errors. Run it once on the project; for a tool that is not installed, say so in your report. Report any code that already breaks a rule, with its location, for the developer to fix;
@@ -93,7 +103,7 @@ Before committing, check that:
 
 ### 7. Commit
 
-Commit `conventions.md` and the tool configs together, on their own commit, and report: the tools chosen, the defaults assumed, the tools that need a dependency the design does not list yet, and any code that breaks a rule.
+Commit `conventions.md` and the tool configs together, on their own commit, and report: the tools chosen, the defaults assumed, the tools waiting for the design (with their kind), and any code that breaks a rule.
 
 ### Changing conventions
 
@@ -106,7 +116,7 @@ A change comes from the developer (in the handoff notes), the reviewer, or the a
 
 ## When inputs are missing
 
-- **No stack profile** (always, until phase 4): start from the design document, choose the defaults as in step 3, and list every one under "Assumed defaults", with "No profile" on the "Stack profile" line.
+- **No stack profile** (always, until phase 4): start from the design document, choose the defaults as in step 3, and list every one under "Assumed defaults", with "No profile" on the "Stack profile" line. Every development tool you assume is then an other tool: until the client has approved it through the design, use only toolchain tools and gate scanners' rule files, and report the rest as waiting.
 - **No design document**: ask whether the design should be written first. If the human wants conventions on their own, work from the repository: find its languages from its files (for example, `go.mod`, `package.json`), skip the boundary rules and the design checks, and write "No design document: conventions are based on the repository only." under "Summary".
 - **No threat model**: skip the forbidden patterns that would come from it, and say so in your report.
 - **Existing tool configs, without `conventions.md`** (an existing repository): they are the baseline. Keep their rules, add the missing ones, list them all, and loosen nothing.
