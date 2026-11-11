@@ -4,8 +4,12 @@
 Usage:
   task_state.py check FILE [--now TIME]  Check one state file against templates/internal/state.md.
                                          Prints "ok" and where the task stands, or every problem and exits 1.
-  task_state.py list [--now TIME]        For every local and remote branch task/<task>, check the state file on
-                                         that branch and list the tasks that are not done.
+  task_state.py list [--task TASK] [--now TIME]
+                                         For every local and remote branch task/<task>, check the state file on
+                                         that branch and list the tasks that are not done. With --task, only that
+                                         task, even when it is done. Exits 1 if anything it lists has a problem.
+
+Both commands print every problem as one line, "error: <where>: <problem>", on standard output.
 
 --now is the current time, YYYY-MM-DDTHH:MMZ in UTC (default: the clock). It only decides whether a
 "Can continue: after ..." time has passed; the check of the file itself never depends on it, so the same file
@@ -258,15 +262,15 @@ def is_time(text: str) -> bool:
 
 def placeholder_problem(kind: str, text: str, steps: list[str]) -> str | None:
     if kind == "time" and not is_time(text):
-        return f'"{text}" is not a UTC time in the form {TIME_FORM}'
+        return f'"{text}" should be a UTC time in the form {TIME_FORM}'
     if kind == "number" and not NUMBER_RE.fullmatch(text):
-        return f'"{text}" is not a whole number'
+        return f'"{text}" should be a whole number'
     if kind == "task" and not TASK_RE.fullmatch(text):
-        return f'"{text}" is not a task name (lowercase letters, digits, and hyphens)'
+        return f'"{text}" should be a task name (lowercase letters, digits, and hyphens)'
     if kind == "step" and text not in steps:
-        return f'"{text}" is not a step in the steps table'
+        return f'"{text}" should be a step in the steps table'
     if kind == "text" and LEFTOVER_PLACEHOLDER_RE.search(text):
-        return f'"{text}" still has a placeholder'
+        return f'"{text}" should have its placeholder filled in'
     return None
 
 
@@ -286,7 +290,7 @@ def value_problems(name: str, value: str, patterns: list[Pattern], steps: list[s
     if near_misses:
         return [f'field "{name}": {problem}' for problem in near_misses]
     allowed = " | ".join(pattern.text for pattern in patterns)
-    return [f'field "{name}": "{value}" is not one of the allowed values: {allowed}']
+    return [f'field "{name}": "{value}" should be one of: {allowed}']
 
 
 @dataclass
@@ -297,66 +301,69 @@ class StateFile:
     steps: dict[str, dict[str, str]]  # step name -> cells by column heading, only when the whole table is valid
     open_questions: list[str]
     history_kinds: list[str]
+    title_task: str | None = None
 
 
 def check_head(head: list[tuple[int, str]], template: Template, state: StateFile) -> list[str]:
     problems, seen = [], {}
     title = next(((number, line) for number, line in head if line.strip()), (0, ""))
-    if not title[1].startswith("# "):
-        problems.append(f'the file does not start with the title "{template.title.text}"')
-    elif value_problems("title", title[1][2:], [template.title], template.steps):
-        problems.append(f'line {title[0]}: the title is not "{template.title.text}"')
+    title_match = template.title.regex.fullmatch(title[1][2:]) if title[1].startswith("# ") else None
+    if not title_match or value_problems("title", title[1][2:], [template.title], template.steps):
+        problems.append(f'line {title[0] or 1}: "{title[1]}" should be the title "# {template.title.text}"')
+    else:
+        state.title_task = title_match.group(1) if template.title.kinds else None
 
     for number, line in head:
         if not line.strip() or (number, line) == title:
             continue
         match = FIELD_RE.match(line)
         if not match:
-            problems.append(f"line {number}: not a field line (- Field: value)")
+            problems.append(f'line {number}: "{line}" should be a field line, "- Field: value"')
             continue
         name, value = match.group(1), match.group(2).strip()
         if name not in template.fields:
-            problems.append(f'line {number}: unknown field "{name}"')
+            problems.append(f'line {number}: "{name}" is not a field of the template')
         elif name in seen:
-            problems.append(f'line {number}: field "{name}" appears more than once (first on line {seen[name]})')
+            problems.append(f'line {number}: field "{name}" should appear once, but is also on line {seen[name]}')
         else:
             seen[name] = number
             found = value_problems(name, value, template.fields[name], template.steps)
             problems += [f"line {number}: {problem}" for problem in found]
             if not found:
                 state.fields[name] = value
-    problems += [f'field "{name}": missing' for name in template.fields if name not in seen]
+    problems += [f'field "{name}": is missing' for name in template.fields if name not in seen]
     return problems
 
 
 def check_steps(lines: list[tuple[int, str]], template: Template, state: StateFile) -> list[str]:
-    table = [(number, table_cells(line)) for number, line in lines if line.strip().startswith("|")]
+    table_lines = [(number, line.strip()) for number, line in lines if line.strip().startswith("|")]
+    table = [(number, table_cells(line)) for number, line in table_lines]
     if not table:
-        return ["Steps: no table"]
-    problems = [f"line {number}: a table row must start and end with |" for number, cells in table if cells is None]
+        return ["Steps: should have the steps table"]
+    problems = [f'line {number}: "{line}" should start and end with |' for number, line in table_lines if table_cells(line) is None]
     if problems:
         return problems
     header_number, header = table[0]
     if header != template.table_header:
-        return [f"line {header_number}: the table heading is not | {' | '.join(template.table_header)} |"]
+        return [f"line {header_number}: the table heading should be | {' | '.join(template.table_header)} |, not | {' | '.join(header)} |"]
     if len(table) < 2 or not all(re.fullmatch(r":?-+:?", cell) for cell in table[1][1]):
-        return [f"line {header_number + 1}: the line under the table heading must be |---|...|"]
+        return [f"line {header_number + 1}: the line under the table heading should be |---|...|"]
 
     rows, problems = [], []
     for number, cells in table[2:]:
         if len(cells) != len(header):
-            problems.append(f"line {number}: has {len(cells)} columns instead of {len(header)}")
+            problems.append(f"line {number}: should have {len(header)} columns, not {len(cells)}")
             continue
         row = dict(zip(header, cells))
         rows.append(row)
         problems += [f"line {number}: {problem}" for problem in step_row_problems(row, template)]
 
     names = [row["Step"] for row in rows]
-    problems += [f'Steps: unknown step "{name}"' for name in names if name not in template.steps]
-    problems += [f'Steps: step "{name}" appears more than once' for name in sorted(set(names), key=names.index) if names.count(name) > 1]
+    problems += [f'Steps: "{name}" is not a step of the template' for name in names if name not in template.steps]
+    problems += [f'Steps: step "{name}" should appear once' for name in sorted(set(names), key=names.index) if names.count(name) > 1]
     problems += [f'Steps: step "{name}" is missing' for name in template.steps if name not in names]
     if not problems and names != template.steps:
-        problems.append(f"Steps: the steps are not in order; the order is {', '.join(template.steps)}")
+        problems.append(f"Steps: the steps should be in this order: {', '.join(template.steps)}")
     if not problems:
         state.steps = {row["Step"]: row for row in rows}
     return problems
@@ -366,14 +373,14 @@ def step_row_problems(row: dict[str, str], template: Template) -> list[str]:
     step, status = row["Step"], row["Status"]
     if status not in template.step_statuses:
         allowed = ", ".join(template.step_statuses)
-        return [f'step "{step}": status "{status}" is not one of the allowed values: {allowed}']
+        return [f'step "{step}": status "{status}" should be one of: {allowed}']
     problems = []
     if row["Commit"] and not COMMIT_RE.fullmatch(row["Commit"]):
-        problems.append(f'step "{step}": the commit "{row["Commit"]}" is not a commit hash in backticks')
+        problems.append(f'step "{step}": commit "{row["Commit"]}" should be a commit hash in backticks')
     if status == "done" and not row["Commit"]:
-        problems.append(f'step "{step}": is done but has no commit (a step is done only when its outputs are committed)')
+        problems.append(f'step "{step}": is done, so it should have a commit (a step is done only when its outputs are committed)')
     if status == "skipped" and not row.get("Notes"):
-        problems.append(f'step "{step}": is skipped but its notes do not say why')
+        problems.append(f'step "{step}": is skipped, so its notes should say why')
     return problems
 
 
@@ -382,17 +389,17 @@ def check_open_questions(lines: list[tuple[int, str]], state: StateFile) -> list
     if [line for _, line in content] == ["None."]:
         return []
     if not content:
-        return ['Open questions: empty; write "None." when nothing is waiting']
+        return ['Open questions: should say "None." when nothing is waiting']
     problems = []
     for number, line in content:
         waiting_since = re.search(r"since (\S+?)\.? Blocks: \S", line)
         if not re.match(r"- \[?(decision card|requirements version) \d+\b", line):
-            problems.append(f"line {number}: an open question starts with a decision card or a requirements version")
+            problems.append(f'line {number}: "{line}" should start with "- [decision card <n>](link)" or "- [requirements version <n>](link)"')
         elif not waiting_since:
-            problems.append(f'line {number}: an open question says "since {TIME_FORM}" and "Blocks: ..."')
+            problems.append(f'line {number}: "{line}" should say "since {TIME_FORM}. Blocks: ..."')
         else:
             if not is_time(waiting_since.group(1)):
-                problems.append(f'line {number}: "{waiting_since.group(1)}" is not a UTC time in the form {TIME_FORM}')
+                problems.append(f'line {number}: "{waiting_since.group(1)}" should be a UTC time in the form {TIME_FORM}')
             state.open_questions.append(line)
     return problems
 
@@ -400,25 +407,25 @@ def check_open_questions(lines: list[tuple[int, str]], state: StateFile) -> list
 def check_history(lines: list[tuple[int, str]], template: Template, state: StateFile) -> list[str]:
     content = [(number, line.strip()) for number, line in lines if line.strip()]
     if not content:
-        return ["History: empty; the first line is the time the task started"]
+        return [f'History: should have at least the line "- {TIME_FORM}: started"']
     problems, previous = [], ""
     for number, line in content:
         match = HISTORY_RE.match(line)
         if not match:
-            problems.append(f"line {number}: a history line is - {TIME_FORM}: what happened")
+            problems.append(f'line {number}: "{line}" should be "- {TIME_FORM}: what happened"')
             continue
         time, kind = match.group(1), match.group(2).split(":")[0]
         if not is_time(time):
-            problems.append(f'line {number}: "{time}" is not a UTC time in the form {TIME_FORM}')
+            problems.append(f'line {number}: "{time}" should be a UTC time in the form {TIME_FORM}')
         elif previous and time < previous:
-            problems.append(f"line {number}: the history is not in time order (newest last)")
+            problems.append(f"line {number}: {time} should not be earlier than the line before it (newest last)")
         else:
             previous = time
         if kind not in template.history_kinds:
-            problems.append(f'line {number}: "{kind}" is not one of: {", ".join(template.history_kinds)}')
+            problems.append(f'line {number}: "{kind}" should be one of: {", ".join(template.history_kinds)}')
         state.history_kinds.append(kind)
     if state.history_kinds and state.history_kinds[0] != "started":
-        problems.append('History: the first line is not "started"')
+        problems.append(f'History: the first line should be "started", not "{state.history_kinds[0]}"')
     return problems
 
 
@@ -426,41 +433,43 @@ def consistency_problems(state: StateFile, file_name: str | None) -> list[str]:
     """Checks across fields, so that where to continue is never a guess. Only values already found valid are used."""
     fields, problems = state.fields, []
     task = fields.get("Task")
+    if task and state.title_task and state.title_task != task:
+        problems.append(f'title: should name the task "{task}" from "Task:", not "{state.title_task}"')
     if task and fields.get("Branch") and fields["Branch"] != f"`task/{task}`":
-        problems.append(f'field "Branch": is not `task/{task}`')
+        problems.append(f'field "Branch": should be `task/{task}`, not {fields["Branch"]}')
     if task and file_name and file_name != f"{task}.md":
-        problems.append(f'field "Task": "{task}" does not match the file name {file_name}')
+        problems.append(f'field "Task": "{task}" should match the file name, {file_name}')
     rework = fields.get("Rework", "").split(" of ")
     if len(rework) == 2 and int(rework[0]) > int(rework[1]):
-        problems.append('field "Rework": the count is above the limit')
+        problems.append(f'field "Rework": "{fields["Rework"]}" should not count more than the limit')
 
     status, step, reason, can_continue = (fields.get(name) for name in ("Status", "Current step", "Stopped because", "Can continue"))
     if status == "done":
-        problems += [f'field "{name}": is not "{value}", but Status is done'
+        problems += [f'field "{name}": should be "{value}" when Status is done, not "{fields.get(name)}"'
                      for name, value in (("Current step", "none"), ("Stopped because", "none"), ("Can continue", "not applicable"))
                      if fields.get(name) not in (None, value)]
         unfinished = [name for name, row in state.steps.items() if row["Status"] not in FINISHED_STEP_STATUSES]
-        problems += [f'step "{name}": is not done or skipped, but Status is done' for name in unfinished]
+        problems += [f'step "{name}": should be done or skipped when Status is done' for name in unfinished]
         if state.history_kinds and state.history_kinds[-1] != "done":
-            problems.append('History: the last line is not "done", but Status is done')
+            problems.append('History: the last line should be "done" when Status is done')
     elif status in ("running", "stopped"):
         if step == "none":
-            problems.append(f'field "Current step": is none, but Status is {status}')
+            problems.append(f'field "Current step": should name a step when Status is {status}, not "none"')
         if status == "stopped" and reason == "none":
-            problems.append('field "Stopped because": is none, but Status is stopped')
+            problems.append('field "Stopped because": should give the reason when Status is stopped, not "none"')
         if status == "running" and reason not in (None, "none"):
-            problems.append('field "Stopped because": is not none, but Status is running')
+            problems.append(f'field "Stopped because": should be "none" when Status is running, not "{reason}"')
         if step and step != "none" and state.steps:
             problems += current_step_problems(state, step)
 
     if reason == "usage limit" and can_continue and not can_continue.startswith("after "):
-        problems.append('field "Can continue": a usage limit stop says when the limit resets (after ' + TIME_FORM + ")")
+        problems.append(f'field "Can continue": should be "after {TIME_FORM}" (when the limit resets) for a usage limit, not "{can_continue}"')
     if reason == "waiting for the client" and can_continue and not can_continue.startswith("when the client "):
-        problems.append('field "Can continue": a stop waiting for the client says what the client must answer or approve')
+        problems.append(f'field "Can continue": should say what the client must answer or approve ("when the client ..."), not "{can_continue}"')
     if can_continue and can_continue.startswith("when the client "):
         waited_for = can_continue.split(": ", 1)[1]  # "decision card 2" or "requirements version 1"
         if not any(re.search(rf"\b{re.escape(waited_for)}\b", line) for line in state.open_questions):
-            problems.append(f'Open questions: "{waited_for}" is not listed, but the task waits for it')
+            problems.append(f'Open questions: should list "{waited_for}", which the task waits for')
     return problems
 
 
@@ -468,9 +477,9 @@ def current_step_problems(state: StateFile, step: str) -> list[str]:
     """The current step is the first step that is neither done nor skipped: every step before it is finished."""
     first_unfinished = next((name for name, row in state.steps.items() if row["Status"] not in FINISHED_STEP_STATUSES), None)
     if first_unfinished is None:
-        return ['Steps: every step is done or skipped, but the task is not done']
+        return ['Steps: every step is done or skipped, so Status should be done']
     if step != first_unfinished:
-        return [f'field "Current step": is "{step}", but the first step that is not done or skipped is "{first_unfinished}"']
+        return [f'field "Current step": should be "{first_unfinished}", the first step that is not done or skipped, not "{step}"']
     return []
 
 
@@ -479,26 +488,26 @@ def check_state(text: str, template: Template, file_name: str | None = None) -> 
     state = StateFile(fields={}, steps={}, open_questions=[], history_kinds=[])
     problems = []
     if "<!--" in text:
-        problems.append("the file still has template comments (<!-- -->); delete them")
+        problems.append("the template comments (<!-- -->) should be deleted")
     for number, line in enumerate(text.splitlines(), start=1):
         leftover = LEFTOVER_PLACEHOLDER_RE.search(line)
         if leftover:
-            problems.append(f"line {number}: placeholder {leftover.group(0)} is not filled in")
+            problems.append(f"line {number}: placeholder {leftover.group(0)} should be filled in")
 
     head, sections = split_sections(text.splitlines())
     problems += check_head(head, template, state)
 
     names = [name for name, _ in sections]
-    problems += [f'section "{name}": not in the template' for name in names if name not in template.sections]
-    problems += [f'section "{name}": appears more than once' for name in sorted(set(names), key=names.index) if names.count(name) > 1]
-    problems += [f'section "{name}": missing' for name in template.sections if name not in names]
+    problems += [f'section "{name}": is not a section of the template' for name in names if name not in template.sections]
+    problems += [f'section "{name}": should appear once' for name in sorted(set(names), key=names.index) if names.count(name) > 1]
+    problems += [f'section "{name}": is missing' for name in template.sections if name not in names]
     known = [name for name in names if name in template.sections]
     if len(set(known)) == len(known) and known != [name for name in template.sections if name in known]:
-        problems.append(f"the sections are not in order; the order is {', '.join(template.sections)}")
+        problems.append(f"the sections should be in this order: {', '.join(template.sections)}")
 
     by_name = {name: lines for name, lines in sections}
     if "Summary" in by_name and not any(line.strip() for _, line in by_name["Summary"]):
-        problems.append("Summary: empty")
+        problems.append("Summary: should not be empty")
     if "Steps" in by_name:
         problems += check_steps(by_name["Steps"], template, state)
     if "Open questions" in by_name:
@@ -537,17 +546,26 @@ def describe(state: StateFile, now: str) -> list[str]:
     ]
 
 
-def cmd_check(path: Path, template: Template, now: str) -> None:
+def print_problems(where: str, problems: list[str]) -> None:
+    """Both commands print problems the same way, so a reader or a script handles them the same way."""
+    for problem in problems:
+        print(f"error: {where}: {problem}")
+
+
+def cmd_check(path: Path, template: Template, now: str) -> int:
     try:
         text = path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError) as error:
-        raise Problems([f"{path}: cannot read: {getattr(error, 'strerror', None) or error}"]) from None
+        print_problems(str(path), [f"cannot be read: {getattr(error, 'strerror', None) or error}"])
+        return 1
     state, problems = check_state(text, template, path.name)
     if problems:
-        raise Problems(problems)
+        print_problems(str(path), problems)
+        return 1
     print("ok")
     for line in describe(state, now):
         print(line)
+    return 0
 
 
 # --- Listing tasks on branches ------------------------------------------------------------------------------------
@@ -567,7 +585,7 @@ def git(root: Path, *args: str) -> subprocess.CompletedProcess:
 def repo_root() -> Path:
     result = git(Path.cwd(), "rev-parse", "--show-toplevel")
     if result.returncode != 0:
-        raise Problems(["not inside a Git repository"])
+        raise Problems([f"{Path.cwd()}: should be inside a Git repository"])
     return Path(result.stdout.decode("utf-8").strip())
 
 
@@ -588,54 +606,59 @@ def is_ancestor(root: Path, older: str, newer: str) -> bool:
     return git(root, "merge-base", "--is-ancestor", older, newer).returncode == 0
 
 
-def newest_branch(root: Path, branches: list[str]) -> tuple[str | None, list[str]]:
-    """The branch that contains all the others (local first when they are the same), and notes about the others."""
+def newest_branch(root: Path, branches: list[str]) -> tuple[str | None, str]:
+    """The branch that contains all the others (local first when they are the same), and a note or problem about them."""
     for candidate in branches:
         if all(is_ancestor(root, other, candidate) for other in branches):
             local = branches[0] if branches[0].startswith("task/") else None
             behind = local and local != candidate and not is_ancestor(root, candidate, local)
-            notes = [f"{local} is behind {candidate}; fast-forward it before resuming"] if behind else []
-            return candidate, notes
-    return None, [f"{', '.join(branches)} have diverged; merge them before resuming, the newest state cannot be chosen"]
+            return candidate, f"{local} is behind {candidate}; fast-forward it before resuming" if behind else ""
+    return None, f"should not have diverged: {', '.join(branches)}; merge them before resuming, the newest state cannot be chosen"
 
 
-def cmd_list(template: Template, now: str) -> int:
-    root = repo_root()
-    listed, failed = 0, False
-    for task, branches in task_branches(root).items():
-        if not TASK_RE.fullmatch(task):
-            print(f"{branches[0]}: not a task branch (a task name is lowercase letters, digits, and hyphens)")
-            failed = True
-            continue
-        branch, notes = newest_branch(root, branches)
-        problems = notes if branch is None else []
-        state = None
-        if branch:
-            shown = git(root, "show", f"{branch}:{STATE_DIR}/{task}.md")
-            if shown.returncode != 0:
-                problems = [f"{STATE_DIR}/{task}.md: missing on {branch}"]
-            else:
-                state, problems = check_state(shown.stdout.decode("utf-8", errors="replace"), template, f"{task}.md")
-        if problems:
-            print(f"{task} ({branch or ', '.join(branches)}): cannot be resumed until these problems are fixed:")
-            for problem in problems:
-                print(f"  - {problem}")
-            failed, listed = True, listed + 1
-            continue
-        if state.fields["Status"] == "done":
-            continue
+def list_one(root: Path, task: str, branches: list[str], template: Template, now: str, show_done: bool) -> bool:
+    """Print one task, or its problems. Returns False if it has problems."""
+    if not TASK_RE.fullmatch(task):
+        print_problems(branches[0], ["should be named task/<task>, with a task name of lowercase letters, digits, and hyphens"])
+        return False
+    branch, note = newest_branch(root, branches)
+    if branch is None:
+        print_problems(f"task/{task}", [note])
+        return False
+    where = f"{branch}:{STATE_DIR}/{task}.md"
+    shown = git(root, "show", where)
+    if shown.returncode != 0:
+        print_problems(where, ["is missing"])
+        return False
+    state, problems = check_state(shown.stdout.decode("utf-8", errors="replace"), template, f"{task}.md")
+    if problems:
+        print_problems(where, problems)
+        return False
+    if state.fields["Status"] != "done" or show_done:
         print(f"{task} ({branch}):")
-        for line in describe(state, now)[1:] + [f"note: {note}" for note in notes]:
+        for line in describe(state, now)[1:] + ([f"note: {note}"] if note else []):
             print(f"  {line}")
-        listed += 1
-    if not listed:
+    return True
+
+
+def cmd_list(template: Template, now: str, only_task: str | None) -> int:
+    root = repo_root()
+    branches_by_task = task_branches(root)
+    if only_task is not None:
+        if only_task not in branches_by_task:
+            print_problems(f"task/{only_task}", ["has no local or remote branch"])
+            return 1
+        branches_by_task = {only_task: branches_by_task[only_task]}
+    if not branches_by_task:
         print("no tasks to resume")
-    return 1 if failed else 0
+        return 0
+    results = [list_one(root, task, branches, template, now, only_task is not None) for task, branches in branches_by_task.items()]
+    return 0 if all(results) else 1
 
 
 def check_now(value: str) -> str:
     if not is_time(value):
-        raise argparse.ArgumentTypeError(f"not a UTC time in the form {TIME_FORM}: {value!r}")
+        raise argparse.ArgumentTypeError(f"should be a UTC time in the form {TIME_FORM}, not {value!r}")
     return value
 
 
@@ -646,19 +669,22 @@ def main() -> int:
     check = commands.add_parser("check", help="check one state file")
     check.add_argument("file", type=Path)
     listing = commands.add_parser("list", help="list the tasks on task/<task> branches that are not done")
+    listing.add_argument("--task", help="list only this task, even when it is done")
     for command in (check, listing):
-        command.add_argument("--now", type=check_now, default=datetime.now(timezone.utc).strftime(TIME_FORMAT))
+        command.add_argument(
+            "--now", type=check_now, default=datetime.now(timezone.utc).strftime(TIME_FORMAT), metavar=TIME_FORM,
+            help="the current UTC time (default: the clock); it only decides whether an 'after' time has passed",
+        )
     args = parser.parse_args()
 
     try:
         template = read_template(args.template)
         if args.command == "check":
-            cmd_check(args.file, template, args.now)
-            return 0
-        return cmd_list(template, args.now)
+            return cmd_check(args.file, template, args.now)
+        return cmd_list(template, args.now, args.task)
     except Problems as error:
         for problem in error.problems:
-            print(f"error: {problem}", file=sys.stderr)
+            print(f"error: {problem}")
         return 1
 
 

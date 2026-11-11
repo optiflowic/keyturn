@@ -133,83 +133,89 @@ class ValidFileTest(unittest.TestCase):
 
 class MissingFieldsTest(unittest.TestCase):
     def test_missing_field(self):
-        self.assertIn('field "Can continue": missing', check(STOPPED.replace("- Can continue: after 2026-11-08T15:30Z\n", "")))
+        self.assertIn('field "Can continue": is missing', check(STOPPED.replace("- Can continue: after 2026-11-08T15:30Z\n", "")))
 
     def test_every_missing_field_is_reported_in_template_order(self):
         text = STOPPED.replace("- Rework: 1 of 3\n", "").replace("- Task: delivery-1\n", "")
-        missing = [problem for problem in check(text) if problem.endswith(": missing")]
-        self.assertEqual(missing, ['field "Task": missing', 'field "Rework": missing'])
+        missing = [problem for problem in check(text) if problem.endswith(": is missing")]
+        self.assertEqual(missing, ['field "Task": is missing', 'field "Rework": is missing'])
 
     def test_unknown_and_duplicate_fields(self):
         text = STOPPED.replace("- Rework: 1 of 3\n", "- Rework: 1 of 3\n- Rework: 2 of 3\n- Owner: someone\n")
         problems = check(text)
-        self.assertIn('line 11: field "Rework" appears more than once (first on line 10)', problems)
-        self.assertIn('line 12: unknown field "Owner"', problems)
+        self.assertIn('line 11: field "Rework" should appear once, but is also on line 10', problems)
+        self.assertIn('line 12: "Owner" is not a field of the template', problems)
 
     def test_missing_section(self):
-        self.assertIn('section "History": missing', check(STOPPED.split("## History")[0]))
+        self.assertIn('section "History": is missing', check(STOPPED.split("## History")[0]))
 
     def test_comments_and_placeholders_left(self):
         problems = check(STOPPED.replace("None.", "<!-- nothing -->\n- <decision card <n>: link>"))
-        self.assertIn("the file still has template comments (<!-- -->); delete them", problems)
-        self.assertTrue(any("placeholder <n> is not filled in" in problem for problem in problems))
+        self.assertIn("the template comments (<!-- -->) should be deleted", problems)
+        self.assertTrue(any("placeholder <n> should be filled in" in problem for problem in problems))
 
 
 class UnknownValuesTest(unittest.TestCase):
     def test_unknown_status(self):
         self.assertIn(
-            'line 6: field "Status": "paused" is not one of the allowed values: running | stopped | done',
+            'line 6: field "Status": "paused" should be one of: running | stopped | done',
             check(STOPPED.replace("- Status: stopped", "- Status: paused")),
         )
 
     def test_unknown_stop_reason(self):
         problems = check(STOPPED.replace("- Stopped because: usage limit", "- Stopped because: tired"))
-        self.assertTrue(problems[0].startswith('line 8: field "Stopped because": "tired" is not one of the allowed values'))
+        self.assertTrue(problems[0].startswith('line 8: field "Stopped because": "tired" should be one of:'))
 
     def test_current_step_not_in_table(self):
         problems = check(STOPPED.replace("- Current step: implement", "- Current step: coding"))
-        self.assertIn('line 7: field "Current step": "coding" is not a step in the steps table', problems)
+        self.assertIn('line 7: field "Current step": "coding" should be a step in the steps table', problems)
 
     def test_can_continue_with_wrong_number(self):
         problems = check(WAITING.replace("decision card 2\n", "decision card two\n", 1))
-        self.assertIn('line 9: field "Can continue": "two" is not a whole number', problems)
+        self.assertIn('line 9: field "Can continue": "two" should be a whole number', problems)
 
     def test_unknown_step_status(self):
         problems = check(STOPPED.replace("| qa | not started |", "| qa | waiting |"))
-        self.assertIn('line 25: step "qa": status "waiting" is not one of the allowed values: not started, in progress, done, skipped', problems)
+        self.assertIn('line 25: step "qa": status "waiting" should be one of: not started, in progress, done, skipped', problems)
+
+    def test_title_must_name_the_task(self):
+        problems = check(STOPPED.replace("# Task state: delivery-1", "# Task state: delivery-2"))
+        self.assertEqual(problems, ['title: should name the task "delivery-1" from "Task:", not "delivery-2"'])
+        problems = check(STOPPED.replace("# Task state: delivery-1", "# State of delivery-1"))
+        self.assertEqual(problems, ['line 1: "# State of delivery-1" should be the title "# Task state: <task>"'])
 
     def test_task_name_must_match_branch_and_file(self):
         problems = check(STOPPED.replace("- Branch: `task/delivery-1`", "- Branch: `task/delivery-2`"), "other.md")
-        self.assertIn('field "Branch": is not `task/delivery-1`', problems)
-        self.assertIn('field "Task": "delivery-1" does not match the file name other.md', problems)
+        self.assertIn('field "Branch": should be `task/delivery-1`, not `task/delivery-2`', problems)
+        self.assertIn('field "Task": "delivery-1" should match the file name, other.md', problems)
 
 
 class MalformedTimesTest(unittest.TestCase):
     def test_updated_without_time_form(self):
         problems = check(STOPPED.replace("- Updated: 2026-11-08T12:48Z", "- Updated: 2026-11-08 12:48"))
-        self.assertIn('line 11: field "Updated": "2026-11-08 12:48" is not a UTC time in the form YYYY-MM-DDTHH:MMZ', problems)
+        self.assertIn('line 11: field "Updated": "2026-11-08 12:48" should be a UTC time in the form YYYY-MM-DDTHH:MMZ', problems)
 
     def test_impossible_time(self):
         problems = check(STOPPED.replace("- Can continue: after 2026-11-08T15:30Z", "- Can continue: after 2026-13-08T15:30Z"))
-        self.assertIn('line 9: field "Can continue": "2026-13-08T15:30Z" is not a UTC time in the form YYYY-MM-DDTHH:MMZ', problems)
+        self.assertIn('line 9: field "Can continue": "2026-13-08T15:30Z" should be a UTC time in the form YYYY-MM-DDTHH:MMZ', problems)
 
     def test_local_time_with_offset(self):
         problems = check(STOPPED.replace("- Updated: 2026-11-08T12:48Z", "- Updated: 2026-11-08T21:48+09:00"))
-        self.assertTrue(any("is not a UTC time" in problem for problem in problems))
+        self.assertTrue(any("should be a UTC time" in problem for problem in problems))
 
     def test_history_time(self):
         problems = check(STOPPED.replace("- 2026-11-08T01:05Z: started", "- 8 Nov 2026: started"))
-        self.assertIn('line 36: "8 Nov 2026" is not a UTC time in the form YYYY-MM-DDTHH:MMZ', problems)
+        self.assertIn('line 36: "8 Nov 2026" should be a UTC time in the form YYYY-MM-DDTHH:MMZ', problems)
 
     def test_history_out_of_order(self):
         problems = check(STOPPED.replace("- 2026-11-08T06:02Z: resumed", "- 2026-11-08T03:22Z: resumed"))
-        self.assertNotIn("the history is not in time order", " ".join(problems))
+        self.assertNotIn("should not be earlier than the line before it", " ".join(problems))
         problems = check(STOPPED.replace("- 2026-11-08T12:48Z: stopped: usage", "- 2026-11-08T05:48Z: stopped: usage"))
-        self.assertIn("line 39: the history is not in time order (newest last)", problems)
+        self.assertIn("line 39: 2026-11-08T05:48Z should not be earlier than the line before it (newest last)", problems)
 
     def test_open_question_time(self):
         problems = check(WAITING.replace("Waiting since 2026-11-08T03:20Z", "Waiting since yesterday"))
-        self.assertIn('line 32: "yesterday" is not a UTC time in the form YYYY-MM-DDTHH:MMZ', problems)
+        self.assertIn('line 32: "yesterday" should be a UTC time in the form YYYY-MM-DDTHH:MMZ', problems)
 
 
 class BrokenStepsTableTest(unittest.TestCase):
@@ -219,32 +225,32 @@ class BrokenStepsTableTest(unittest.TestCase):
     def test_steps_out_of_order(self):
         text = STOPPED.replace("| qa | not started | | | |\n| security-review | not started | | | |\n",
                                "| security-review | not started | | | |\n| qa | not started | | | |\n")
-        self.assertIn("Steps: the steps are not in order; the order is spec, design, conventions, implement, qa, security-review, review, deliver", check(text))
+        self.assertIn("Steps: the steps should be in this order: spec, design, conventions, implement, qa, security-review, review, deliver", check(text))
 
     def test_unknown_and_duplicate_step(self):
         problems = check(STOPPED.replace("| review | not started | | | |", "| review | not started | | | |\n| review | not started | | | |\n| lint | not started | | | |"))
-        self.assertIn('Steps: unknown step "lint"', problems)
-        self.assertIn('Steps: step "review" appears more than once', problems)
+        self.assertIn('Steps: "lint" is not a step of the template', problems)
+        self.assertIn('Steps: step "review" should appear once', problems)
 
     def test_wrong_number_of_columns(self):
-        self.assertIn("line 25: has 3 columns instead of 5", check(STOPPED.replace("| qa | not started | | | |", "| qa | not started | |")))
+        self.assertIn("line 25: should have 5 columns, not 3", check(STOPPED.replace("| qa | not started | | | |", "| qa | not started | |")))
 
     def test_wrong_heading(self):
         problems = check(STOPPED.replace("| Step | Status | Output | Commit | Notes |", "| Step | State | Output | Commit | Notes |"))
-        self.assertEqual(problems, ["line 19: the table heading is not | Step | Status | Output | Commit | Notes |"])
+        self.assertEqual(problems, ["line 19: the table heading should be | Step | Status | Output | Commit | Notes |, not | Step | State | Output | Commit | Notes |"])
 
     def test_no_table(self):
         text = STOPPED.split("| Step |")[0] + "## Open questions" + STOPPED.split("## Open questions")[1]
-        self.assertIn("Steps: no table", check(text))
+        self.assertIn("Steps: should have the steps table", check(text))
 
     def test_done_step_needs_a_commit_hash(self):
         problems = check(STOPPED.replace("| `b7e4410` |", "| |").replace("`1f3d2b8`", "1f3d2b8"))
-        self.assertIn('step "conventions": is done but has no commit (a step is done only when its outputs are committed)', " ".join(problems))
-        self.assertIn('step "spec": the commit "1f3d2b8" is not a commit hash in backticks', " ".join(problems))
+        self.assertIn('step "conventions": is done, so it should have a commit (a step is done only when its outputs are committed)', " ".join(problems))
+        self.assertIn('step "spec": commit "1f3d2b8" should be a commit hash in backticks', " ".join(problems))
 
     def test_skipped_step_needs_a_reason(self):
         problems = check(STOPPED.replace("| conventions | done | `conventions.md` | `b7e4410` | |", "| conventions | skipped | | | |"))
-        self.assertIn('line 23: step "conventions": is skipped but its notes do not say why', problems)
+        self.assertIn('line 23: step "conventions": is skipped, so its notes should say why', problems)
 
 
 class ConsistencyTest(unittest.TestCase):
@@ -252,26 +258,26 @@ class ConsistencyTest(unittest.TestCase):
 
     def test_current_step_must_be_the_first_unfinished_step(self):
         problems = check(STOPPED.replace("- Current step: implement", "- Current step: qa"))
-        self.assertIn('field "Current step": is "qa", but the first step that is not done or skipped is "implement"', problems)
+        self.assertIn('field "Current step": should be "implement", the first step that is not done or skipped, not "qa"', problems)
 
     def test_stopped_needs_a_reason(self):
         problems = check(STOPPED.replace("- Stopped because: usage limit", "- Stopped because: none"))
-        self.assertIn('field "Stopped because": is none, but Status is stopped', problems)
+        self.assertIn('field "Stopped because": should give the reason when Status is stopped, not "none"', problems)
 
     def test_usage_limit_needs_the_reset_time(self):
         problems = check(STOPPED.replace("- Can continue: after 2026-11-08T15:30Z", "- Can continue: now"))
-        self.assertIn('field "Can continue": a usage limit stop says when the limit resets (after YYYY-MM-DDTHH:MMZ)', problems)
+        self.assertIn('field "Can continue": should be "after YYYY-MM-DDTHH:MMZ" (when the limit resets) for a usage limit, not "now"', problems)
 
     def test_waited_for_card_must_be_an_open_question(self):
         problems = check(WAITING.replace("decision card 2\n", "decision card 3\n", 1))
-        self.assertIn('Open questions: "decision card 3" is not listed, but the task waits for it', problems)
+        self.assertIn('Open questions: should list "decision card 3", which the task waits for', problems)
 
     def test_done_with_unfinished_step(self):
         text = WORKED_EXAMPLE.read_text(encoding="utf-8").replace("| deliver | done |", "| deliver | in progress |")
-        self.assertIn('step "deliver": is not done or skipped, but Status is done', check(text))
+        self.assertIn('step "deliver": should be done or skipped when Status is done', check(text))
 
     def test_rework_above_limit(self):
-        self.assertIn('field "Rework": the count is above the limit', check(STOPPED.replace("Rework: 1 of 3", "Rework: 4 of 3")))
+        self.assertIn('field "Rework": "4 of 3" should not count more than the limit', check(STOPPED.replace("Rework: 1 of 3", "Rework: 4 of 3")))
 
 
 class Repo:
@@ -362,21 +368,36 @@ class ListTest(unittest.TestCase):
 
         result = self.repo.run("list")
         self.assertEqual(result.returncode, 1)
-        self.assertIn("task/delivery-1, origin/task/delivery-1 have diverged", result.stdout)
-        self.assertIn("keyturn/internal/state/delivery-9.md: missing on task/delivery-9", result.stdout)
+        self.assertIn("error: task/delivery-1: should not have diverged: task/delivery-1, origin/task/delivery-1", result.stdout)
+        self.assertIn("error: task/delivery-9:keyturn/internal/state/delivery-9.md: is missing", result.stdout)
 
     def test_no_task_branches(self):
         result = self.repo.run("list")
         self.assertEqual((result.returncode, result.stdout), (0, "no tasks to resume\n"))
 
+    def test_one_task_is_judged_on_its_own(self):
+        self.repo.task_branch(self.repo.root, "delivery-1", STOPPED)
+        self.repo.task_branch(self.repo.root, "delivery-2", STOPPED.replace("- Status: stopped", "- Status: paused"))
+        self.repo.task_branch(self.repo.root, "delivery-3", WORKED_EXAMPLE.read_text(encoding="utf-8"))
+
+        self.assertEqual(self.repo.run("list").returncode, 1)
+        result = self.repo.run("list", "--task", "delivery-1")
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertTrue(result.stdout.startswith("delivery-1 (task/delivery-1):\n"))
+        self.assertNotIn("delivery-2", result.stdout)
+        done = self.repo.run("list", "--task", "delivery-3")
+        self.assertIn("  status: done\n", done.stdout)
+        missing = self.repo.run("list", "--task", "delivery-7")
+        self.assertEqual((missing.returncode, missing.stdout), (1, "error: task/delivery-7: has no local or remote branch\n"))
+
 
 class CheckCommandTest(unittest.TestCase):
     def run_check(self, text: str) -> subprocess.CompletedProcess:
+        """Run check from the file's folder, so the problems name the same path, delivery-1.md, every run."""
         with tempfile.TemporaryDirectory() as folder:
-            path = Path(folder) / "delivery-1.md"
-            path.write_text(text, encoding="utf-8")
-            return subprocess.run([sys.executable, str(SCRIPT), "check", str(path), "--now", "2026-11-08T16:00Z"],
-                                  capture_output=True, text=True, env=ENV)
+            (Path(folder) / "delivery-1.md").write_text(text, encoding="utf-8")
+            return subprocess.run([sys.executable, str(SCRIPT), "check", "delivery-1.md", "--now", "2026-11-08T16:00Z"],
+                                  cwd=folder, capture_output=True, text=True, env=ENV)
 
     def test_ok_says_where_the_task_stands(self):
         result = self.run_check(STOPPED)
@@ -390,9 +411,9 @@ class CheckCommandTest(unittest.TestCase):
         broken = STOPPED.replace("- Status: stopped", "- Status: paused").replace("| qa | not started | | | |\n", "")
         first, second = self.run_check(broken), self.run_check(broken)
         self.assertEqual(first.returncode, 1)
-        self.assertEqual(first.stdout, "")
-        self.assertEqual(first.stderr, second.stderr)
-        self.assertIn('error: line 6: field "Status": "paused"', first.stderr)
+        self.assertEqual(first.stdout, second.stdout)
+        self.assertIn('error: delivery-1.md: line 6: field "Status": "paused" should be one of: running | stopped | done\n', first.stdout)
+        self.assertIn('error: delivery-1.md: Steps: step "qa" is missing\n', first.stdout)
 
 
 if __name__ == "__main__":
