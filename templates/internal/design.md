@@ -70,7 +70,7 @@ Do not list the language toolchain and standard library (covered by approving th
 - A new runtime dependency, a new other tool, or a new external service always needs the client's approval before it is used, under "Must agree" in design-summary.md.
 - A new profile tool is approved by the stack profile, and is listed in design-summary.md for information only.
 - Every new dependency, of every kind, is checked for existence, maintenance status, known vulnerabilities, and license, and the result is recorded in "Check".
-- "New" is no only for a dependency the project already has. A runtime library the stack profile suggests is still new the first time the project adds it, and needs the approval and the check.
+- "New" is "no" only for a dependency the project already has. A runtime library the stack profile suggests is still new the first time the project adds it, and needs the approval and the check.
 Leave the section with "None." when there are none.
 -->
 
