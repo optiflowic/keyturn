@@ -35,6 +35,7 @@ This is the only committed instructions file. If your tool reads a different fil
 - Try `localize` on this repository: ask for a document, issue, or pull request in another language (for example, "Translate docs/DESIGN.md into Japanese"). The translation is written under `.keyturn/i18n/<lang>/`, and `git status` must stay clean. To try the other direction, write a few lines in another language and ask for them in English as an answer to a decision card: the original, the English, and the back-translation go under `.keyturn/i18n/inbound/<lang>/`, and `git status` must still stay clean.
 
 - Try `spec` in a scratch Git repository under `.keyturn/` (it is git-ignored), so that its commits never touch this repository: create its `keyturn/config.json` with `project-config`, then ask for requirements from `evals/requests/task-manager/request.md` and compare them with `evals/requests/task-manager/example/keyturn/client/requirements.md`. To try a request in another language, set English-only mode and write the request in that language.
+- Try `design` in such a scratch repository: commit the `.gitattributes` line `keyturn/client/*.md text eol=lf` and the example's `keyturn/config.json`, `keyturn/client/requirements.md`, and `keyturn/client/approvals.md`, ask for a design, and check that its threat model covers every case in the requirements' "Misuse" section.
 
 ## Before opening a pull request
 
