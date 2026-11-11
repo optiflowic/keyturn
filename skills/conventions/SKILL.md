@@ -13,11 +13,11 @@ Make the project's coding conventions checkable. Everything a tool can check bec
 - **Conventions are protected.** The developer never changes `conventions.md` or a tool config it lists. After the first version, every change, including allowing one suppression comment, is an ADR in `keyturn/internal/adr/` ("Guardrails" 1 in `docs/DESIGN.md`).
 - **Never loosen a rule to make code pass.** When code breaks a rule, report it; the developer fixes the code. Do not fix the code yourself.
 - **Follow the design, do not change it.** Use the parts, locations, and decisions in the design document and its ADRs as they are. If a rule would need a design change, stop and report it to the architect.
-- **Add only the tools the design allows.** Which tools need the client's approval depends on their kind (ADR 0015 in keyturn's `docs/adr/`). Every tool you add to the project, of any kind, must be in the design's "Libraries and external services" with its dependency check; you never approve or check a tool yourself.
+- **Add only the tools the design allows.** Which tools need the client's approval depends on their kind (ADR 0015 in keyturn's `docs/adr/`). A profile tool or an other tool is used only when the design's "Libraries and external services" lists it with its kind and a passing dependency check; toolchain tools and gate scanners are not listed there. You never approve or check a tool yourself.
 
 ## Inputs
 
-- `keyturn/internal/design.md`: the stack, the parts and their locations, the libraries, and the areas the work may change.
+- `keyturn/internal/design.md`: the stack, the parts and their locations, the libraries and their kinds, the areas the work may change, and QA's test folders ("QA's tests").
 - The stack profile the design names, in keyturn's `profiles/<profile>/`, if it exists. Until profiles exist (phase 4), there is none: see "When inputs are missing".
 - `keyturn/internal/threat-model.md`, if it exists: mitigations that a lint or static-analysis rule verifies.
 - `keyturn/internal/adr/`: accepted decisions to follow.
@@ -61,15 +61,15 @@ For each language in the design, choose one formatter and one linter.
 Then sort every tool by its kind (ADR 0015), and write the kind in "Tool kind":
 
 - **Toolchain**: part of the language's toolchain (for example, `gofmt` and `go vet`). Covered by approving the stack; use it.
-- **Gate scanner**: Semgrep, gitleaks, Trivy, and the other scanners the gate installs. Never add the scanner to the project's dependencies; only its rule file goes in the project.
+- **Gate scanner**: Semgrep, gitleaks, Trivy, and the other scanners the gate installs outside the project. Never add the scanner to the project's dependencies; only its rule file goes in the project.
 - **Profile tool**: a development tool the stack profile names (a linter, a formatter, their plugins). It needs no client approval, but it is used only when the design lists it as `profile tool` with its check.
-- **Other tool**: any development tool no profile names. While no profile exists, every tool you assume is an other tool. It needs the client's approval, through the design and `design-summary.md` ("Must agree").
+- **Other tool**: any development tool no profile names. Until stack profiles exist, every tool you assume is an other tool. It needs the client's approval, through the design and `design-summary.md` ("Must agree").
 
 Use a profile tool or an other tool only when the design's "Libraries and external services" lists it, with that kind and a passing check. If it is not listed, do not add it, its config, or its rules: report it to the architect, with its name, kind, and what it would check, so it is checked and recorded (and, for an other tool, approved by the client) in the design. Go on with the other tools, and list what is waiting in your report. Prefer a toolchain tool whenever it does the same job.
 
 ### 4. Write the tool rules
 
-Put each config where its tool finds it by default, at the root of the part it checks (for example, `api/.golangci.yml` and `web/eslint.config.js`). Cover:
+Put each config where its tool finds it by default, at the root of the part it checks (for example, `api/.golangci.yml` and `web/eslint.config.js`). Never put a config, a rule file, or `conventions.md` inside QA's test folders (the design's "QA's tests", ADR 0017 in keyturn's `docs/adr/`) or inside the design's "Areas the work may change": the developer or QA could change it there. Cover:
 
 - **Formatting**: the formatter's output is the only accepted layout.
 - **Correctness**: the linter's recommended rule set, including unused code and unchecked errors.
@@ -77,7 +77,7 @@ Put each config where its tool finds it by default, at the root of the part it c
 - **Boundaries between parts**: every design statement about what a part may use, as an import rule (for example, the HTTP handlers may not import the storage package).
 - **Forbidden patterns**: every pattern the threat model or the design forbids (for example, rendering text as HTML).
 
-Every rule fails the check; a warning is not a rule. Exclude only generated code and build output, and list each exclusion in "What it enforces".
+Every rule fails the check; a warning is not a rule. The formatter and the linter check QA's test folders like any other code. Exclude only generated code and build output, and list each exclusion in "What it enforces".
 
 ### 5. Write the reviewer checklist
 
@@ -94,10 +94,10 @@ Add a check for a design statement only when no tool rule can express it. For ea
 
 Before committing, check that:
 
-- every tool under "Tool rules" is a toolchain tool, a gate scanner whose scanner is not in the project's dependencies, or a tool the design lists with its kind and a passing check;
-
+- every tool under "Tool rules" has its kind in "Tool kind", and is a toolchain tool, a gate scanner that is not in the project's dependencies, or a profile tool or other tool that the design lists with that kind and a passing check;
 - every file under "Tool rules" exists, and contains every rule its row names;
-- no file under "Tool rules", and not `conventions.md`, is in the design's "Areas the work may change", directly or through a glob. If one is, stop and report it to the architect: the developer could change it;
+- no file under "Tool rules", and not `conventions.md`, is in the design's "Areas the work may change" or "QA's tests", directly or through a glob. If one is, stop and report it to the architect: the developer or QA could change it;
+- no exclusion skips QA's test folders;
 - each tool that is installed loads its config without errors. Run it once on the project; for a tool that is not installed, say so in your report. Report any code that already breaks a rule, with its location, for the developer to fix;
 - every checklist item has a reason no tool can check it, and every limit chosen without a profile is under "Assumed defaults".
 

@@ -2,7 +2,7 @@
 
 Based on the design document: [design.md](design.md) (requirements version 1).
 
-- Stack profile: No profile: see "Assumed defaults"
+- Stack profile: `go` for `api/`, `react-spa` for `web/`
 - Changed only by: an ADR in [adr/](adr/), listed under "Changes". The developer does not change this file or the files under "Tool rules".
 
 ## Summary
@@ -13,15 +13,15 @@ The reviewer checks names, comments, unused abstractions, and whether code sits 
 
 ## Tool rules
 
-| File | Tool | What it enforces | Based on |
-|---|---|---|---|
-| none | `gofmt` | the only accepted layout for `api/` | assumed default |
-| `api/.golangci.yml` | golangci-lint | `govet`, `staticcheck`, `errcheck`, `unused`; `gocyclo` at most 10; `funlen` at most 60 lines and 40 statements; `nestif` at most 4 | assumed default |
-| `api/.golangci.yml` | golangci-lint (`depguard`) | `api/internal/http/` may not import `api/internal/store` or `database/sql` | design "HTTP server" (handlers never query the database directly) |
-| `.semgrep/task-queries.yml` | Semgrep | every SQL string in `api/internal/` that names the `tasks` table also names `user_id` | design "Tasks", T-1 |
-| `web/.prettierrc.json` | Prettier | the only accepted layout for `web/src/`; excludes `web/dist/` (build output) | assumed default |
-| `web/eslint.config.js` | ESLint | `@eslint/js` and `typescript-eslint` recommended rules; `complexity` at most 10; `max-lines-per-function` at most 60; `max-depth` at most 4; excludes `web/dist/` (build output) | assumed default |
-| `web/eslint.config.js` | ESLint (`no-restricted-syntax`) | no `dangerouslySetInnerHTML` anywhere in `web/src/` | design "Web client", T-4 |
+| File | Tool | Tool kind | What it enforces | Based on |
+|---|---|---|---|---|
+| none | `gofmt` | toolchain | the only accepted layout for `api/`, including QA's tests in `api/qa/` | profile `go` |
+| `api/.golangci.yml` | golangci-lint | gate scanner | on all of `api/`, including `api/qa/`: `govet`, `staticcheck`, `errcheck`, `unused`; `gocyclo` at most 10; `funlen` at most 60 lines and 40 statements; `nestif` at most 4 | profile `go` |
+| `api/.golangci.yml` | golangci-lint (`depguard`) | gate scanner | `api/internal/http/` may not import `api/internal/store` or `database/sql` | design "HTTP server" (handlers never query the database directly) |
+| `.semgrep/task-queries.yml` | Semgrep | gate scanner | every SQL string in `api/internal/` that names the `tasks` table also names `user_id` | design "Tasks", T-1 |
+| `web/.prettierrc.json` | Prettier | profile tool (`react-spa`) | the only accepted layout for `web/`, including QA's tests in `web/e2e/`; excludes `web/dist/` (build output) | profile `react-spa` |
+| `web/eslint.config.js` | ESLint | profile tool (`react-spa`) | on `web/src/` and `web/e2e/`: `@eslint/js` and `typescript-eslint` recommended rules; `complexity` at most 10; `max-lines-per-function` at most 60; `max-depth` at most 4; excludes `web/dist/` (build output) | profile `react-spa` |
+| `web/eslint.config.js` | ESLint (`no-restricted-syntax`) | profile tool (`react-spa`) | no `dangerouslySetInnerHTML` anywhere in `web/src/` | design "Web client", T-4 |
 
 ## Reviewer checklist
 
@@ -35,10 +35,7 @@ The reviewer checks names, comments, unused abstractions, and whether code sits 
 
 ## Assumed defaults
 
-- Formatters: `gofmt` and Prettier, the most widely used for Go and TypeScript; no profile exists yet.
-- Linters: golangci-lint and ESLint with `typescript-eslint`, the most widely used for Go and TypeScript.
-- Limits: complexity 10, 60 lines per function, nesting depth 4, the skill's starting values; to be replaced by the `go` and `react-spa` profiles.
-- Tools: `gofmt`, golangci-lint, and Semgrep are installed by the gate, not added to `api/go.mod`. Prettier, ESLint, and `typescript-eslint` are development dependencies pinned in `web/package.json`.
+None: every default comes from the stack profile.
 
 ## Changes
 
