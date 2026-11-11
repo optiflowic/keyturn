@@ -34,9 +34,11 @@ This is the only committed instructions file. If your tool reads a different fil
 - Try a template change on the worked example in `evals/requests/task-manager/example/`: fill in the changed part there as the role would, and check that it still reads well for someone who does not read code.
 - Try `localize` on this repository: ask for a document, issue, or pull request in another language (for example, "Translate docs/DESIGN.md into Japanese"). The translation is written under `.keyturn/i18n/<lang>/`, and `git status` must stay clean. To try the other direction, write a few lines in another language and ask for them in English as an answer to a decision card: the original, the English, and the back-translation go under `.keyturn/i18n/inbound/<lang>/`, and `git status` must still stay clean.
 
+- Try `spec` in a scratch Git repository under `.keyturn/` (it is git-ignored), so that its commits never touch this repository: create its `keyturn/config.json` with `project-config`, then ask for requirements from `evals/requests/task-manager/request.md` and compare them with `evals/requests/task-manager/example/keyturn/client/requirements.md`. To try a request in another language, set English-only mode and write the request in that language.
+
 ## Before opening a pull request
 
-- Run the tests of every script you changed. For `localize`: `python3 -m unittest discover -s skills/localize/scripts` from the repository root. For `project-config`: `python3 -m unittest discover -s skills/project-config/scripts`.
+- Run the tests of every script you changed. For `localize`: `python3 -m unittest discover -s skills/localize/scripts` from the repository root. For `project-config`: `python3 -m unittest discover -s skills/project-config/scripts`. For `spec`: `python3 -m unittest discover -s skills/spec/scripts`.
 - If you changed `.claude-plugin/` or anything under `skills/`, run `claude plugin validate --strict .` and make sure it passes.
 - Check that nothing under `.keyturn/` and no tool-specific instructions file (such as a local symbolic link to `AGENTS.md`) is staged.
 - Check that links in the Markdown you changed point to files that exist.
