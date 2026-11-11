@@ -48,6 +48,8 @@ One heading per threat, numbered T-1, T-2, ... An ID is never changed or reused.
   The card offers mitigating it (with what that costs) or changing the requirement that creates it.
   Accepting the risk is an option only when the threat is low and could not let anyone get in, get more rights, or read, change, or delete data they should not,
   and does not come through a dependency or an external service. The security role confirms that it is low.
+  Learning whether an account exists (from a sign-up or sign-in error, a password reset, a block, or response time) counts as reading data,
+  so it is never accepted, unless the approved requirements make accounts public on purpose (then it is not a threat).
   Until the threat is mitigated or the client has accepted what is left, it blocks delivery.
 - "Remaining risk" is what the mitigation does not cover: none, waiting for the client (with the card), or accepted (with the card and the date of the answer).
 - "Status" is updated by the security role: planned, implemented, verified (with the finding that confirmed it), or accepted (the client accepted the whole risk, so nothing is implemented).
