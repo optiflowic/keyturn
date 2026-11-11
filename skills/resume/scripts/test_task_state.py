@@ -217,6 +217,21 @@ class MalformedTimesTest(unittest.TestCase):
         problems = check(WAITING.replace("Waiting since 2026-11-08T03:20Z", "Waiting since yesterday"))
         self.assertIn('line 32: "yesterday" should be a UTC time in the form YYYY-MM-DDTHH:MMZ', problems)
 
+    def test_blocks_names_steps_of_the_template(self):
+        self.assertEqual(check(WAITING), [])
+        for blocks in ("implement, qa", "implement and qa", "R-3", "R-3 and implement", "qa and every later step."):
+            with self.subTest(blocks=blocks):
+                self.assertEqual(check(WAITING.replace("Blocks: design and every later step", f"Blocks: {blocks}")), [])
+
+    def test_blocks_with_an_unknown_step_is_reported(self):
+        problems = check(WAITING.replace("Blocks: design and every later step", "Blocks: the design"))
+        self.assertIn('line 32: "Blocks:" names "the design", which should be a step (spec, design, conventions, implement, '
+                      'qa, security-review, review, deliver), "every later step" right after a step, or a requirement (R-n)', problems)
+
+    def test_blocks_every_later_step_needs_a_step_before_it(self):
+        problems = check(WAITING.replace("Blocks: design and every later step", "Blocks: every later step"))
+        self.assertIn('"Blocks:" names "every later step"', " ".join(problems))
+
 
 class BrokenStepsTableTest(unittest.TestCase):
     def test_missing_step(self):

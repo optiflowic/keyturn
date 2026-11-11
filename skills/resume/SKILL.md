@@ -108,5 +108,5 @@ The step to continue is the **current step**. Each step in the steps table is na
 ## Notes
 
 - The script reads the allowed fields, values, sections, and steps from the template at every run. If the template changes in a way the script does not understand, the script reports it; update the script and its tests with the template.
-- Besides the format, the check makes sure the file says where to continue without a guess: the title and `Branch:` name the task, the current step is the first step that is neither done nor skipped, a stopped task says why, a usage-limit stop says when the limit resets, and a task waiting for the client lists what it waits for in "Open questions".
+- Besides the format, the check makes sure the file says where to continue without a guess: the title and `Branch:` name the task, the current step is the first step that is neither done nor skipped, a stopped task says why, a usage-limit stop says when the limit resets, and a task waiting for the client lists what it waits for in "Open questions", where "Blocks:" names only steps of the template (or "every later step" right after one) and requirements (`R-n`).
 - The check does not look up commit hashes in Git: a hash in the steps table or History must have the right form, but is not checked to exist.

@@ -387,7 +387,21 @@ def step_row_problems(row: dict[str, str], template: Template) -> list[str]:
     return problems
 
 
-def check_open_questions(lines: list[tuple[int, str]], state: StateFile) -> list[str]:
+def blocks_problems(number: int, blocks: str, steps: list[str]) -> list[str]:
+    """What follows "Blocks:" names only steps of the template, "every later step" right after one, or requirements."""
+    items = [item.strip() for item in re.split(r",\s*(?:and\s+)?|\s+and\s+", blocks) if item.strip()]
+    problems = []
+    for index, item in enumerate(items):
+        if item in steps or re.fullmatch(r"R-\d+", item):
+            continue
+        if item == "every later step" and index > 0 and items[index - 1] in steps:
+            continue
+        problems.append(f'line {number}: "Blocks:" names "{item}", which should be a step ({", ".join(steps)}), '
+                        '"every later step" right after a step, or a requirement (R-n)')
+    return problems
+
+
+def check_open_questions(lines: list[tuple[int, str]], template: Template, state: StateFile) -> list[str]:
     content = [(number, line.strip()) for number, line in lines if line.strip()]
     if [line for _, line in content] == ["None."]:
         return []
@@ -403,6 +417,8 @@ def check_open_questions(lines: list[tuple[int, str]], state: StateFile) -> list
         else:
             if not is_time(waiting_since.group(1)):
                 problems.append(f'line {number}: "{waiting_since.group(1)}" should be a UTC time in the form {TIME_FORM}')
+            blocks = line.split("Blocks: ", 1)[1].rstrip(".")
+            problems += blocks_problems(number, blocks, template.steps)
             state.open_questions.append(line)
     return problems
 
@@ -514,7 +530,7 @@ def check_state(text: str, template: Template, file_name: str | None = None) -> 
     if "Steps" in by_name:
         problems += check_steps(by_name["Steps"], template, state)
     if "Open questions" in by_name:
-        problems += check_open_questions(by_name["Open questions"], state)
+        problems += check_open_questions(by_name["Open questions"], template, state)
     if "History" in by_name:
         problems += check_history(by_name["History"], template, state)
     return state, problems + consistency_problems(state, file_name)
