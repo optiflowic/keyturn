@@ -7,7 +7,7 @@ description: Act as keyturn's architect. Turn approved requirements into a desig
 
 Turn the requirements the client approved into a design that fits their size, record every meaningful decision, and write down how the deliverable could be attacked or misused and what stops it. This is keyturn's architect role. The developer builds only what the design covers, and the security role checks the implementation against the threat model.
 
-Everything this skill needs is in this file, the templates it names, and the scripts of the `project-config`, `spec`, and `localize` skills. The background is in keyturn's `docs/DESIGN.md` ("Architect", "Guardrails", "Client attention budget") and ADRs 0003, 0009, 0010, and 0013, for whoever has them; the procedure does not depend on reading them.
+Everything this skill needs is in this file, the templates it names, and the scripts of the `project-config`, `spec`, and `localize` skills. The background is in keyturn's `docs/DESIGN.md` ("Architect", "Guardrails", "Client attention budget") and ADRs 0003, 0009, 0010, 0013, 0015, 0016, and 0017, for whoever has them; the procedure does not depend on reading them.
 
 ## Rules
 
@@ -80,7 +80,8 @@ Start from `templates/internal/design.md`, write `keyturn/internal/design.md`, a
 - **Parts**: each part lists the requirements it serves. A part that every requirement goes through (an entry point, a router, the pages' shell) lists them as a range, `R-1 to R-9`. A part that no requirement would miss if it were removed does not exist.
 - **Data model**: for every entity, who owns a record and who may read or change it. This is what the security role checks for data isolation.
 - **Libraries and external services**: see "Dependencies" below.
-- **Areas the work may change**: every path the developer may change, including where the developer's own unit tests go. Never the protected paths the template lists.
+- **Areas the work may change**: every path the developer may change, including where the developer's own unit tests go: they stay next to the code they test, inside the developer's areas. Never the protected paths the template lists, and never QA's test folders.
+- **QA's tests**: the folders where QA writes its tests, each a folder of its own (ADR 0017 in keyturn's `docs/adr/`). Until stack profiles exist (phase 4), name the folders yourself, as folders the stack's test runner finds (for example `api/qa/**` for a Go API tested through HTTP, or `web/e2e/**` for pages tested in a browser); from phase 4, use the folder names the stack profile sets. Never list one of these folders, or a path inside it, under "Areas the work may change", directly or through a glob that contains it (such as `api/**` when QA's folder is `api/qa/**`; list the developer's folders under `api/` one by one instead): the gate tells QA's tests from the developer's files by path alone. Where the stack keeps tests next to the code, QA's tests in their own folder reach the code only through what it exports or its external interface; that is intended, because QA tests what the deliverable does.
 - **Decisions**: one ADR per meaningful decision (the stack, the repository structure, the data store, how people sign in and what they may reach, each new dependency or group of dependencies used together, anything a later role could reasonably decide differently), started from `templates/internal/adr.md`.
 - **Questions only the client can answer**: a choice that depends on the client's preference, changes what they get or pay, and that no requirement settles. Ask it on a decision card (step 7); do not decide it. List it under "Open questions" with the work that waits for it. Never design around an approved requirement: if one cannot be met as written, ask on a card, and if the client chooses to change it, the change goes through the `spec` skill.
 
@@ -88,20 +89,30 @@ Start from `templates/internal/design.md`, write `keyturn/internal/design.md`, a
 
 A decision goes under "Must agree" in the design summary, with "Needs client agreement: yes" in its ADR, when it does any of these, in the first design of a project as much as in a later change:
 
-- adds a dependency, that is, code from outside the project, or an external service;
+- adds a runtime dependency or an other tool (see "Dependencies" below), or an external service;
 - decides how people sign in, what each person may see or change, or what personal data is kept, where, and when it is deleted (including anything that deletes data);
 - affects cost, scope, or what the client has to do or run, beyond creating the one repository a project needs.
 
-Every other decision goes under "For information". So a single repository the client creates, or the repository that already exists, is for information; several repositories are a "Must agree". What each person may see or change is part of the sign-in decision when each person only reaches their own records, as an approved requirement says; access with roles or sharing gets its own decision.
+Every other decision goes under "For information". A profile tool needs no agreement: it is listed in the design summary's section for development tools approved by the stack profile, not under "Must agree". So a single repository the client creates, or the repository that already exists, is for information; several repositories are a "Must agree". What each person may see or change is part of the sign-in decision when each person only reaches their own records, as an approved requirement says; access with roles or sharing gets its own decision.
 
 An ADR that needs agreement stays `proposed` until the client agrees in the design summary; the others are `accepted`.
 
 #### Dependencies
 
-Every new dependency is checked for existence, maintenance status, known vulnerabilities (for example, in OSV, sending only the name and version), and license, and the result goes in "Check" in `design.md`. Write the version, or the file where it will be pinned. A check from memory is not a check: it needs current data.
+Mark each dependency's kind in the "Kind" column of `design.md` (ADR 0015 in keyturn's `docs/adr/`):
+
+- **runtime**: a library or tool that is part of the deliverable or builds it (for example React, or Vite). It needs the client's agreement, under "Must agree". It is never a profile tool, even if the stack profile recommends it.
+- **profile tool**: a development tool the stack profile names, that only checks, formats, or tests the code and is not part of the deliverable (for example a linter or a test tool). The profile approves it, so it needs no agreement from the client; list it in the design summary's section for development tools approved by the stack profile, for information only.
+- **other tool**: a development tool no stack profile names. It needs the client's agreement, under "Must agree", like a runtime dependency.
+
+Until stack profiles exist (phase 4), no tool is approved by a profile: every development tool you assume (a linter, a formatter, a test tool) is an other tool and needs the client's agreement. Group them as one decision the client would weigh as one (step 7, "Keeping it small").
+
+Two things are not dependencies and are not listed: the language toolchain and its standard library (for example Go, Node.js, or Python), which approving the stack covers, and the gate's scanners (for example Semgrep, gitleaks, or Trivy), which the gate installs and which are never added to the project.
+
+Every new dependency, of every kind, is checked for existence, maintenance status, known vulnerabilities (for example, in OSV, sending only the name and version), and license, and the result goes in "Check" in `design.md`. Write the version, or the file where it will be pinned. A check from memory is not a check: it needs current data.
 
 - If you cannot check a dependency (for example, there is no network access), write `not checked: <why>` in "Check" and under "Open questions", and say in its design summary entry that it is not checked yet. Go on with the rest of the design. Only the parts that need that dependency wait, until it is checked and agreed; report what access the check needs (step 8).
-- Choose a dependency, or no dependency, for fit. Avoid a dependency only when the alternative fits as well (for example, the standard library already does it). Never choose a weaker design to avoid the agreement or the check: a dependency that fits best is proposed and checked, or waits for the check.
+- Choose a dependency, or no dependency, for fit. Avoid a dependency only when the alternative fits as well (for example, the standard library already does it). Never choose a weaker design to avoid the agreement or the check: a dependency that fits best is proposed and checked, or waits for the check. Skipping the client's agreement for a profile tool never means skipping its check.
 
 ### 5. Write the threat model
 
@@ -110,6 +121,7 @@ Start from `templates/internal/threat-model.md` and write `keyturn/internal/thre
 1. **List the misuse cases.** Copy each entry of the requirements' "Misuse" section into a working list, numbered in order (M1, M2, ...), with the requirements it names.
 2. **Assets and entry points**: from the design. Every way input reaches the deliverable is an entry point, with who can reach it without any check.
 3. **Threats**: one per misuse case at least, with "Misuse: yes, from R-n", where R-n is the requirement that prevents it. Then think like an attacker beyond the list: other users reaching data that is not theirs, people who are not signed in, harmful input (code in text, oversized input, file contents), stolen sessions or tokens, forged requests from other websites, stolen stored data, repeated tries, dependencies and external services, and the deliverable used against systems that are not the user's own. Each of these is a threat with "Misuse: no" when it is not a misuse case. Number threats `T-1`, `T-2`, ...
+   - **Learning whether an account exists.** For every entry point that can reveal whether an account exists (sign-up, sign-in, password reset, a block after wrong passwords that only happens to real accounts, a difference in response time), list it as a threat, unless the approved requirements make accounts public on purpose (for example, public profiles). It counts as reading data someone should not read (ADR 0016 in keyturn's `docs/adr/`), so its risk is never accepted (item 6): mitigate it, for example with the same message whatever the cause and responses that take the same time, or raise a requirement change with the client. Sign-up with unique email addresses is the hard case: a page that says "this email is already used" reveals it, and hiding it usually needs a confirmation email that sends the result instead of showing it. That is a new external service, which needs the client's agreement (step 4), or else a requirement change (for example, sign-up by invitation, or public accounts); raise it now, in this design, not after delivery.
 4. **Mitigation and verification**: every threat has a mitigation that lives in the design (name the part) and comes from a requirement or an ADR, and a way to verify it: an acceptance criterion (AC-n), a gate check from the stack profile, or what exactly the security review checks. Set "Status" to `planned`.
 5. **What is left**: anything the mitigation does not prevent.
    - Part of a threat that another threat's mitigation covers is not left: say so in "Mitigation".
@@ -118,7 +130,7 @@ Start from `templates/internal/threat-model.md` and write `keyturn/internal/thre
 6. **Whether the client may accept what is left.** The client may accept a risk only when the threat is low and could not let anyone:
    - get in: sign in as someone else, or use what needs signing in without signing in;
    - get more rights than they were given;
-   - read, change, or delete data they should not: other people's records, or personal data the deliverable keeps;
+   - read, change, or delete data they should not: other people's records, or personal data the deliverable keeps; learning whether an account exists counts as reading data (item 3);
 
    and does not come through a dependency or an external service. When you are unsure which side a threat is on, treat it as one that cannot be accepted, and say why in the threat. The security role confirms the severity later.
 
@@ -136,6 +148,9 @@ Check that:
 - **every misuse case is covered**: for each entry of the working list (M1, M2, ...), name the threat (T-n) that describes that case, with "Misuse: yes, from R-n" naming one of the requirements the entry names. If one has none, add the threat. Keep the list of pairs for your report (step 8);
 - every threat has every field of the template, a mitigation in the design, and a way to verify it; with no profile, none of them is a gate check; "What is left" is there exactly when "Remaining risk" is not `none`;
 - every requirement that is not removed appears in "Requirements coverage", and every part, dependency, area, and ADR serves at least one requirement;
+- every dependency has its kind; the language toolchain, its standard library, and the gate's scanners are not listed; every runtime dependency and other tool is under "Must agree" in the design summary, and every profile tool is in its section for development tools approved by the stack profile; with no profile, there is no profile tool;
+- "QA's tests" names at least one folder when QA has anything to test, and no path or glob under "Areas the work may change" is, or contains, one of those folders;
+- every entry point that can reveal whether an account exists has a threat, unless the approved requirements make accounts public, and none of these threats is offered for acceptance on a card;
 - every decision the client must agree to (step 4) has an ADR with "Needs client agreement: yes", status `proposed`, and an entry under "Must agree" in the design summary;
 - IDs (T-n, ADR numbers, card numbers) are in order, each used once, and existing ones are unchanged.
 
@@ -152,7 +167,7 @@ Before writing, look at everything the client would be asked: decisions to agree
 
 #### Writing and sending
 
-1. **Design summary.** Start from `templates/client/design-summary.md` and write `keyturn/client/design-summary.md` in the document language. One entry per decision that needs agreement under "Must agree", with "Agreement: waiting", and the other main decisions under "For information". Say concretely what each means for the client (money, time, what they have to do or set up) and which work waits if they do not answer. Status: `waiting for agreement`, or `agreed` when nothing needs agreement.
+1. **Design summary.** Start from `templates/client/design-summary.md` and write `keyturn/client/design-summary.md` in the document language. One entry per decision that needs agreement under "Must agree", with "Agreement: waiting", and the other main decisions under "For information". List every profile tool in the section for development tools approved by the stack profile, with what it does and the result of its check in plain words, or "None." when there are none (always, until stack profiles exist). Say concretely what each means for the client (money, time, what they have to do or set up) and which work waits if they do not answer. Status: `waiting for agreement`, or `agreed` when nothing needs agreement.
 2. **Decision cards.** One card per question from steps 4 and 5, started from `templates/client/decision-card.md`, in the document language, with two to four realistic options and the recommended one marked. Under "If you do not answer", say which work waits and which goes on. For a card about a remaining risk, say that the rest of the work goes on, but nothing that contains the threat can be delivered until they answer, because a risk is accepted only by the client.
 3. **ADRs that wait for a card.** Write the ADR now, as `proposed`, with the open point named in "Decision" and a link to the card. When the answer comes, fill it in in the same ADR, which was never accepted (step 9).
 4. **Commit** the design, the ADRs, the threat model, the design summary, and the cards together. This is the step's checkpoint: a rerun starts from these files.
