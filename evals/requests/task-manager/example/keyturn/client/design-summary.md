@@ -91,8 +91,10 @@ You agreed to the three decisions that needed your agreement: where the data is 
 
 ## For information: development tools approved by the stack profile
 
-These tools only check and test the code; none of them is part of the app you receive. The standard setup we follow for web pages names them, so they do not need your agreement. We checked each one like any other extra component: it is maintained, the version we use has no known security problems, and its license lets you use it freely.
+These tools only check, format, and test the code; none of them is part of the app you receive. The standard setups we follow for the server part and the web pages name them, so they do not need your agreement. We checked each one like any other extra component: it is maintained, the version we use has no known security problems, and its license lets you use it freely.
 
 - ESLint: reads the code of the web pages and points out common mistakes.
+- Prettier: keeps the code of the web pages in one consistent layout.
+- golangci-lint: reads the code of the server part and points out common mistakes.
 - Vitest: runs automatic tests of the parts of the web pages.
 - Playwright: runs automatic tests that use the app in a real browser, the way a person would.

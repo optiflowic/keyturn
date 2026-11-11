@@ -53,6 +53,6 @@ Option 4. Each kind is handled as follows:
 - `docs/DESIGN.md` "Guardrails" 2 and 3 say which kinds need approval and that every dependency is still checked.
 - `templates/internal/design.md`: the libraries table marks each item's kind; the comment that a profile's suggestion is still new is narrowed to runtime libraries.
 - `templates/client/design-summary.md`: an informational list of development tools approved by the profile, outside "Must agree".
-- The worked example: its design lists ESLint, Vitest, and Playwright as development tools with their check results, so it matches the delivery report.
+- The worked example: its design lists its development tools (golangci-lint, ESLint with its TypeScript rules, Prettier, Vitest, and Playwright) with their check results, so it matches the delivery report and its conventions.
 - The `design`, `conventions`, and `qa` skills follow the table. Until stack profiles exist (phase 4), no development tool is approved by a profile, so the tools a role assumes still need the client's approval.
 - Stack profiles (phase 4) list their development tools and are reviewed in keyturn's own pull requests, since that review is what stands in for the client's approval.
