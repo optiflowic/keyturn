@@ -36,10 +36,11 @@ This is the only committed instructions file. If your tool reads a different fil
 
 - Try `spec` in a scratch Git repository under `.keyturn/` (it is git-ignored), so that its commits never touch this repository: create its `keyturn/config.json` with `project-config`, then ask for requirements from `evals/requests/task-manager/request.md` and compare them with `evals/requests/task-manager/example/keyturn/client/requirements.md`. To try a request in another language, set English-only mode and write the request in that language.
 - Try `conventions` in a scratch Git repository under `.keyturn/`: copy `keyturn/config.json` and `keyturn/internal/` (without `conventions.md`) from `evals/requests/task-manager/example/`, ask for the conventions, and compare them with that example's `keyturn/internal/conventions.md`.
+- Try `resume` in a scratch repository under `.keyturn/`: commit a copy of `evals/requests/task-manager/example/keyturn/internal/state/delivery-1.md` on a branch `task/delivery-1`, change it to a stopped task, and ask to resume it.
 
 ## Before opening a pull request
 
-- Run the tests of every script you changed. For `localize`: `python3 -m unittest discover -s skills/localize/scripts` from the repository root. For `project-config`: `python3 -m unittest discover -s skills/project-config/scripts`. For `spec`: `python3 -m unittest discover -s skills/spec/scripts`.
+- Run the tests of every script you changed. For `localize`: `python3 -m unittest discover -s skills/localize/scripts` from the repository root. For `project-config`: `python3 -m unittest discover -s skills/project-config/scripts`. For `spec`: `python3 -m unittest discover -s skills/spec/scripts`. For `resume`: `python3 -m unittest discover -s skills/resume/scripts`.
 - If you changed `.claude-plugin/` or anything under `skills/`, run `claude plugin validate --strict .` and make sure it passes.
 - Check that nothing under `.keyturn/` and no tool-specific instructions file (such as a local symbolic link to `AGENTS.md`) is staged.
 - Check that links in the Markdown you changed point to files that exist.
