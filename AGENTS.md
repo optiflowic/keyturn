@@ -36,6 +36,8 @@ This is the only committed instructions file. If your tool reads a different fil
 
 - Try `spec` in a scratch Git repository under `.keyturn/` (it is git-ignored), so that its commits never touch this repository: create its `keyturn/config.json` with `project-config`, then ask for requirements from `evals/requests/task-manager/request.md` and compare them with `evals/requests/task-manager/example/keyturn/client/requirements.md`. To try a request in another language, set English-only mode and write the request in that language.
 
+- Try `security-review` in another scratch Git repository under `.keyturn/`: commit the example's `keyturn/` folder from `evals/requests/task-manager/example/` there, without its `internal/security-review.md`, then commit a small change with a planted flaw (for example, a task route that does not check who owns the task), and ask for a security review of that change. The report must find the flaw as a high finding, count T-6 as accepted only because decision card 2 meets every condition, and say which scans did not run.
+
 ## Before opening a pull request
 
 - Run the tests of every script you changed. For `localize`: `python3 -m unittest discover -s skills/localize/scripts` from the repository root. For `project-config`: `python3 -m unittest discover -s skills/project-config/scripts`. For `spec`: `python3 -m unittest discover -s skills/spec/scripts`.
