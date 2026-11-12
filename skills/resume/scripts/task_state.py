@@ -389,7 +389,11 @@ def step_row_problems(row: dict[str, str], template: Template) -> list[str]:
 
 def blocks_problems(number: int, blocks: str, steps: list[str]) -> list[str]:
     """What follows "Blocks:" names only steps of the template, "every later step" right after one, or requirements."""
-    items = [item.strip() for item in re.split(r",\s*(?:and\s+)?|\s+and\s+", blocks) if item.strip()]
+    items = [item.strip() for item in re.split(r",\s*(?:and\s+)?|\s+and\s+", blocks)]
+    if not any(items):
+        return [f'line {number}: "Blocks:" should name at least one step or requirement']
+    if not all(items):
+        return [f'line {number}: "Blocks: {blocks}" has an empty item between its commas or "and"']
     problems = []
     for index, item in enumerate(items):
         if item in steps or re.fullmatch(r"R-\d+", item):

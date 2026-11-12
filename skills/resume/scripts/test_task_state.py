@@ -228,6 +228,14 @@ class MalformedTimesTest(unittest.TestCase):
         self.assertIn('line 32: "Blocks:" names "the design", which should be a step (spec, design, conventions, implement, '
                       'qa, security-review, review, deliver), "every later step" right after a step, or a requirement (R-n)', problems)
 
+    def test_empty_blocks_is_reported(self):
+        for blocks in (".", ",", ", ."):
+            with self.subTest(blocks=blocks):
+                problems = check(WAITING.replace("Blocks: design and every later step", f"Blocks: {blocks}"))
+                self.assertIn('line 32: "Blocks:" should name at least one step or requirement', problems)
+        problems = check(WAITING.replace("Blocks: design and every later step", "Blocks: implement, , qa"))
+        self.assertIn('line 32: "Blocks: implement, , qa" has an empty item between its commas or "and"', problems)
+
     def test_blocks_every_later_step_needs_a_step_before_it(self):
         problems = check(WAITING.replace("Blocks: design and every later step", "Blocks: every later step"))
         self.assertIn('"Blocks:" names "every later step"', " ".join(problems))
