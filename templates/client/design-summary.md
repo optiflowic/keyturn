@@ -35,7 +35,7 @@ Leave the list empty, with "Nothing right now.", when no decision needs agreemen
 
 <!--
 One heading per decision that affects the client (cost, scope, or how the client works), and per decision that always needs the client's approval,
-even when it changes none of those: a new dependency, a new external service, a change to authentication, authorization, or data handling, or anything that deletes data.
+even when it changes none of those: a new dependency (other than a development tool approved by the stack profile, listed at the end), a new external service, a change to authentication, authorization, or data handling, or anything that deletes data.
 - Use the number and title of the decision's ADR. Link to the ADR as the decision record: from keyturn/client/, the path is ../internal/adr/<NNNN-short-title>.md.
 - "Serves" lists the requirements the decision exists for. Every decision serves at least one requirement.
 - Give the realistic options only, in a sentence each, with why each was not chosen.
@@ -83,3 +83,18 @@ Leave the section with "None." when there are none.
 **Other options we considered**:
 
 - <option>: <why it was not chosen>
+
+## For information: development tools approved by the stack profile
+
+<!--
+The development tools the work adds that the stack profile names: tools that only check, format, or test the code and are not part of what is delivered.
+The stack profile approves them, so the client does not need to agree to them; they are listed for information only. Each one was still checked like any other dependency.
+Any other tool, and any tool added while no stack profile exists, needs the client's agreement and goes under "Must agree" instead.
+- One line per tool: what it does, in plain words.
+- Give the result of the check in plain words, for each tool, or once for all of them when it is the same.
+Leave the section with "None." when there are none.
+-->
+
+<result of the check, when it is the same for every tool>
+
+- <tool>: <what it does, in plain words>. <result of the check, when it differs from the others>
