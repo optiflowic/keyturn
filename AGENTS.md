@@ -66,7 +66,7 @@ This is the only committed instructions file. If your tool reads a different fil
 ## CodeRabbit rate limits
 
 - Do not open pull requests in quick succession.
-- CodeRabbit reviews a pull request automatically only once, when it is opened; it does not review later pushes on its own (`auto_incremental_review: false` in `.coderabbit.yaml`). After a review, fix all of its points, push them together, reply in each thread, and then comment `@coderabbitai review` once to ask for the re-review.
+- CodeRabbit reviews a pull request automatically only once, when it is opened; it does not review later pushes on its own (`auto_incremental_review: false` in `.coderabbit.yaml`). After a review, fix the points that are right and push the fixes together. For a point you disagree with or that needs a decision, reply with your reason and report it to the maintainer, as "Review comments" says. Reply in each thread, and then comment `@coderabbitai review` once to ask for the re-review.
 - After opening a pull request or pushing a fix, check whether CodeRabbit has posted a rate limit comment.
 - If it has, wait until the time it states has passed, then comment `@coderabbitai review` once. Do not trigger it repeatedly.
 - While you wait, work on another issue that can be worked on. Do not rely on a timer or a scheduled wake-up to come back: the session may not run while the maintainer is not talking to it.
