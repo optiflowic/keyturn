@@ -14,6 +14,9 @@ reviews:
   auto_review:
     enabled: true
     drafts: false
+    # Review each pull request once automatically. Re-reviews are asked for with
+    # `@coderabbitai review` after all fixes are pushed, to save the review allowance.
+    auto_incremental_review: false
 
   path_instructions:
     - path: "**"

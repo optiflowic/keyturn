@@ -36,10 +36,12 @@ This is the only committed instructions file. If your tool reads a different fil
 
 - Try `spec` in a scratch Git repository under `.keyturn/` (it is git-ignored), so that its commits never touch this repository: create its `keyturn/config.json` with `project-config`, then ask for requirements from `evals/requests/task-manager/request.md` and compare them with `evals/requests/task-manager/example/keyturn/client/requirements.md`. To try a request in another language, set English-only mode and write the request in that language.
 - Try `implement` in a scratch Git repository under `.keyturn/`: copy `keyturn/` from `evals/requests/task-manager/example/` without `internal/handoff.md`, `internal/test-report.md`, `internal/review.md`, `internal/security-review.md`, and `internal/state/`, commit it, and ask for delivery 1 (R-1 to R-4, R-7, R-8). Check that every changed path is inside the design's "Areas the work may change" and that no protected path changed, and compare the handoff notes with that example's `keyturn/internal/handoff.md`.
+- Try `conventions` in a scratch Git repository under `.keyturn/`: copy `keyturn/config.json` and `keyturn/internal/` (without `conventions.md`) from `evals/requests/task-manager/example/`, ask for the conventions, and compare them with that example's `keyturn/internal/conventions.md`.
+- Try `resume` in a scratch repository under `.keyturn/`: on a branch `task/delivery-1`, copy `evals/requests/task-manager/example/keyturn/internal/state/delivery-1.md` to `keyturn/internal/state/delivery-1.md`, change it to a stopped task, commit it, and ask to resume it. `resume` reads the committed state file, so the change must be committed first.
 
 ## Before opening a pull request
 
-- Run the tests of every script you changed. For `localize`: `python3 -m unittest discover -s skills/localize/scripts` from the repository root. For `project-config`: `python3 -m unittest discover -s skills/project-config/scripts`. For `spec`: `python3 -m unittest discover -s skills/spec/scripts`.
+- Run the tests of every script you changed. For `localize`: `python3 -m unittest discover -s skills/localize/scripts` from the repository root. For `project-config`: `python3 -m unittest discover -s skills/project-config/scripts`. For `spec`: `python3 -m unittest discover -s skills/spec/scripts`. For `resume`: `python3 -m unittest discover -s skills/resume/scripts`.
 - If you changed `.claude-plugin/` or anything under `skills/`, run `claude plugin validate --strict .` and make sure it passes.
 - Check that nothing under `.keyturn/` and no tool-specific instructions file (such as a local symbolic link to `AGENTS.md`) is staged.
 - Check that links in the Markdown you changed point to files that exist.
@@ -67,6 +69,7 @@ This is the only committed instructions file. If your tool reads a different fil
 ## CodeRabbit rate limits
 
 - Do not open pull requests in quick succession.
+- CodeRabbit reviews a pull request automatically only once, when it is opened; it does not review later pushes on its own (`auto_incremental_review: false` in `.coderabbit.yaml`). After a review, fix the points that are right and push the fixes together. For a point you disagree with or that needs a decision, reply with your reason and report it to the maintainer, as "Review comments" says. Reply in each thread, and then comment `@coderabbitai review` once to ask for the re-review.
 - After opening a pull request or pushing a fix, check whether CodeRabbit has posted a rate limit comment.
 - If it has, wait until the time it states has passed, then comment `@coderabbitai review` once. Do not trigger it repeatedly.
 - While you wait, work on another issue that can be worked on. Do not rely on a timer or a scheduled wake-up to come back: the session may not run while the maintainer is not talking to it.
