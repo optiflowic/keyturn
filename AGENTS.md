@@ -23,7 +23,8 @@ This is the only committed instructions file. If your tool reads a different fil
 - `templates/client/` and `templates/internal/`: document templates (from phase 2). Client-facing documents are written in the client's language by default; internal ones always in English.
 - `evals/requests/<name>/`: evaluation requests (from phase 2). Each has `request.md`, written as a client would write it, and may have a worked example in `example/` with every template filled in by hand. Update the example when a template changes.
 - `.claude-plugin/`: only the Claude Code plugin manifests. The repository root is the plugin root, so every other plugin file sits at the root ([ADR 0005](docs/adr/0005-repository-root-as-plugin-root.md)). Bump `version` in `plugin.json` in any pull request that changes what someone who installed the plugin can use: a skill, a script a skill runs, or a file a skill reads (such as a template once a skill uses it). Files that no skill uses yet, and documentation, do not need a bump. Installed copies update only when the version changes.
-- `adapters/<tool>/`: tool-specific parts, such as subagent definitions and permission settings (from phase 3). Everything shared stays out of `adapters/`.
+- `adapters/<tool>/`: tool-specific parts, such as subagent definitions and permission settings (from phase 3). Everything shared stays out of `adapters/`. `adapters/claude/` holds the Claude Code parts, including the usage-limit script `scripts/usage.py`; see its README.
+- `hooks/hooks.json`: the plugin's safety hooks (Claude Code). They are always on while the plugin is enabled, so only safety guardrails go there, never quality gates ("Gates" in `docs/DESIGN.md`).
 - `.github/`: issue forms, the pull request template, and the security policy.
 - `.keyturn/`: local and git-ignored: translations, fetched GitHub content, and the maintainer's plan. Never commit anything under it.
 - The other folders in "Repository Layout" in `docs/DESIGN.md` (`gates/`, `profiles/`, `github/`) are created in the phase that needs them, not before.
@@ -36,10 +37,12 @@ This is the only committed instructions file. If your tool reads a different fil
 
 - Try `spec` in a scratch Git repository under `.keyturn/` (it is git-ignored), so that its commits never touch this repository: create its `keyturn/config.json` with `project-config`, then ask for requirements from `evals/requests/task-manager/request.md` and compare them with `evals/requests/task-manager/example/keyturn/client/requirements.md`. To try a request in another language, set English-only mode and write the request in that language.
 
+- Try the usage limits: add the status line from `adapters/claude/statusline-settings.json` to your user settings, start a session with `claude --plugin-dir .`, and run `python3 adapters/claude/scripts/usage.py check` once the status line shows both windows. Set `KEYTURN_USAGE_FILE` to a file of your own to try `check` and `hook` with made-up values.
+
 ## Before opening a pull request
 
-- Run the tests of every script you changed. For `localize`: `python3 -m unittest discover -s skills/localize/scripts` from the repository root. For `project-config`: `python3 -m unittest discover -s skills/project-config/scripts`. For `spec`: `python3 -m unittest discover -s skills/spec/scripts`.
-- If you changed `.claude-plugin/` or anything under `skills/`, run `claude plugin validate --strict .` and make sure it passes.
+- Run the tests of every script you changed. For `localize`: `python3 -m unittest discover -s skills/localize/scripts` from the repository root. For `project-config`: `python3 -m unittest discover -s skills/project-config/scripts`. For `spec`: `python3 -m unittest discover -s skills/spec/scripts`. For the Claude Code adapter: `python3 -m unittest discover -s adapters/claude/scripts`.
+- If you changed `.claude-plugin/`, `hooks/`, or anything under `skills/` or `adapters/`, run `claude plugin validate --strict .` and make sure it passes.
 - Check that nothing under `.keyturn/` and no tool-specific instructions file (such as a local symbolic link to `AGENTS.md`) is staged.
 - Check that links in the Markdown you changed point to files that exist.
 - If you changed a template, update the worked example in `evals/requests/*/example/` in the same pull request. If you changed an example's `requirements.md`, its approval in `approvals.md` is stale: record a new one with the new hashes.
