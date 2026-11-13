@@ -494,6 +494,7 @@ adapters/
 github/                   # workflow templates, labels, project setup
 evals/
   requests/               # evaluation requests
+scripts/                  # tools for developing keyturn (not run by skills), with their tests
 docs/
   DESIGN.md               # this document
   adr/                    # keyturn's own decision records
