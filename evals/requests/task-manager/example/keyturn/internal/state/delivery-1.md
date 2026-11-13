@@ -20,7 +20,7 @@ Delivery 1 is done: the acceptance guide and the delivery report are ready for t
 |---|---|---|---|---|
 | spec | done | [requirements](../../client/requirements.md), [approvals](../../client/approvals.md) | `1f3d2b8` | approved in Japanese, version 1 |
 | design | done | [design](../design.md), [threat model](../threat-model.md), [ADRs](../adr/), [design summary](../../client/design-summary.md) | `a51f0c2` | decision cards 1 and 2 answered |
-| conventions | done | `conventions.md`, linter configs | `b7e4410` | |
+| conventions | done | [conventions](../conventions.md), linter configs | `b7e4410` | |
 | implement | done | [handoff](../handoff.md) | `9b02d4f` | second round, after review F-1 and F-2 and security review F-1 to F-3 |
 | qa | done | [test report](../test-report.md) | `d2a7f13` | tested `9b02d4f` |
 | security-review | done | [security review](../security-review.md) | `e5b8c90` | reviewed `a51f0c2`..`9b02d4f` |

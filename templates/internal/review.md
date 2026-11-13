@@ -45,7 +45,7 @@ Leave the section with "None." when there are no findings.
 - Location: `<file>:<line>`
 - Severity: <high | medium | low>
 - Category: <design fit | readability | conventions | ADR conflict | security>
-- Based on: <rule, R-n, ADR, or T-n>
+- Based on: <rule (C-n for conventions.md), R-n, ADR, or T-n>
 - Status: <open | fixed>
 
 <what is wrong, and what is expected>
