@@ -86,12 +86,20 @@ Sign-up, sign-in, and task list pages. Task titles are rendered as React text, n
 
 ## Libraries and external services
 
-| Name | Version | Purpose | Serves | New | Check |
-|---|---|---|---|---|---|
-| `modernc.org/sqlite` | pinned in `api/go.mod` | SQLite driver without C code | R-1, R-3 to R-6 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), BSD-3-Clause |
-| `golang.org/x/crypto` | pinned in `api/go.mod` | Argon2id password hashing (`argon2` package only) | R-1, R-2 | yes | exists, maintained by the Go team, BSD-3-Clause; one OSV entry for this version (GO-0000-0001, checked 2026-11-08), in the `openpgp` package, which the app does not import; `govulncheck` must keep reporting it as not called |
-| `react`, `react-dom` | pinned in `web/package.json` | web client | R-1 to R-9 | yes | exist, maintained, no OSV entries for this version (checked 2026-11-08), MIT |
-| `vite` | pinned in `web/package.json` | builds the web client (development only) | R-1 to R-9 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), MIT |
+| Name | Version | Kind | Purpose | Serves | New | Check |
+|---|---|---|---|---|---|---|
+| `modernc.org/sqlite` | pinned in `api/go.mod` | runtime | SQLite driver without C code | R-1, R-3 to R-6 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), BSD-3-Clause |
+| `golang.org/x/crypto` | pinned in `api/go.mod` | runtime | Argon2id password hashing (`argon2` package only) | R-1, R-2 | yes | exists, maintained by the Go team, BSD-3-Clause; one OSV entry for this version (GO-0000-0001, checked 2026-11-08), in the `openpgp` package, which the app does not import; `govulncheck` must keep reporting it as not called |
+| `react`, `react-dom` | pinned in `web/package.json` | runtime | web client | R-1 to R-9 | yes | exist, maintained, no OSV entries for this version (checked 2026-11-08), MIT |
+| `vite` | pinned in `web/package.json` | runtime | builds the web client that is delivered | R-1 to R-9 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), MIT |
+| `eslint` | pinned in `web/package.json` | profile tool (`react-spa`) | lints the web client | R-1 to R-9 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), MIT |
+| `vitest` | pinned in `web/package.json` | profile tool (`react-spa`) | unit tests for the web client | R-1 to R-9 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), MIT |
+| `@playwright/test` | pinned in `web/package.json` | profile tool (`react-spa`) | browser tests of the whole app | R-1 to R-9 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), Apache-2.0 |
+| `@eslint/js`, `typescript-eslint` | pinned in `web/package.json` | profile tool (`react-spa`) | ESLint's recommended rules and its rules for TypeScript | R-1 to R-9 | yes | exist, maintained, no OSV entries for this version (checked 2026-11-08), MIT |
+| `prettier` | pinned in `web/package.json` | profile tool (`react-spa`) | formats the web client's code | R-1 to R-9 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), MIT |
+| `golangci-lint` | pinned in `api/go.mod` (`tool` directive) | profile tool (`go`) | lints the API's code | R-1 to R-9 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), GPL-3.0, used only as a tool, never linked into the app |
+
+Not listed, as they are not dependencies ([ADR 0015 in keyturn](../../../../../../docs/adr/0015-dependency-kinds.md)): the Go and Node.js toolchains, covered by approving the stack, and the gate's scanners (`gosec`, `govulncheck`, Semgrep, gitleaks), which the gate installs outside the project.
 
 No external services.
 
@@ -106,7 +114,7 @@ No external services.
 | `api/internal/store/**` | schema, migrations, queries | R-1, R-3 to R-6 |
 | `api/go.mod`, `api/go.sum` | the two approved Go dependencies only | R-1 to R-6 |
 | `web/src/**`, `web/index.html` | pages and components | R-1 to R-6, R-8, R-9 |
-| `web/package.json`, `web/package-lock.json` | the npm dependencies approved in ADR 0004 only | R-1 to R-9 |
+| `web/package.json`, `web/package-lock.json` | the npm dependencies listed above only: those approved in ADR 0004 and the `react-spa` profile's development tools | R-1 to R-9 |
 | `web/vite.config.ts` | the development server's proxy to the API only (added in delivery 1, see the delivery report) | R-1 to R-9 |
 
 ## QA's tests

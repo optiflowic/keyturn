@@ -62,16 +62,21 @@ Leave the section with "No stored data." when there is none.
 ## Libraries and external services
 
 <!--
-Every dependency and external service the work adds or relies on.
-- A new dependency or a new external service always needs the client's approval before it is used, and is listed in design-summary.md.
-- Every new dependency is checked for existence, maintenance status, known vulnerabilities, and license, and the result is recorded in "Check".
-- "New" is no only for a dependency the project already has. A dependency the stack profile suggests is still new the first time the project adds it, and needs the approval and the check.
+Every dependency and external service the work adds or relies on. "Kind" says what each dependency is (see ADR 0015 in keyturn):
+- runtime: a library or tool that is part of the deliverable or builds it (for example React, or Vite). Never a profile tool, even if the stack profile recommends it.
+- profile tool: a development tool the stack profile names, that only checks, formats, or tests the code and is not part of the deliverable (for example a linter or a test tool).
+- other tool: a development tool no stack profile names. While no profile exists, every development tool is an other tool.
+Do not list the language toolchain and standard library (covered by approving the stack) or the gate's scanners (installed by the gate, never added to the project).
+- A new runtime dependency, a new other tool, or a new external service always needs the client's approval before it is used, under "Must agree" in design-summary.md.
+- A new profile tool is approved by the stack profile, and is listed in design-summary.md for information only.
+- Every new dependency, of every kind, is checked for existence, maintenance status, known vulnerabilities, and license, and the result is recorded in "Check".
+- "New" is "no" only for a dependency the project already has. A runtime library the stack profile suggests is still new the first time the project adds it, and needs the approval and the check.
 Leave the section with "None." when there are none.
 -->
 
-| Name | Version | Purpose | Serves | New | Check |
-|---|---|---|---|---|---|
-| <name> | <version> | <what it is used for> | R-<n> | <yes \| no> | <result of the dependency check, or "existing"> |
+| Name | Version | Kind | Purpose | Serves | New | Check |
+|---|---|---|---|---|---|---|
+| <name> | <version> | <runtime \| profile tool \| other tool> | <what it is used for> | R-<n> | <yes \| no> | <result of the dependency check, or "existing"> |
 
 ## Areas the work may change
 
