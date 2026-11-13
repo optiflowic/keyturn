@@ -77,7 +77,9 @@ A test tool is a dependency (ADR 0015 in keyturn's `docs/adr/`). Use only:
 - the test tools that ship with the language toolchain (for example `go test`), which are not dependencies;
 - a test tool listed in "Libraries and external services" in `design.md` with its kind and a "Check" that records a result, not `not checked`:
   - kind `profile tool`: approved by the stack profile;
-  - kind `other tool`: only when the client agreed to it, that is, when the ADR its row links to is `accepted`. Until stack profiles exist (phase 4), every test tool other than the toolchain's is an other tool.
+  - kind `other tool`: only when the client agreed to it, that is, when the ADR its row links to is `accepted`.
+
+Use the kind the design gives; do not decide it again. The architect decides each tool's kind when writing the design, and the client agrees to it there, so a `profile tool` row is approved even if you cannot see the profile.
 
 If a criterion needs a tool that is not listed, not checked, or not agreed, do not add it, and do not use another one in its place. Mark the criteria that need it "not tested", with the tool and why, and report it to the architect in step 9. A tool that is approved but not installed in the project (for example, missing from its manifest) is reported to the developer the same way: the manifest is outside QA's folders.
 
@@ -93,12 +95,12 @@ For every acceptance criterion in scope, write one or more tests:
 ### 6. Run the tests
 
 1. Note the tested commit: `git rev-parse --short HEAD` and the branch, before anything of QA's is committed.
-2. Build and start the deliverable as "How to run" says. If a step fails, stop: report the failing step and its output to the developer, write the report with every criterion "not tested" and the reason, and do not try to fix the build.
+2. Build and start the deliverable as "How to run" says. Keep the data it creates (a database file, uploads) outside the repository when "How to run" offers a way (for example, an option for the database path), so the run leaves nothing to clean up. If a step fails, stop: report the failing step and its output to the developer, write the report with every criterion "not tested" and the reason, and do not try to fix the build.
 3. Run QA's tests, and the existing tests as "How to run" says, so the counts cover every test the project runs. Read the results from the runners' output, not by reading test files.
 4. For a failing QA test, check the test against the wording of the acceptance criterion, never against the code. If the test does not match the criterion, fix the test and run it again. If it matches, the failure stands. Never loosen an expected result, skip, or disable a test to make it pass.
 5. If a test passes on one run and fails on another, it counts as failed: say under "Failures" how many runs of how many passed.
 
-A criterion's result is `pass` when every test for it passed, `fail` when any failed, and `not tested` when it has no test that ran.
+A criterion's result is `pass` when tests ran for the whole of its expected result and all passed, `fail` when any failed, `partly tested` when tests ran and passed for only part of its expected result (say which part was not tested, under "Untested areas"), and `not tested` when it has no test that ran. A Must requirement's criterion that is `partly tested` is reported under "What was not verified" in the delivery report.
 
 ### 7. Write the test report
 
@@ -119,7 +121,7 @@ Check that:
 - every test named in "Results" exists and is in a folder listed under "QA's tests";
 - `git status --porcelain` shows changes only under QA's folders and to `keyturn/internal/test-report.md`. Files the run created (a database, build output, a test runner's result folder) are not committed: delete them, or ignore them with a `.gitignore` inside QA's folder. If anything outside changed, undo only what QA changed, and report anything else to whoever runs QA.
 
-Commit the tests and the report together. This is the step's checkpoint: a rerun starts from these files.
+Commit the tests and the report together, with a message such as `test(qa): test delivery 1 against its acceptance criteria`. This is the step's checkpoint: a rerun starts from these files.
 
 ### 9. Report
 
