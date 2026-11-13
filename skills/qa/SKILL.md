@@ -107,7 +107,7 @@ A criterion's result is `pass` when tests ran for the whole of its expected resu
 Start from `templates/internal/test-report.md`, write `keyturn/internal/test-report.md`, and remove the template's comments and placeholders.
 
 - **Header**: the task or issue, `Specification: requirements version <n>`, the tested commit from step 6, and today's date. Delete the warning note (it is only for a run without a specification).
-- **Summary**: how many criteria pass, fail, or were not tested, and the most important failure.
+- **Summary**: how many criteria pass, fail, were partly tested, or were not tested, and the most important failure.
 - **Results**: one row per acceptance criterion that is not removed, in order, with its "Covers", its result, and its tests (file and test names, all in QA's folders).
 - **Failures**: one heading per failed criterion: what the test does, what the criterion expects, and what happened. A failing test of the developer's is not a result of a criterion: say in "Summary" which one failed, from the runner's output.
 - **Untested areas**: every "not tested" criterion with its reason (not in this task, a missing interface, tool, or test environment, or something only a person can judge, which belongs in the client's acceptance guide), and behavior the criteria do not cover that a reader could assume was tested.
