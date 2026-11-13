@@ -35,12 +35,14 @@ This is the only committed instructions file. If your tool reads a different fil
 - Try `localize` on this repository: ask for a document, issue, or pull request in another language (for example, "Translate docs/DESIGN.md into Japanese"). The translation is written under `.keyturn/i18n/<lang>/`, and `git status` must stay clean. To try the other direction, write a few lines in another language and ask for them in English as an answer to a decision card: the original, the English, and the back-translation go under `.keyturn/i18n/inbound/<lang>/`, and `git status` must still stay clean.
 
 - Try `spec` in a scratch Git repository under `.keyturn/` (it is git-ignored), so that its commits never touch this repository: create its `keyturn/config.json` with `project-config`, then ask for requirements from `evals/requests/task-manager/request.md` and compare them with `evals/requests/task-manager/example/keyturn/client/requirements.md`. To try a request in another language, set English-only mode and write the request in that language.
+- Try `conventions` in a scratch Git repository under `.keyturn/`: copy `keyturn/config.json` and `keyturn/internal/` (without `conventions.md`) from `evals/requests/task-manager/example/`, ask for the conventions, and compare them with that example's `keyturn/internal/conventions.md`.
+- Try `resume` in a scratch repository under `.keyturn/`: on a branch `task/delivery-1`, copy `evals/requests/task-manager/example/keyturn/internal/state/delivery-1.md` to `keyturn/internal/state/delivery-1.md`, change it to a stopped task, commit it, and ask to resume it. `resume` reads the committed state file, so the change must be committed first.
 
 - Try `security-review` in another scratch Git repository under `.keyturn/`: commit the example's `keyturn/` folder from `evals/requests/task-manager/example/` there, without its `internal/security-review.md`, then commit a small change with a planted flaw (for example, a task route that does not check who owns the task), and ask for a security review of that change. The report must find the flaw as a high finding, count T-6 as accepted only because decision card 2 meets every condition, and say which scans did not run.
 
 ## Before opening a pull request
 
-- Run the tests of every script you changed. For `localize`: `python3 -m unittest discover -s skills/localize/scripts` from the repository root. For `project-config`: `python3 -m unittest discover -s skills/project-config/scripts`. For `spec`: `python3 -m unittest discover -s skills/spec/scripts`.
+- Run the tests of every script you changed. For `localize`: `python3 -m unittest discover -s skills/localize/scripts` from the repository root. For `project-config`: `python3 -m unittest discover -s skills/project-config/scripts`. For `spec`: `python3 -m unittest discover -s skills/spec/scripts`. For `resume`: `python3 -m unittest discover -s skills/resume/scripts`.
 - If you changed `.claude-plugin/` or anything under `skills/`, run `claude plugin validate --strict .` and make sure it passes.
 - Check that nothing under `.keyturn/` and no tool-specific instructions file (such as a local symbolic link to `AGENTS.md`) is staged.
 - Check that links in the Markdown you changed point to files that exist.
@@ -68,6 +70,7 @@ This is the only committed instructions file. If your tool reads a different fil
 ## CodeRabbit rate limits
 
 - Do not open pull requests in quick succession.
+- CodeRabbit reviews a pull request automatically only once, when it is opened; it does not review later pushes on its own (`auto_incremental_review: false` in `.coderabbit.yaml`). After a review, fix the points that are right and push the fixes together. For a point you disagree with or that needs a decision, reply with your reason and report it to the maintainer, as "Review comments" says. Reply in each thread, and then comment `@coderabbitai review` once to ask for the re-review.
 - After opening a pull request or pushing a fix, check whether CodeRabbit has posted a rate limit comment.
 - If it has, wait until the time it states has passed, then comment `@coderabbitai review` once. Do not trigger it repeatedly.
 - While you wait, work on another issue that can be worked on. Do not rely on a timer or a scheduled wake-up to come back: the session may not run while the maintainer is not talking to it.
