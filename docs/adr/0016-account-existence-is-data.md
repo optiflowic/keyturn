@@ -23,7 +23,7 @@ What constrains the answer:
 
 ## Decision
 
-Option 1: learning whether an account exists counts as reading data someone should not read, under ADR 0010, so its risk is never accepted. It is not a threat when the approved requirements make the account's existence public on purpose (for example, public profiles). This clarifies ADR 0010 and does not supersede it.
+Option 1: learning whether an account exists counts as reading data someone should not read, under ADR 0010, so its risk is never accepted. It is not a threat only for an identifier that the approved requirements make public on purpose, such as a username chosen to be unique or a public profile: telling someone that such a username is taken is what the requirements ask for. The exception never covers a private identifier: a public profile does not make the email address behind it public, so revealing that an email address has an account is still a threat. This clarifies ADR 0010 and does not supersede it.
 
 ## Reasons
 
@@ -34,7 +34,7 @@ Option 1: learning whether an account exists counts as reading data someone shou
 ## Consequences
 
 - `docs/DESIGN.md` "Security", `templates/internal/threat-model.md`, and `templates/internal/review.md` state the rule and its exception where they list the threats that are never accepted.
-- The architect lists learning whether an account exists as a threat for every entry point that can reveal it (sign-up, sign-in, password reset, and any block after wrong passwords), unless the approved requirements make it public.
-- Sign-up with unique email addresses is the hard case. A sign-up form that says "this email is already used" reveals existence, and a response that is the same whatever the cause usually needs a confirmation email: the result is sent by email, not shown on the page. That is a new external service, which needs the client's approval, or else a requirement change (for example, sign-up by invitation, or approved public accounts). The architect raises it with the client when the requirements are written or the design is made, not after delivery.
-- The worked example in `evals/requests/task-manager/example/` needs this threat in its threat model, mitigated, not accepted.
+- The architect lists learning whether an account exists as a threat for every entry point that can reveal it (sign-up, sign-in, password reset, and any block after wrong passwords), unless the approved requirements make the identifier it reveals public on purpose; then the threat model records that it was considered and is public by requirement.
+- Sign-up with unique email addresses is the hard case. A sign-up form that says "this email is already used" reveals existence, and a response that is the same whatever the cause usually needs a confirmation email: the result is sent by email, not shown on the page. That is a new external service, which needs the client's approval, or else a requirement change (for example, sign-up by invitation, or signing in with a username instead of an email address). The architect raises it with the client when the requirements are written or the design is made, not after delivery.
+- The worked example in `evals/requests/task-manager/example/` signs people in with a username instead of an email address, so that usernames are public by requirement, and its threat model records that each entry point was considered (#83).
 - The `design` and `security-review` skills (phase 3) follow the rule: they never offer accepting this risk on a decision card.

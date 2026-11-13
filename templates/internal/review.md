@@ -62,7 +62,7 @@ One row per threat in threat-model.md: is the mitigation implemented, and what e
 A threat whose mitigation is not implemented, or only partly, is a high-severity finding above, unless the client accepted what is left on an answered decision card.
 Before counting a risk as accepted, check all of these:
 - the threat is low, could not let anyone get in, get more rights, or read, change, or delete data they should not, and does not come through a dependency or an external service;
-  learning whether an account exists counts as reading data, unless the approved requirements make accounts public on purpose (then it is not a threat);
+  learning whether an account exists counts as reading data, except for an identifier the approved requirements make public on purpose (such as a unique username; never a private one, such as an email address);
 - the card offered mitigating the threat as one of the options, and described the same risk that is left now;
 - the threat, its severity, and the requirement it comes from have not changed since the client answered.
 If any of these does not hold, the acceptance does not count: report a high-severity finding, and a new card is needed.
