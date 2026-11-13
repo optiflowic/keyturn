@@ -23,7 +23,7 @@ Otherwise delete the note.
 
 ## Summary
 
-<!-- About three lines: how many acceptance criteria pass, fail, or were not tested, and the most important failure. -->
+<!-- About three lines: how many acceptance criteria pass, fail, were partly tested, or were not tested, and the most important failure. -->
 
 <summary>
 
@@ -31,14 +31,16 @@ Otherwise delete the note.
 
 <!--
 One row per acceptance criterion that is not removed.
-- Result is pass, fail, or not tested. A "not tested" row is also listed under "Untested areas" with the reason.
+- Result is pass, fail, partly tested, or not tested. "partly tested" means tests ran and passed for only part of the expected result (for example, through the API but not in the browser).
+  A "partly tested" or "not tested" row is also listed under "Untested areas", with the part that was not tested and the reason.
+  A Must requirement's criterion that is "partly tested" goes under "What was not verified" in the delivery report.
 - "Tests" says where the tests for the criterion are (files or test names).
 Without a specification, use one row per observed behavior instead, with a short name in place of the AC-n ID.
 -->
 
 | Criterion | Covers | Result | Tests |
 |---|---|---|---|
-| AC-<n> | R-<n> | <pass \| fail \| not tested> | `<test file or name>` |
+| AC-<n> | R-<n> | <pass \| fail \| partly tested \| not tested> | `<test file or name>` |
 
 ## Failures
 

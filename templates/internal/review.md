@@ -78,9 +78,10 @@ A card that is still waiting does not count as accepted.
 One row per finding from the gate's scans (SAST, dependency, secret scanning).
 - Triage is real or false positive. Only the security role may mark a false positive, and the reason is required.
 - A real finding is also listed under "Findings" above, with its severity.
-Leave "No scan findings." when there are none.
+Leave "No scan findings." when the scans ran and found nothing.
+When a scan did not run (for example, before the gate has it), add a row for it with "did not run" under "Triage" and the reason, so it is never read as clean.
 -->
 
 | Tool | Finding | Location | Triage | Reason |
 |---|---|---|---|---|
-| <tool> | <rule or ID> | `<file>:<line>` | <real \| false positive> | <why, required for a false positive> |
+| <tool> | <rule or ID> | `<file>:<line>` | <real \| false positive \| did not run> | <why: required for a false positive or a scan that did not run> |
