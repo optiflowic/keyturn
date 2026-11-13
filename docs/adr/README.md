@@ -30,3 +30,4 @@ See "Architecture decision records" in [`docs/DESIGN.md`](../DESIGN.md).
 | [0013](0013-confirming-translations-into-english.md) | The client confirms a translation into English by reading it translated back | accepted |
 | [0014](0014-project-configuration-in-json.md) | The project configuration is a JSON file, checked by a script before use | accepted |
 | [0015](0015-dependency-kinds.md) | Which tools and libraries need the client's approval depends on their kind | accepted |
+| [0018](0018-direct-dependencies-in-the-design.md) | The design lists direct dependencies; the lock file covers the rest | accepted |
