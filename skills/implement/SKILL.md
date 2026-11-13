@@ -48,7 +48,7 @@ Below, `project_config.py` and `approval.py` mean the full paths of the scripts 
 
 ### 1. Check the project configuration
 
-Run `project_config.py check`. If it reports any problem, stop and show every line it printed; go on only after the file is fixed as the `project-config` skill says. Read `client_language` and `english_only` with `project_config.py get`: you need them to read `approvals.md` (step 2) and to ask the client anything (step 6). The handoff notes are internal, so they are always in English.
+Run `project_config.py check`. If it reports any problem, stop and show every line it printed; go on only after the file is fixed as the `project-config` skill says. Read `client_language` and `english_only` with `project_config.py get`: you need them to read `approvals.md` (step 2). Questions go to the person who asked you to implement, in the language they use with you (step 6); you never ask the client directly. The handoff notes are internal, so they are always in English.
 
 ### 2. Check that the requirements are approved and the design matches them
 
@@ -69,7 +69,7 @@ Everything else goes on.
 
 Before every change, check that the design already covers it. Stop that part and ask (step 6) when it would:
 
-- **add a dependency the design does not list** with its kind and a passing check (ADR 0015 in keyturn's `docs/adr/`). Use each listed dependency at the version the design names, and a runtime dependency or an other tool only when its ADR is `accepted`. A profile tool needs no agreement, but still needs its listing and its check. The language toolchain and its standard library need nothing more than the stack's approval. Never add a gate scanner (for example Semgrep, gitleaks, or Trivy) to the project;
+- **add a dependency the design does not list** with its kind and a passing check (ADR 0015 in keyturn's `docs/adr/`). Use each listed dependency at exactly the version the design names, and commit the lock file it changes (for example `package-lock.json` or `go.sum`), so every indirect dependency is fixed (ADR 0018 in keyturn's `docs/adr/`). If the design names no version for a dependency, ask the architect instead of choosing one. Use a runtime dependency or an other tool only when its ADR is `accepted`. A profile tool needs no agreement, but still needs its listing and its check. The language toolchain and its standard library need nothing more than the stack's approval. Never add a gate scanner (for example Semgrep, gitleaks, or Trivy) to the project;
 - **use an external service** the design does not list, or use a listed one in a way it does not describe;
 - **change how people sign in, what each person may see or change, or what data is kept**, where, and for how long, beyond what the design's parts, data model, and ADRs say;
 - **delete data**, including a migration that drops or rewrites stored data, unless an approved requirement and the design call for exactly that;
@@ -103,8 +103,8 @@ The code follows *The Art of Readable Code*: a reader who has never seen it unde
 
 Before handing off, check that:
 
-- the formatter and linters under "Tool rules" in `conventions.md` pass, and every test passes: your unit tests, and QA's tests when they exist. Run each tool as the conventions say; for a tool that is not installed, say so in the notes;
-- every changed path (`git status`, and `git diff --name-only <base>` from the commit this task started from) is inside "Areas the work may change", and none is a protected path or inside "QA's tests";
+- the formatter and linters under "Tool rules" in `conventions.md` pass, and every test passes: your unit tests, and QA's tests when they exist. Run each tool as the conventions say; for a tool that is not installed, say so in the notes. If a config or rule file that "Tool rules" lists is missing from the repository, do not write it and do not run a stand-in: it is a protected path. Report it to the standards role (`conventions`) in "Notes for the next role", and go on;
+- every changed path (`git status`, and `git diff --name-only <base>` from the commit this task started from) is inside "Areas the work may change", and none is a protected path or inside "QA's tests". Your own output, `keyturn/internal/handoff.md`, is the one file outside the areas you write;
 - no suppression comment, skipped test, or loosened test was added, and no dependency the design does not list;
 - every finding you were given is fixed, or is listed under "What is left" with why (step 6).
 
@@ -115,7 +115,7 @@ Then commit the code and the unit tests, saying what changed and which requireme
 When a part waits (step 3), needs approval (step 3, "What needs approval"), or cannot be built without guessing, do not build it, and do not choose for the client:
 
 - **With `deliver`**: write the question under "What is left" and "Notes for the next role" in the handoff notes, and report it to `deliver`, which sends it to the role that decides: the `design` skill for anything the design does not cover or that needs the client's agreement (it updates the design and asks the client on a decision card), the `spec` skill for an unclear or conflicting requirement, the `conventions` skill for a rule, and the role that raised a finding for a finding you think is wrong.
-- **On your own**: ask the person who asked you, in their language, in one message with every question: what you need, why (the requirement, the threat, or the finding), and the options you see. When the answer changes the design or a requirement, say that it must be recorded there first (with the `design` or `spec` skill, or by hand); do not build on an answer that is only in the conversation. Without a design document ("When inputs are missing"), record the answer in "Notes for the next role" instead.
+- **On your own**: ask the person who asked you, in the language they use with you, in one message with every question: what you need, why (the requirement, the threat, or the finding), and the options you see. When the answer changes the design or a requirement, say that it must be recorded there first (with the `design` or `spec` skill, or by hand); do not build on an answer that is only in the conversation. Without a design document ("When inputs are missing"), record the answer in "Notes for the next role" instead.
 
 Go on with every part that does not depend on the answer.
 
@@ -124,7 +124,7 @@ Go on with every part that does not depend on the answer.
 Start from `templates/internal/handoff.md`, write `keyturn/internal/handoff.md`, and remove the template's comments and placeholders. Replace the earlier notes in a rework: they describe the newest commit only.
 
 - **From**: developer. **To**: QA, security, reviewer (or whoever you hand off to when you run on your own).
-- **Branch and commit**: the commit of the code from step 5.
+- **Branch and commit**: the branch, and the commit of the code from step 5. The handoff is committed on top of it and changes no code, so QA and security test the head of the branch.
 - **What was done**: the changes, grouped by part of the design, with the requirements each serves. In rework, name each finding fixed (for example, "review F-1"), with what changed.
 - **Requirements covered**: one row per requirement in this task.
 - **What is left**: every part that waits, every question asked in step 6, and every finding not fixed, each with why.
