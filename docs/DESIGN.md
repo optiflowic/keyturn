@@ -374,11 +374,12 @@ The most likely failure is not malice but an agent "making the checks pass" inst
 
 - The developer works only on what the approved requirements and design cover.
 - The gate compares the changed files with the areas listed in the design and flags changes outside them.
-- Some changes always require client approval before they are made: new dependencies, new external services, changes to authentication, authorization, or data handling, and anything that deletes data.
+- Some changes always require client approval before they are made: new external services, changes to authentication, authorization, or data handling, and anything that deletes data. New dependencies require it according to their kind.
+- Which dependencies need that approval depends on their kind. The language toolchain and standard library are covered by approving the stack. The gate's scanners are installed by the gate and never added to the project. Development tools the stack profile names (linters, formatters, test tools that are not part of the deliverable) are approved by the profile, and the client sees them in the design summary for information only. Everything else, including every runtime library and any tool no profile names, needs the client's approval. See [ADR 0015](adr/0015-dependency-kinds.md).
 
 ### 3. New dependencies are checked
 
-AI agents sometimes suggest packages that do not exist or that imitate popular ones. Every new dependency is checked for existence, maintenance status, known vulnerabilities, and license, and the result is recorded.
+AI agents sometimes suggest packages that do not exist or that imitate popular ones. Every new dependency is checked for existence, maintenance status, known vulnerabilities, and license, and the result is recorded. This includes the development tools approved by the stack profile: not needing the client's approval never means skipping the check.
 
 ### 4. The environment limits the damage
 
