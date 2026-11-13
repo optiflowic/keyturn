@@ -32,7 +32,7 @@ Latest review per reviewer:
 - maintainer: commented, 2026-11-12T09:00Z
 CodeRabbit rate limit: posted 2026-11-12T10:20Z, wait until 2026-11-12T11:04Z (34 min from now)
 
-Unresolved threads: 2 (and 1 outdated, not listed)
+Unresolved threads: 2
 
 1. skills/example/scripts/example.py:146-147 by coderabbitai (1 reply, last by maintainer)
    Major · Functional Correctness · Quick win
@@ -45,6 +45,9 @@ Unresolved threads: 2 (and 1 outdated, not listed)
    Paragraph 1 explains one more reason to split the function, with enough words to take up some room in the summary.
    Paragraph 2 explains one more reason to split the function, with enough words to take up some room in the summary.
    Paragraph 3 explains one more reason to split the function, with enough words to take up some room in the summary. …
+
+Unresolved outdated threads: 1 (still to be resolved before merging)
+- docs/DESIGN.md:30 by coderabbitai: Reword the outdated point.
 """
 
 
@@ -67,12 +70,16 @@ class SummaryTest(unittest.TestCase):
                       "Prompt text for AI agents", "https://", "```", "**"):
             self.assertNotIn(noise, text)
 
-    def test_leaves_out_resolved_and_outdated_threads(self):
+    def test_leaves_out_resolved_threads(self):
         text = summary(full=True)
         self.assertNotIn("Resolved point", text)
-        self.assertNotIn("Outdated point", text)
         self.assertNotIn("AGENTS.md", text)
-        self.assertNotIn("docs/DESIGN.md", text)
+
+    def test_lists_outdated_threads_by_their_first_line_only(self):
+        text = summary(full=True)
+        self.assertIn("\n- docs/DESIGN.md:30 by coderabbitai: Reword the outdated point.\n", text)
+        self.assertNotIn("Minor", text)
+        self.assertNotIn("Second line", text)
 
     def test_full_prints_every_line_of_a_point(self):
         text = summary(full=True)

@@ -11,7 +11,8 @@ It prints, in plain text:
 - every review thread that is neither resolved nor outdated: file and line, who wrote it, how many replies it has
   and who wrote the last one, and the point itself in a few lines. HTML, collapsed <details> sections (analysis
   chains, run logs, prompts for AI agents, committable suggestions), and suggested diffs are stripped out.
-  Unresolved threads that are outdated are only counted.
+- every unresolved thread that is outdated, one line each: file and line, who wrote it, and the first line of the
+  point. They still have to be resolved before the pull request can be merged.
 
 It only reads: it never replies, resolves, or asks for a review. It fetches the pull request with
 `gh api graphql`, so it needs no credentials other than gh's. --input reads a saved response of the same query
@@ -90,6 +91,8 @@ DIFF_FENCES = ("diff", "suggestion")
 HTML_TAG_RE = re.compile(r"</?[a-zA-Z][^>]*>")
 LINK_RE = re.compile(r"!?\[([^\]]*)\]\([^)]*\)")
 EMPHASIS_RE = re.compile(r"\*\*|__|(?<!\w)_(?=\S)|(?<=\S)_(?!\w)")
+# CodeRabbit starts a point with labels such as "Major · Functional Correctness · Quick win".
+LABELS_RE = re.compile(r"[^.·]{1,40}( · [^.·]{1,40})+")
 
 
 class Failure(Exception):
@@ -152,6 +155,14 @@ def shorten(lines: list[str], full: bool) -> list[str]:
     if len(lines) > MAX_LINES:
         out[-1] += " …"
     return out
+
+
+def first_line(lines: list[str]) -> str:
+    """The first line of a point that says something, skipping CodeRabbit's labels."""
+    for line in lines:
+        if not LABELS_RE.fullmatch(line):
+            return line
+    return "(no text)"
 
 
 def login(node: dict) -> str:
@@ -260,11 +271,9 @@ def summarize(data: dict, now: datetime, full: bool = False) -> str:
     threads = pr["reviewThreads"]["nodes"]
     unresolved = [thread for thread in threads if not thread.get("isResolved")]
     listed = [thread for thread in unresolved if not thread.get("isOutdated")]
-    heading = f"Unresolved threads: {len(listed)}"
-    if len(unresolved) > len(listed):
-        heading += f" (and {len(unresolved) - len(listed)} outdated, not listed)"
+    outdated = [thread for thread in unresolved if thread.get("isOutdated")]
     out.append("")
-    out.append(heading)
+    out.append(f"Unresolved threads: {len(listed)}")
     if pr["reviewThreads"]["pageInfo"].get("hasNextPage"):
         out.append("Warning: the pull request has more than 100 review threads; only the first 100 were read.")
     for number, thread in enumerate(listed, 1):
@@ -278,6 +287,14 @@ def summarize(data: dict, now: datetime, full: bool = False) -> str:
         out.append(header)
         point = shorten(clean(first.get("body") or ""), full) or ["(no text)"]
         out.extend("   " + line for line in point)
+    if outdated:
+        out.append("")
+        out.append(f"Unresolved outdated threads: {len(outdated)} (still to be resolved before merging)")
+        for thread in outdated:
+            comments = thread["comments"]["nodes"]
+            first = comments[0] if comments else {"body": ""}
+            location = f"{thread.get('path') or '(no file)'}{lines_of(thread)}"
+            out.append(f"- {location} by {login(first)}: {first_line(clean(first.get('body') or ''))}")
     return "\n".join(out) + "\n"
 
 

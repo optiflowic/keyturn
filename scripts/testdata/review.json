@@ -90,7 +90,7 @@
                     "author": {
                       "login": "coderabbitai"
                     },
-                    "body": "Outdated point that must not be listed.",
+                    "body": "<!-- coderabbit-ai-generated:v1 -->\n\n**<picture><img src=\"https://example.invalid/minor.svg\" alt=\"\"></picture> Minor** · **Functional Correctness** · **Quick win**\n\n**Reword the outdated point.**\n\nSecond line that the one-line form leaves out.\n",
                     "createdAt": "2026-11-12T08:30:00Z"
                   }
                 ]
