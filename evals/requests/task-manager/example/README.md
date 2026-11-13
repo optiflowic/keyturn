@@ -24,6 +24,7 @@ Every keyturn template, filled in by hand for [the task manager request](../requ
 | [`keyturn/internal/design.md`](keyturn/internal/design.md) | `templates/internal/design.md` | Architect |
 | [`keyturn/internal/threat-model.md`](keyturn/internal/threat-model.md) | `templates/internal/threat-model.md` | Architect |
 | [`keyturn/internal/adr/`](keyturn/internal/adr/) | `templates/internal/adr.md` | Architect |
+| [`keyturn/internal/conventions.md`](keyturn/internal/conventions.md) | `templates/internal/conventions.md` | Standards |
 | [`keyturn/internal/handoff.md`](keyturn/internal/handoff.md) | `templates/internal/handoff.md` | Developer |
 | [`keyturn/internal/test-report.md`](keyturn/internal/test-report.md) | `templates/internal/test-report.md` | QA |
 | [`keyturn/internal/review.md`](keyturn/internal/review.md) | `templates/internal/review.md` | Reviewer |

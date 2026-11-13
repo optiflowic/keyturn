@@ -57,6 +57,6 @@ R-5, R-6, and R-9 are planned for delivery 2, so that this delivery has no more 
 | PM, architect, reviewer, security | Claude Opus | recorded in the run log |
 | Developer, QA | Claude Sonnet | recorded in the run log |
 | AI tool | Claude Code | recorded in the run log |
-| Go tests and checks | Go, `go vet`, `gosec`, `govulncheck` | Go as pinned in `api/go.mod`; the tools as recorded in the gate log |
-| Web tests and checks | Node.js, ESLint, Vitest, Playwright | as pinned in `web/package.json` |
+| Go tests and checks | Go, `gofmt`, golangci-lint, `gosec`, `govulncheck`, Semgrep | Go as pinned in `api/go.mod`; the tools as recorded in the gate log |
+| Web tests and checks | Node.js, Prettier, ESLint, Vitest, Playwright | as pinned in `web/package.json` |
 | Secret scanning | gitleaks | recorded in the gate log |
