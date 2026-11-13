@@ -36,7 +36,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 QUERY = """
-query($owner: String!, $name: String!, $number: Int!) {
+query($owner: String!, $name: String!, $number: Int!, $after: String) {
   repository(owner: $owner, name: $name) {
     pullRequest(number: $number) {
       number
@@ -46,8 +46,8 @@ query($owner: String!, $name: String!, $number: Int!) {
       latestReviews(first: 100) {
         nodes { author { login } state submittedAt }
       }
-      reviewThreads(first: 100) {
-        pageInfo { hasNextPage }
+      reviewThreads(first: 100, after: $after) {
+        pageInfo { hasNextPage endCursor }
         nodes {
           isResolved
           isOutdated
@@ -86,7 +86,12 @@ DURATION_PART_RE = re.compile(r"(\d+)\s*(hour|minute|second)s?", re.IGNORECASE)
 
 HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
 DETAILS_TAG_RE = re.compile(r"<details\b[^>]*>|</details\s*>", re.IGNORECASE)
-FENCE_RE = re.compile(r"^([ \t]*)(`{3,}|~{3,})[ \t]*(\S*)[^\n]*\n(.*?)^\1\2[ \t]*$\n?", re.DOTALL | re.MULTILINE)
+# A closing fence uses the same character as the opening one and is at least as long (CommonMark).
+FENCE_RE = re.compile(
+    r"^[ \t]*(?P<fence>(?P<char>[`~])(?P=char){2,})[ \t]*(?P<info>\S*)[^\n]*\n(?P<body>.*?)"
+    r"^[ \t]*(?P=fence)(?P=char)*[ \t]*$\n?",
+    re.DOTALL | re.MULTILINE,
+)
 DIFF_FENCES = ("diff", "suggestion")
 HTML_TAG_RE = re.compile(r"</?[a-zA-Z][^>]*>")
 LINK_RE = re.compile(r"!?\[([^\]]*)\]\([^)]*\)")
@@ -120,7 +125,7 @@ def strip_details(text: str) -> str:
 
 def strip_diff_fences(text: str) -> str:
     """Remove fenced blocks of suggested changes (```diff, ```suggestion); other code blocks keep their content."""
-    return FENCE_RE.sub(lambda m: "" if m.group(3).lower() in DIFF_FENCES else m.group(4), text)
+    return FENCE_RE.sub(lambda m: "" if m.group("info").lower() in DIFF_FENCES else m.group("body"), text)
 
 
 def clean(body: str) -> list[str]:
@@ -240,20 +245,34 @@ def lines_of(thread: dict) -> str:
         end, start = thread.get("line"), thread.get("startLine")
     if end is None:
         return ""
-    if start is not None and start != end:
+    # After a push, GitHub can give a start line after the end line. Show the end line alone then.
+    if start is not None and start < end:
         return f":{start}-{end}"
     return f":{end}"
 
 
-def summarize(data: dict, now: datetime, full: bool = False) -> str:
+def pull_request(data: dict) -> dict:
+    """The pull request in a response. A response with errors is a failure, even when it also holds data."""
+    if not isinstance(data, dict):
+        raise Failure("the response is not a JSON object")
+    errors = data.get("errors")
+    if errors:
+        messages = [error.get("message", str(error)) if isinstance(error, dict) else str(error) for error in errors]
+        raise Failure("the response has errors: " + "; ".join(messages))
     try:
         pr = data["data"]["repository"]["pullRequest"]
     except (KeyError, TypeError):
         pr = None
-    if not pr:
-        errors = [error.get("message", "") for error in (data.get("errors") or []) if isinstance(error, dict)]
-        raise Failure("no pull request in the response" + (": " + "; ".join(errors) if errors else ""))
+    if not isinstance(pr, dict):
+        raise Failure("no pull request in the response")
+    for field in ("latestReviews", "reviewThreads", "comments"):
+        if not isinstance(pr.get(field), dict) or not isinstance(pr[field].get("nodes"), list):
+            raise Failure(f"the response has no {field} for the pull request")
+    return pr
 
+
+def summarize(data: dict, now: datetime, full: bool = False) -> str:
+    pr = pull_request(data)
     out = [f"PR #{pr['number']}: {pr['title']} ({pr['state'].lower()})"]
     decision = (pr.get("reviewDecision") or "none").lower().replace("_", " ")
     out.append(f"Review decision: {decision}")
@@ -275,7 +294,7 @@ def summarize(data: dict, now: datetime, full: bool = False) -> str:
     out.append("")
     out.append(f"Unresolved threads: {len(listed)}")
     if pr["reviewThreads"]["pageInfo"].get("hasNextPage"):
-        out.append("Warning: the pull request has more than 100 review threads; only the first 100 were read.")
+        out.append("Warning: the response has more review threads than it holds; only those it holds were read.")
     for number, thread in enumerate(listed, 1):
         comments = thread["comments"]["nodes"]
         first = comments[0] if comments else {"body": ""}
@@ -312,19 +331,34 @@ def run_gh(args: list[str]) -> str:
     return result.stdout
 
 
+def fetch_page(owner: str, name: str, number: int, after: str | None) -> dict:
+    args = ["api", "graphql", "-F", f"owner={owner}", "-F", f"name={name}", "-F", f"number={number}"]
+    if after is not None:
+        args += ["-f", f"after={after}"]
+    output = run_gh([*args, "-f", f"query={QUERY}"])
+    try:
+        data = json.loads(output)
+    except json.JSONDecodeError as error:
+        raise Failure(f"gh api graphql did not return JSON: {error}") from None
+    pull_request(data)
+    return data
+
+
 def fetch(repo: str, number: int) -> dict:
+    """Fetch the pull request, with every page of its review threads joined into the first response."""
     owner, _, name = repo.partition("/")
     if not owner or not name:
         raise Failure(f"--repo must be OWNER/NAME, not {repo!r}")
-    output = run_gh([
-        "api", "graphql",
-        "-F", f"owner={owner}", "-F", f"name={name}", "-F", f"number={number}",
-        "-f", f"query={QUERY}",
-    ])
-    try:
-        return json.loads(output)
-    except json.JSONDecodeError as error:
-        raise Failure(f"gh api graphql did not return JSON: {error}") from None
+    data = fetch_page(owner, name, number, None)
+    threads = data["data"]["repository"]["pullRequest"]["reviewThreads"]
+    while threads["pageInfo"].get("hasNextPage"):
+        cursor = threads["pageInfo"].get("endCursor")
+        if not cursor:
+            raise Failure("gh api graphql said there are more review threads but gave no cursor to read them")
+        page = fetch_page(owner, name, number, cursor)["data"]["repository"]["pullRequest"]["reviewThreads"]
+        threads["nodes"].extend(page["nodes"])
+        threads["pageInfo"] = page["pageInfo"]
+    return data
 
 
 def check_now(value: str) -> datetime:

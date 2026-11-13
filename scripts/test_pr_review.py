@@ -18,6 +18,8 @@ SCRIPT = Path(__file__).with_name("pr_review.py")
 TESTDATA = Path(__file__).with_name("testdata")
 REVIEW = TESTDATA / "review.json"
 RATE_LIMITED_REPLY = TESTDATA / "rate-limited-reply.json"
+THREADS_PAGE_1 = TESTDATA / "threads-page-1.json"
+THREADS_PAGE_2 = TESTDATA / "threads-page-2.json"
 
 sys.path.insert(0, str(SCRIPT.parent))
 import pr_review  # noqa: E402
@@ -128,13 +130,32 @@ class SummaryTest(unittest.TestCase):
     def test_warns_when_not_every_thread_was_read(self):
         data = load(REVIEW)
         data["data"]["repository"]["pullRequest"]["reviewThreads"]["pageInfo"]["hasNextPage"] = True
-        self.assertIn("only the first 100 were read", pr_review.summarize(data, BEFORE_THE_WAIT_ENDS))
+        self.assertIn("only those it holds were read", pr_review.summarize(data, BEFORE_THE_WAIT_ENDS))
 
     def test_reports_errors_in_the_response(self):
         data = {"data": {"repository": {"pullRequest": None}},
                 "errors": [{"message": "Could not resolve to a PullRequest with the number of 999."}]}
         with self.assertRaisesRegex(pr_review.Failure, "number of 999"):
             pr_review.summarize(data, BEFORE_THE_WAIT_ENDS)
+
+    def test_reports_errors_even_when_the_pull_request_is_there(self):
+        data = load(REVIEW)
+        data["data"]["repository"]["pullRequest"]["reviewThreads"] = None
+        data["errors"] = [{"message": "Something went wrong while executing your query."}]
+        with self.assertRaisesRegex(pr_review.Failure, "the response has errors: Something went wrong"):
+            pr_review.summarize(data, BEFORE_THE_WAIT_ENDS)
+
+    def test_reports_a_missing_part_of_the_pull_request(self):
+        data = load(REVIEW)
+        data["data"]["repository"]["pullRequest"]["reviewThreads"] = None
+        with self.assertRaisesRegex(pr_review.Failure, "no reviewThreads"):
+            pr_review.summarize(data, BEFORE_THE_WAIT_ENDS)
+
+    def test_shows_one_line_when_the_start_line_is_after_the_end_line(self):
+        # After a push, GitHub can give a thread a startLine after its line.
+        thread = {"isOutdated": False, "line": 88, "startLine": 89, "originalLine": 88, "originalStartLine": None}
+        self.assertEqual(pr_review.lines_of(thread), ":88")
+        self.assertEqual(pr_review.lines_of({**thread, "startLine": 86}), ":86-88")
 
 
 class CleanTest(unittest.TestCase):
@@ -144,6 +165,13 @@ class CleanTest(unittest.TestCase):
 
     def test_removes_an_unclosed_details_block_to_the_end(self):
         self.assertEqual(pr_review.clean("a\n<details>\nb\n"), ["a"])
+
+    def test_removes_a_diff_closed_by_a_longer_fence(self):
+        self.assertEqual(pr_review.clean("a\n```diff\n-old\n+new\n`````\nb\n"), ["a", "b"])
+
+    def test_does_not_close_a_fence_with_a_shorter_one_or_the_other_character(self):
+        text = "a\n````diff\n-old\n```\n~~~~\n+new\n````\nb\n"
+        self.assertEqual(pr_review.clean(text), ["a", "b"])
 
     def test_keeps_code_blocks_that_are_not_diffs(self):
         self.assertEqual(pr_review.clean("Run:\n```sh\nmake test\n```\n"), ["Run:", "make test"])
@@ -155,14 +183,18 @@ class CommandTest(unittest.TestCase):
             [sys.executable, str(SCRIPT), *args], capture_output=True, text=True, check=False, env=env,
         )
 
-    def fake_gh(self, directory: Path, response: Path | None, exit_code: int = 0) -> dict:
-        """Put a stand-in for gh first on PATH. It logs its arguments and prints the saved response."""
+    def fake_gh(self, directory: Path, response: Path | None, exit_code: int = 0, next_page: Path | None = None) -> dict:
+        """Put a stand-in for gh first on PATH. It logs its arguments and prints the saved response.
+
+        With next_page, it prints that response instead when asked for the page after "cursor-1".
+        """
         log = directory / "gh.log"
         gh = directory / "gh"
         gh.write_text(
             "#!/bin/sh\n"
             f'printf "%s\\n" "$*" >> "{log}"\n'
             'if [ "$1" = repo ]; then echo optiflowic/keyturn; exit 0; fi\n'
+            + (f'case "$*" in *"after=cursor-1"*) cat "{next_page}"; exit 0;; esac\n' if next_page else "")
             + (f'cat "{response}"\n' if response else 'echo "HTTP 502" >&2\n')
             + f"exit {exit_code}\n",
             encoding="utf-8",
@@ -182,7 +214,25 @@ class CommandTest(unittest.TestCase):
         self.assertEqual((result.returncode, result.stdout), (0, EXPECTED), result.stderr)
         self.assertTrue(calls.startswith("repo view --json nameWithOwner"))
         self.assertIn("api graphql -F owner=optiflowic -F name=keyturn -F number=42 -f query=", calls)
-        self.assertIn("reviewThreads(first: 100)", calls)
+        self.assertIn("reviewThreads(first: 100, after: $after)", calls)
+        self.assertNotIn("after=", calls)
+
+    def test_reads_every_page_of_review_threads(self):
+        with tempfile.TemporaryDirectory() as directory:
+            env = self.fake_gh(Path(directory), THREADS_PAGE_1, next_page=THREADS_PAGE_2)
+            result = self.run_script("300", "--repo", "optiflowic/keyturn", env=env)
+            calls = (Path(directory) / "gh.log").read_text(encoding="utf-8")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Unresolved threads: 1\n\n1. b.py:2 by coderabbitai\n   Open point on the second page.\n", result.stdout)
+        self.assertNotIn("Resolved point", result.stdout)
+        self.assertNotIn("Warning", result.stdout)
+        self.assertEqual(calls.count("api graphql"), 2)
+        self.assertIn("-f after=cursor-1", calls)
+
+    def test_warns_when_a_saved_response_has_more_pages(self):
+        result = self.run_script("--input", str(THREADS_PAGE_1))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Warning: the response has more review threads than it holds", result.stdout)
 
     def test_uses_the_given_repository(self):
         with tempfile.TemporaryDirectory() as directory:
