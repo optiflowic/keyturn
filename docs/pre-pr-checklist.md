@@ -21,6 +21,7 @@ What the review before a pull request checks ([ADR 0019](adr/0019-pre-pull-reque
 - [ ] If the work stops after any step and is started again, nothing is recorded twice, nothing is lost, and every check the skill runs still passes on what was already recorded, such as a decision the client has since agreed to ([Resuming Work](DESIGN.md#resuming-work)).
 - [ ] Every way an answer can come in (for example, an answer to a card that stands for agreeing to a decision) moves each status it affects, and none is left waiting.
 - [ ] The skill says what to do when an input is missing ([Roles are usable on their own](DESIGN.md#roles-are-usable-on-their-own)), and when the repository is in a state it did not create, such as another branch or files committed before keyturn.
+- [ ] A skill that works on a Git range reads the code and the documents it judges the code by at the same commit, never from a checkout at another commit, and runs scripts that read the working tree only from a checkout of that commit.
 - [ ] The client's words that change what will be built are not committed or recorded before their English is confirmed ([ADR 0013](adr/0013-confirming-translations-into-english.md)).
 - [ ] Every skill, script, or file the skill relies on exists on `main` or in this pull request.
 - [ ] The skill allows nothing that the [Guardrails](DESIGN.md#guardrails) forbid or make wait for the client: what always needs the client's approval, even when a document lists it, and what fails the gate (such as a drop in the number of tests).
