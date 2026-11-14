@@ -96,6 +96,7 @@ Sign-up, sign-in, and task list pages. Task titles are rendered as React text, n
 | `vitest` | pinned in `web/package.json` | profile tool (`react-spa`) | unit tests for the web client | R-1 to R-9 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), MIT |
 | `@playwright/test` | pinned in `web/package.json` | profile tool (`react-spa`) | browser tests of the whole app | R-1 to R-9 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), Apache-2.0 |
 | `@eslint/js`, `typescript-eslint` | pinned in `web/package.json` | profile tool (`react-spa`) | ESLint's recommended rules and its rules for TypeScript | R-1 to R-9 | yes | exist, maintained, no OSV entries for this version (checked 2026-11-08), MIT |
+| `typescript` | pinned in `web/package.json` | profile tool (`react-spa`) | type checks the web client's code; a peer dependency of `typescript-eslint` | R-1 to R-9 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), Apache-2.0 |
 | `prettier` | pinned in `web/package.json` | profile tool (`react-spa`) | formats the web client's code | R-1 to R-9 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), MIT |
 | `golangci-lint` | pinned in `api/go.mod` (`tool` directive) | profile tool (`go`) | lints the API's code | R-1 to R-9 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), GPL-3.0, used only as a tool, never linked into the app |
 
@@ -116,6 +117,13 @@ No external services.
 | `web/src/**`, `web/index.html` | pages and components | R-1 to R-6, R-8, R-9 |
 | `web/package.json`, `web/package-lock.json` | the npm dependencies listed above only: those approved in ADR 0004 and the `react-spa` profile's development tools | R-1 to R-9 |
 | `web/vite.config.ts` | the development server's proxy to the API only (added in delivery 1, see the delivery report) | R-1 to R-9 |
+
+## QA's tests
+
+| Path | What is tested there |
+|---|---|
+| `api/qa/**` | the API, through its HTTP interface only |
+| `web/e2e/**` | the pages in a browser, against the built web client and the API |
 
 ## Requirements coverage
 

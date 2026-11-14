@@ -1,0 +1,33 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "number": 7,
+        "title": "docs: fix a typo",
+        "state": "MERGED",
+        "reviewDecision": null,
+        "latestReviews": {
+          "nodes": []
+        },
+        "reviewThreads": {
+          "pageInfo": {
+            "hasNextPage": false
+          },
+          "nodes": []
+        },
+        "comments": {
+          "nodes": [
+            {
+              "author": {
+                "login": "coderabbitai"
+              },
+              "body": "<!-- coderabbit-ai-generated:v1 -->\n\n<!-- This is an auto-generated reply by CodeRabbit -->\n<details>\n<summary>Action not completed</summary>\n<dl>\n<dd>\n<br>\n\nReview rate limited.\n\n</dd>\n</dl>\n</details>\n",
+              "createdAt": "2026-11-12T07:00:00Z",
+              "updatedAt": "2026-11-12T07:00:05Z"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
