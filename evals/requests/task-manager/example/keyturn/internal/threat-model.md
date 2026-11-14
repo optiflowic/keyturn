@@ -1,6 +1,6 @@
 # Threat model: task manager
 
-Based on requirements version 1 and the design document: [design.md](design.md).
+Based on requirements version 2 and the design document: [design.md](design.md).
 
 ## Summary
 
@@ -19,12 +19,18 @@ The most serious threat is one user reaching another user's tasks (T-1).
 
 | Entry point | Who can reach it | Input it accepts |
 |---|---|---|
-| `POST /api/signup`, `POST /api/signin` | anyone | email, password |
+| `POST /api/signup`, `POST /api/signin` | anyone | username, password |
 | `/api/tasks` and `/api/tasks/{id}` | signed-in users | task ID in the path; title, due date, done |
 | `POST /api/signout` | signed-in users | none |
 | Web pages | anyone | none (static files) |
 
 ## Threats
+
+Entry points that can reveal whether an account exists were each considered, and are public by requirement: usernames are public on purpose (R-1 and the "Misuse" section of the requirements), and the app keeps no email address, so no private identifier can be tested.
+
+- Sign-up (`POST /api/signup`) says that a username is taken.
+- Sign-in (`POST /api/signin`) and its errors.
+- The block after 5 wrong passwords (R-8) shows that a username is an account.
 
 ### T-1: A user reaches another user's task by changing the ID
 
@@ -110,11 +116,11 @@ The most serious threat is one user reaching another user's tasks (T-1).
 - Status: verified: [security review threat model check](security-review.md)
 - Remaining risk: accepted on 2026-11-08: [decision card 2](../client/decision-card-2.md)
 
-**Threat**: Someone who knows another person's email address types 5 wrong passwords, again and again, so the owner cannot sign in.
+**Threat**: Someone who knows another person's username types 5 wrong passwords, again and again, so the owner cannot sign in.
 
 **Mitigation**: The block stops only new sign-ins, for 15 minutes; sessions already signed in keep working, so the owner stays signed in on their own devices (7-day sessions, ADR 0003). The block is shown with the time it ends (R-8).
 
-**What is left**: Blocking again and again is not prevented, so the owner cannot sign in on a new device or after signing out while someone keeps doing it. An owner with no active session is locked out at once. Sessions end 7 days after sign-in, not 7 days after the blocking starts (ADR 0003), so an existing session can end soon after, and the owner then has no access until the blocking stops. Severity stays low: it lets no one in, exposes and loses no data, access comes back when the blocking stops, and the attacker must know the email address and repeat the block every 15 minutes. Preventing it would change R-8, and blocking by network address instead would weaken the account-wide limit against T-3, so it would need a looser account-wide limit as well. The client accepted this risk on decision card 2, which offered that change. It is listed under "Remaining risks" in the delivery report.
+**What is left**: Blocking again and again is not prevented, so the owner cannot sign in on a new device or after signing out while someone keeps doing it. An owner with no active session is locked out at once. Sessions end 7 days after sign-in, not 7 days after the blocking starts (ADR 0003), so an existing session can end soon after, and the owner then has no access until the blocking stops. Severity stays low: it lets no one in, exposes and loses no data, access comes back when the blocking stops, and the attacker must know a username, which is not secret because usernames are public (R-1), so it needs no guessing, and repeat the block every 15 minutes. Preventing it would change R-8, and blocking by network address instead would weaken the account-wide limit against T-3, so it would need a looser account-wide limit as well. The client accepted this risk on decision card 2, which offered that change. It is listed under "Remaining risks" in the delivery report.
 
 **How it is verified**: QA API test that a signed-in session keeps working while the account is blocked (`TestSessionWorksWhileBlocked`).
 

@@ -1,6 +1,6 @@
 # Acceptance guide: task manager, delivery 1
 
-Based on requirements version 1. Delivery report: [delivery-report.md](delivery-report.md).
+Based on requirements version 2. Delivery report: [delivery-report.md](delivery-report.md).
 
 ## Summary
 
@@ -16,7 +16,7 @@ There are 5 "Must check" items and no optional ones. The check takes about 20 mi
 
 1. Start the app on your computer by following "Try it on your computer" in the project's README. It takes one command.
 2. Open `http://localhost:8080` in your web browser.
-3. Have four different email addresses ready, one for each test account below. They do not need to be real: no email is sent.
+3. Have four different usernames ready, one for each test account below.
 
 ## Must check
 
@@ -27,10 +27,10 @@ There are 5 "Must check" items and no optional ones. The check takes about 20 mi
 
 Steps:
 
-1. Sign up with your first email address, and add a task called "Private task".
+1. Sign up with your first username, and add a task called "Private task".
 2. Click the task, and copy the address shown in the browser's address bar.
 3. Sign out.
-4. Sign up with your second email address.
+4. Sign up with your second username.
 5. Look at the task list.
 6. Paste the copied address into the address bar and open it.
 
@@ -44,7 +44,7 @@ Expected result: in step 5 the list is empty: "Private task" is not there. In st
 Steps:
 
 1. Sign out.
-2. Sign in with your first email address and a wrong password. Do this 5 times.
+2. Sign in with your first username and a wrong password. Do this 5 times.
 3. Sign in with the right password.
 
 Expected result: in step 3 you are not signed in, and the page says when you can try again, 15 minutes after the fifth wrong password.
@@ -56,10 +56,10 @@ Expected result: in step 3 you are not signed in, and the page says when you can
 
 Steps:
 
-1. Sign up with your third email address and a password of 12 or more characters.
+1. Sign up with your third username and a password of 12 or more characters.
 2. Sign out.
 3. Open `http://localhost:8080/tasks`.
-4. Sign in with the same email address and password.
+4. Sign in with the same username and password.
 
 Expected result: in step 3 you see the sign-in page, not a task list. After step 4 you see your task list.
 
@@ -82,7 +82,7 @@ Expected result: the task appears in your list with the title `<b>Buy milk</b>`,
 
 Steps:
 
-1. Sign out, and sign up with your fourth email address and the 11-character password `abcdefghijk`.
+1. Sign out, and sign up with your fourth username and the 11-character password `abcdefghijk`.
 
 Expected result: no account is created, and the page says the password must be at least 12 characters long.
 
