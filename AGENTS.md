@@ -85,6 +85,9 @@ This is the only committed instructions file. If your tool reads a different fil
 - While you wait, work on another issue that can be worked on. Do not rely on a timer or a scheduled wake-up to come back: the session may not run while the maintainer is not talking to it.
 - If no other issue can be worked on, report when the review can be requested again, and stop.
 - If there is still no review, stop and report to the maintainer. The maintainer decides whether to merge a pull request without a review.
+- Ask CodeRabbit for one pull request at a time, in the order the maintainer gives, and never have two pull requests waiting for it at once. Move to the next pull request only when nothing more is to be asked of CodeRabbit on the current one:
+  - for a pull request that adds or changes an ADR, when CodeRabbit approves it;
+  - for any other pull request, when its first review has been handled: the fixes are pushed, each thread has a reply, and points that need a decision are reported to the maintainer.
 
 ## Commits
 
