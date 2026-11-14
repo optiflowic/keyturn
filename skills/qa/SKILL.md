@@ -20,7 +20,7 @@ Everything this skill needs is in this file, the template it names, and the scri
 ## Inputs
 
 - `keyturn/client/requirements.md` and `keyturn/client/approvals.md`: the approved requirements and the record of their approval.
-- `keyturn/config.json`: read with the `project-config` skill, only to check the approval (step 1). The test report is always in English.
+- `keyturn/config.json`: read with the `project-config` skill, only to check the approval (step 1).
 - The "How to run" section of `keyturn/internal/handoff.md`, and only that section: how to build, start, and test the deliverable, test accounts, and sample data.
 - From `keyturn/internal/design.md`: "QA's tests" (where tests go), "Libraries and external services" (which test tools are approved), "Stack", and the interfaces the design describes (the routes, pages, commands, or exported names in "Structure"). These say how to reach the deliverable, not what to test.
 - The ADRs in `keyturn/internal/adr/` that the "Libraries and external services" rows of test tools link to, to see whether the client agreed to them (step 4).
@@ -33,7 +33,7 @@ Everything this skill needs is in this file, the template it names, and the scri
 All committed on the current branch (with `deliver`, that is the task's branch), in one commit. This skill does not create or switch branches, and does not push.
 
 - Tests, only in the folders listed under "QA's tests" in `design.md`.
-- `keyturn/internal/test-report.md`, in English.
+- `keyturn/internal/test-report.md`, always in English.
 
 ## Procedure
 
@@ -79,7 +79,7 @@ A test tool is a dependency (ADR 0015 in keyturn's `docs/adr/`). Use only:
   - kind `profile tool`: approved by the stack profile;
   - kind `other tool`: only when the client agreed to it, that is, when the ADR its row links to is `accepted`.
 
-Use the kind the design gives; do not decide it again. The architect decides each tool's kind when writing the design, and the client agrees to it there, so a `profile tool` row is approved even if you cannot see the profile.
+Use the kind the design gives; do not decide it again. The architect decides each tool's kind when writing the design, and the client agrees to it there, so a `profile tool` row is approved even if you cannot see the profile. Until stack profiles exist (phase 4), no tool is approved by one (ADR 0015): treat a `profile tool` row as an `other tool`, so its ADR must be `accepted`, and report a row that links to none to the architect.
 
 If a criterion needs a tool that is not listed, not checked, or not agreed, do not add it, and do not use another one in its place. Mark the criteria that need it "not tested", with the tool and why, and report it to the architect in step 9. A tool that is approved but not installed in the project (for example, missing from its manifest) is reported to the developer the same way: the manifest is outside QA's folders.
 
@@ -94,13 +94,13 @@ For every acceptance criterion in scope, write one or more tests:
 
 ### 6. Run the tests
 
-1. Note the tested commit: `git rev-parse --short HEAD` and the branch, before anything of QA's is committed.
+1. Check that `git status --porcelain` shows nothing but QA's own uncommitted work (tests in QA's folders, the report) and that `HEAD` is on a branch, not detached. If anything else is uncommitted, stop and ask whoever runs QA to commit it: the tested commit must be what was tested. Then note the tested commit: `git rev-parse --short HEAD` and the branch, before anything of QA's is committed.
 2. Build and start the deliverable as "How to run" says. Keep the data it creates (a database file, uploads) outside the repository when "How to run" offers a way (for example, an option for the database path), so the run leaves nothing to clean up. If a step fails, stop: report the failing step and its output to the developer, write the report with every criterion "not tested" and the reason, and do not try to fix the build.
-3. Run QA's tests, and the existing tests as "How to run" says, so the counts cover every test the project runs. Read the results from the runners' output, not by reading test files.
+3. Run QA's tests, and the existing tests as "How to run" says, so the counts cover every test the project runs. Read the results from the runners' output, not by reading test files. If a runner does not name its skipped or disabled tests, write "not reported by the runner" for which; never open the developer's tests to find out.
 4. For a failing QA test, check the test against the wording of the acceptance criterion, never against the code. If the test does not match the criterion, fix the test and run it again. If it matches, the failure stands. Never loosen an expected result, skip, or disable a test to make it pass.
 5. If a test passes on one run and fails on another, it counts as failed: say under "Failures" how many runs of how many passed.
 
-A criterion's result is `pass` when tests ran for the whole of its expected result and all passed, `fail` when any failed, `partly tested` when tests ran and passed for only part of its expected result (say which part was not tested, under "Untested areas"), and `not tested` when it has no test that ran. A Must requirement's criterion that is `partly tested` is reported under "What was not verified" in the delivery report.
+A criterion's result is `pass` when tests ran for the whole of its expected result and all passed, `fail` when any failed, `partly tested` when tests ran and passed for only part of its expected result (say which part was not tested, under "Untested areas"), and `not tested` when it has no test that ran. Under "Untested areas", name the requirement a `partly tested` or `not tested` criterion covers and its priority, so that a Must requirement's gap reaches "What was not verified" in the delivery report.
 
 ### 7. Write the test report
 
@@ -111,7 +111,7 @@ Start from `templates/internal/test-report.md`, write `keyturn/internal/test-rep
 - **Results**: one row per acceptance criterion that is not removed, in order, with its "Covers", its result, and its tests (file and test names, all in QA's folders).
 - **Failures**: one heading per failed criterion: what the test does, what the criterion expects, and what happened. A failing test of the developer's is not a result of a criterion: say in "Summary" which one failed, from the runner's output.
 - **Untested areas**: every "not tested" criterion with its reason (not in this task, a missing interface, tool, or test environment, or something only a person can judge, which belongs in the client's acceptance guide), and behavior the criteria do not cover that a reader could assume was tested.
-- **Test counts**: the number of tests that ran, by runner (for example, "39 (32 Go, 7 browser)"); skipped or disabled tests, and which, from the runners' output; coverage when the runner measures it, and how (for example, across packages with `go test -coverpkg=./...`, because QA's Go tests are in a package of their own), or `not measured`.
+- **Test counts**: the number of tests that ran, the total first and then by runner in parentheses (for example, "39 (32 Go, 7 browser)"), because the gate reads the first number; skipped or disabled tests, and which, from the runners' output; coverage when the runner measures it, and how (for example, across packages with `go test -coverpkg=./...`, because QA's Go tests are in a package of their own), or `not measured`.
 
 ### 8. Check and commit
 
@@ -137,7 +137,7 @@ This skill does not write the task's state file.
 
 When the developer has fixed a failure, or the requirements have changed:
 
-- Read the existing report and QA's tests; keep them. Rerun every test, not only the ones that failed.
+- Read the existing report and the tests in QA's folders (both QA's own work, never the developer's); keep the tests. Read "How to run" again, since it may have changed. Rerun every test, not only the ones that failed.
 - If the approved version changed, add or change tests for the criteria that changed, and remove the tests of a criterion only when it is marked removed; say so in "Summary", because the test count drops.
 - Never change a test to match new behavior unless its acceptance criterion changed.
 - Write the report again from the template, with the new tested commit, and commit as in step 8.
