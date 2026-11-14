@@ -24,12 +24,13 @@ Paths below that start with `../../` are relative to the folder of this `SKILL.m
 - `keyturn/internal/threat-model.md`: the threats to check.
 - The change: a Git range `<base>..<head>` (step 1).
 - The gate's scan results: SAST, dependency scanning, and secret scanning. None exist until the gate arrives (phases 4 and 5 of keyturn); the report then says which scans did not run.
-- `keyturn/internal/design.md`: the data model (who owns and may reach each record), the libraries and external services with their kind and check, the areas the work may change, and QA's test folders.
+- `keyturn/internal/design.md`: the data model (who owns and may reach each record), the libraries and external services with their kind and check, and QA's test folders.
 - "How to run" in `keyturn/internal/handoff.md`, and only that section.
 - To check accepted risks and the public-accounts exception: `keyturn/client/requirements.md`, `keyturn/client/approvals.md`, the decision cards the threat model links to (`keyturn/client/decision-card-<n>.md`), and the design summary `keyturn/client/design-summary.md` for which dependencies the client agreed to.
 - QA's tests and `keyturn/internal/test-report.md`, as evidence only.
 - The project's ADRs in `keyturn/internal/adr/` that the design and the threat model link to (for example, how sessions and cookies work), and `keyturn/internal/conventions.md` for the forbidden patterns and suppression rules.
 - An earlier `keyturn/internal/security-review.md`, if there is one (a rerun).
+- The task's state file `keyturn/internal/state/<task>.md`, if there is one: which commit is QA's (step 3) and whether the design step is done ("When inputs are missing").
 - `../../templates/internal/review.md` in keyturn, not in the project. Follow every comment in it.
 
 ## Outputs
@@ -44,7 +45,7 @@ Committed on the current branch (with `deliver`, the task's branch). This skill 
 ### 1. Find the change
 
 - If whoever asked names the change (a range, a branch, or commits), use it. `deliver` names it: from the commit before the developer's work to the developer's latest commit.
-- Otherwise, `<head>` is `HEAD`, and `<base>` is `git merge-base HEAD <default branch>`, where the default branch is what `git symbolic-ref --short refs/remotes/origin/HEAD` names, or `main`. If `HEAD` is on the default branch, or the range is empty, ask what to review.
+- Otherwise, `<head>` is `HEAD`, and `<base>` is `git merge-base HEAD <default branch>`, where the default branch is what `git symbolic-ref --short refs/remotes/origin/HEAD` names, or else `main` if it exists; if neither gives one, ask what to review. If `HEAD` is on the default branch, or the range is empty, ask what to review.
 - Run `git status --porcelain`. Uncommitted changes are not part of the range: if there are any, say so, and ask whether they should be committed before the review.
 
 Read the change with `git diff --name-status <base>..<head>` and `git diff <base>..<head>`, never with `git log` messages. What is missing never shows in a diff: read every changed file in full, the entry points it adds or touches, and the code they call, up to where the data is read or written.
@@ -53,7 +54,9 @@ Read the change with `git diff --name-status <base>..<head>` and `git diff <base
 
 Read the threat model, the design, and "How to run". For each one that is missing, follow "When inputs are missing" below, and write it under "Missing inputs" in the report.
 
-From the design, keep at hand: who owns and may reach each record ("Data model"), the libraries and external services, "Areas the work may change", and "QA's tests".
+From the design, keep at hand: who owns and may reach each record ("Data model"), the libraries and external services, and "QA's tests". Whether changed paths stay inside "Areas the work may change" is the gate's check, not this role's.
+
+Check that `approvals.md` records the client's approval of the current `requirements.md`. If it does not, or the design or the threat model says it is not based on approved requirements, follow "When inputs are missing".
 
 ### 3. Look for what scanners miss
 
@@ -106,9 +109,9 @@ A remaining risk counts as accepted only when all of these hold. Check each one,
 3. **The client answered on a card.** The card linked in the threat model exists, its status is `answered` (or the same word in the language the card is written in), and "Your answer" has an answer and a date, filled in (not the template's text in angle brackets), that chooses accepting the risk.
 4. **The card was a real choice.** It offered mitigating the threat as one of the options.
 5. **It is the same risk.** The card described the risk that is left now, not a smaller one.
-6. **Nothing changed since the answer.** Find the first commit in which the card has its answer: list the card's commits, oldest first, with `git log --reverse --format=%h -- <card>`, and look at each with `git show <commit>:<card>`. Then run `git diff <commit> <head> -- keyturn/internal/threat-model.md keyturn/client/requirements.md`. The threat, its severity, and the requirement it comes from must be unchanged since then.
+6. **Nothing changed since the answer.** Find the first commit in which the card has its answer: list the card's commits, oldest first, with `git log --reverse --format=%h -- <card>`, and look at each with `git show <commit>:<card>`. Then run `git diff <commit> <head> -- keyturn/internal/threat-model.md keyturn/client/requirements.md`. The threat, its severity, and the requirement it comes from must be unchanged since then. Changes to a threat's "Status" and "Remaining risk" lines do not count: the security role and the architect write them after the answer.
 
-If any of them does not hold, the acceptance does not count: report a high finding, and say that a new card is needed (the architect writes it). A card that is still waiting is not an acceptance: the threat blocks delivery until the client answers or the threat is mitigated. Never offer, suggest, or recommend accepting a risk that may not be accepted.
+If any of them does not hold, the acceptance does not count: report a high finding, and say that a new card is needed (the architect writes it). The one exception is a card that is still waiting: it is not an acceptance, so report the high finding and say that the threat waits for the client's answer, but ask for no new card (ADR 0009 in keyturn's `docs/adr/`). The threat blocks delivery until the client answers or the threat is mitigated. Never offer, suggest, or recommend accepting a risk that may not be accepted.
 
 ### 7. Triage the scan results
 
@@ -128,7 +131,7 @@ Start from `../../templates/internal/review.md`, write `keyturn/internal/securit
 - **Summary**: the number of findings by severity, whether any blocks delivery, and what was not verified (scans that did not run, threats with no evidence, parts you could not run).
 - Keep the "Security" section; this report is the security role's.
 
-Update each threat's "Status" in the threat model (step 5). Commit the report and the threat model together.
+Update each threat's "Status" in the threat model (step 5). Commit the report and the threat model together, and only them (`git commit -- keyturn/internal/security-review.md keyturn/internal/threat-model.md`), so that uncommitted work of anyone else stays out of the commit.
 
 ### 9. Report
 
@@ -145,7 +148,7 @@ This skill does not write the task's state file, and does not send anything to t
 
 When the developer has fixed findings and the review runs again:
 
-- Read the earlier `keyturn/internal/security-review.md` first. Review the new range: from the same base to the new head.
+- Read the earlier `keyturn/internal/security-review.md` first, as committed: if the report or the threat model has uncommitted changes from a run that stopped before its commit, discard them and redo the review from step 1. Review the new range: from the same base to the new head. If the head has not moved since the last report, say so, and redo the checks without renumbering the findings.
 - Check each open finding again. Set it to `fixed` only when you have checked the fix; otherwise keep it `open`. Never change or reuse a finding's number; new findings get the next numbers.
 - Redo the threat model check and the scan triage in full: a fix can break another mitigation.
 
@@ -155,10 +158,10 @@ When the developer has fixed findings and the review runs again:
 - **No change** (an empty range): say there is nothing to review, and stop.
 - **No threat model**: if the task's state file shows the design step as done, stop and report it: the design must produce one. On its own, review the change for what scanners miss (step 3), write "No threat model: no threats to check." under "Threat model check", and say under "Missing inputs" that the threat model check was not done.
 - **No scan results**: step 7.
-- **No design**: the data model, the dependencies, the areas, and QA's folders cannot be compared. Judge who may reach each record from the requirements, or from the code if there are none, and say which you used. Report every dependency the change adds as one medium finding, "approval and check not confirmed: no design", and say that dependency scanning did not run either. Without QA's folders, protected-path changes to QA's tests cannot be told apart; say so.
+- **No design**: the data model, the dependencies, and QA's folders cannot be compared. Judge who may reach each record from the requirements, or from the code if there are none, and say which you used. Report every dependency the change adds as one high finding, "approval and check not confirmed: no design", since a dependency that is not approved and checked is high (step 4), and say that dependency scanning did not run either. Without QA's folders, protected-path changes to QA's tests cannot be told apart; say so.
 - **No handoff, or no "How to run"**: review the code without running it, and say that no manual check was made. Do not read the rest of the handoff to find out how to run it.
 - **No requirements**: treat accounts as not public, and say that the public-accounts exception could not be checked.
-- **Requirements, a design, or a threat model that is not approved, or says it is not based on approved requirements**: on its own, when the person declines to have requirements approved with `spec`, review the change anyway ("Roles are usable on their own" in keyturn's `docs/DESIGN.md`): treat accounts as not public, since the exception needs approved requirements, and say at the top of the report that it is not based on approved requirements. `deliver` never takes in a report that says so; running inside `deliver`, stop and ask for approved requirements.
+- **Requirements, a design, or a threat model that is not approved, or says it is not based on approved requirements**: on its own, ask the person whether requirements should be approved with `spec` first; when they decline, review the change anyway ("Roles are usable on their own" in keyturn's `docs/DESIGN.md`): treat accounts as not public, since the exception needs approved requirements, and say at the top of the report that it is not based on approved requirements. `deliver` never takes in a report that says so; running inside `deliver`, stop and ask for approved requirements.
 - **A decision card the threat model links to is missing**: the acceptance does not count (step 6).
 - **No template**: stop and report it; the report must follow keyturn's template.
 - **Run on its own** (without `deliver`): the same procedure applies. A person who wrote the code by hand gets the same review.
