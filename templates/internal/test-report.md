@@ -23,7 +23,7 @@ Otherwise delete the note.
 
 ## Summary
 
-<!-- About three lines: how many acceptance criteria pass, fail, or were not tested, and the most important failure. -->
+<!-- About three lines: how many acceptance criteria pass, fail, were partly tested, or were not tested, and the most important failure. -->
 
 <summary>
 
@@ -31,14 +31,14 @@ Otherwise delete the note.
 
 <!--
 One row per acceptance criterion that is not removed.
-- Result is pass, fail, or not tested. A "not tested" row is also listed under "Untested areas" with the reason.
+- Result is pass, fail, partly tested (tests ran and passed for only part of the expected result), or not tested. A "partly tested" or "not tested" row is also listed under "Untested areas" with what was not tested and why.
 - "Tests" says where the tests for the criterion are (files or test names). QA's tests are only in the folders listed under "QA's tests" in design.md.
 Without a specification, use one row per observed behavior instead, with a short name in place of the AC-n ID.
 -->
 
 | Criterion | Covers | Result | Tests |
 |---|---|---|---|
-| AC-<n> | R-<n> | <pass \| fail \| not tested> | `<test file or name>` |
+| AC-<n> | R-<n> | <pass \| fail \| partly tested \| not tested> | `<test file or name>` |
 
 ## Failures
 
@@ -64,6 +64,6 @@ Leave "None." only when every criterion was tested.
 
 <!-- Used by the gate to detect dropped tests or coverage (phase 4). Leave a value as "not measured" if the stack cannot measure it. -->
 
-- Tests: <number>
+- Tests: <number, then by runner in parentheses if more than one>
 - Skipped or disabled tests: <number, and which>
 - Coverage: <percentage | not measured>
