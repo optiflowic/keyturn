@@ -490,9 +490,12 @@ profiles/                 # stack profiles (one frontend + one backend first)
 templates/
   client/                 # requirements, design summary, acceptance guide, delivery report, decision card, approvals
   internal/               # design, decisions, handoff, test report, review, task state
-adapters/
+hooks/
+  hooks.json              # Claude Code plugin hooks (must be at the plugin root); thin, they call adapters/claude/scripts/
+adapters/                 # everything only one tool uses (ADR 0020)
   claude/                 # agents/*.md (listed in plugin.json), recommended permission settings
-  codex/                  # agents/*.toml, recommended sandbox settings
+    scripts/              # scripts only Claude Code uses (for example, the usage limits), with their tests
+  codex/                  # agents/*.toml, recommended sandbox settings, scripts/
 github/                   # workflow templates, labels, project setup
 evals/
   requests/               # evaluation requests
@@ -507,7 +510,7 @@ LICENSE                   # MIT
 .gitignore                # includes .keyturn/ (local translations and maintainer notes)
 ```
 
-In a Claude Code plugin, only the manifests go inside `.claude-plugin/`; `skills/`, `hooks/`, etc. must be at the plugin root. The repository root is the plugin root, so `skills/` is shared by Claude Code and Codex. See [ADR 0005](adr/0005-repository-root-as-plugin-root.md).
+In a Claude Code plugin, only the manifests go inside `.claude-plugin/`; `skills/`, `hooks/`, etc. must be at the plugin root. The repository root is the plugin root, so `skills/` is shared by Claude Code and Codex. See [ADR 0005](adr/0005-repository-root-as-plugin-root.md). A file a tool requires at the plugin root, such as `hooks/hooks.json`, stays thin and calls a script in `adapters/<tool>/scripts/` ([ADR 0020](adr/0020-tool-specific-files-in-adapters.md)).
 
 ## Evaluation
 
