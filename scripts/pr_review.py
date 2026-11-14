@@ -196,39 +196,54 @@ def parse_duration(text: str) -> timedelta | None:
     return timedelta(seconds=seconds) if found else None
 
 
+def wait_of(body: str) -> timedelta | None:
+    """The wait a rate limit comment asks for, or None if it gives none."""
+    for match in WAIT_LINE_RE.finditer(HTML_COMMENT_RE.sub("", body)):
+        wait = parse_duration(match.group(1) or match.group(2))
+        if wait is not None:
+            return wait
+    return None
+
+
+def describe_wait(posted: datetime, wait: timedelta, now: datetime) -> str:
+    until = posted + wait
+    # Round up to the minute, so that the time shown is never before the wait is over.
+    if until.second or until.microsecond:
+        until = until.replace(second=0, microsecond=0) + timedelta(minutes=1)
+    if until <= now:
+        return f"wait until {show_time(until)} (passed)"
+    minutes = -(-int((until - now).total_seconds()) // 60)
+    return f"wait until {show_time(until)} ({minutes} min from now)"
+
+
 def rate_limit(pr: dict, now: datetime) -> str:
-    """Describe CodeRabbit's latest rate limit comment, or say there is none."""
-    latest = None
+    """Describe CodeRabbit's latest rate limit comment, or say there is none.
+
+    A "Review rate limited." reply gives no wait time. When the latest comment gives none, the wait is read from
+    the latest one that does, which is usually the summary comment CodeRabbit edits on each limit.
+    """
+    notices = []
     for comment in pr["comments"]["nodes"]:
         body = comment.get("body") or ""
         if not is_coderabbit(comment):
             continue
         if RATE_LIMIT_MARKER not in body and RATE_LIMITED_REPLY not in body:
             continue
-        posted = parse_github_time(comment.get("updatedAt") or comment["createdAt"])
-        if latest is None or posted > latest[0]:
-            latest = (posted, body)
-    if latest is None:
+        notices.append((parse_github_time(comment.get("updatedAt") or comment["createdAt"]), wait_of(body)))
+    if not notices:
         return "none"
-    posted, body = latest
+    notices.sort(key=lambda notice: notice[0])
+    posted, wait = notices[-1]
     text = f"posted {show_time(posted)}"
-    wait = None
-    for match in WAIT_LINE_RE.finditer(HTML_COMMENT_RE.sub("", body)):
-        wait = parse_duration(match.group(1) or match.group(2))
-        if wait is not None:
-            break
-    if wait is None:
-        text += ", no wait time given"
+    if wait is not None:
+        text += ", " + describe_wait(posted, wait, now)
     else:
-        until = posted + wait
-        # Round up to the minute, so that the time shown is never before the wait is over.
-        if until.second or until.microsecond:
-            until = until.replace(second=0, microsecond=0) + timedelta(minutes=1)
-        if until <= now:
-            text += f", wait until {show_time(until)} (passed)"
-        else:
-            minutes = -(-int((until - now).total_seconds()) // 60)
-            text += f", wait until {show_time(until)} ({minutes} min from now)"
+        text += ", no wait time given"
+        timed = [notice for notice in notices if notice[1] is not None]
+        if timed:
+            timed_posted, timed_wait = timed[-1]
+            text += f"; the last one that gave one, posted {show_time(timed_posted)}, said to "
+            text += describe_wait(timed_posted, timed_wait, now)
     reviewed_after = [
         review for review in pr["latestReviews"]["nodes"]
         if is_coderabbit(review) and review.get("submittedAt") and parse_github_time(review["submittedAt"]) > posted

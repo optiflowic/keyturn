@@ -103,6 +103,18 @@ class SummaryTest(unittest.TestCase):
         self.assertIn("CodeRabbit rate limit: posted 2026-11-12T07:00Z, no wait time given\n", text)
         self.assertTrue(text.endswith("Unresolved threads: 0\n"))
 
+    def test_reads_the_wait_from_an_earlier_comment_when_the_latest_reply_gives_none(self):
+        # An `@coderabbitai review` that hits the limit: the summary comment gives the wait, and the reply after it
+        # says only "Review rate limited."
+        data = load(REVIEW)
+        comments = data["data"]["repository"]["pullRequest"]["comments"]["nodes"]
+        comments[0]["createdAt"] = comments[0]["updatedAt"] = "2026-11-12T10:21:00Z"
+        self.assertIn(
+            "CodeRabbit rate limit: posted 2026-11-12T10:21Z, no wait time given; the last one that gave one, "
+            "posted 2026-11-12T10:20Z, said to wait until 2026-11-12T11:04Z (34 min from now)\n",
+            pr_review.summarize(data, BEFORE_THE_WAIT_ENDS),
+        )
+
     def test_ignores_rate_limit_text_from_other_authors(self):
         data = load(REVIEW)
         pr = data["data"]["repository"]["pullRequest"]
