@@ -11,7 +11,7 @@
 
 ## Small Fixes Included
 
-<!-- Small fixes this PR carries besides its issue (see "Small fixes" in AGENTS.md), one line each: what was wrong and the fix. -->
+<!-- Small fixes this PR carries (see "Small fixes" in AGENTS.md), one line each: what was wrong and the fix. A batch of small fixes lists every fix, even when one issue covers the batch. -->
 <!-- Write "None" if there are none. -->
 
 ## How It Was Verified

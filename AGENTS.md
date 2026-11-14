@@ -73,7 +73,7 @@ This is the only committed instructions file. If your tool reads a different fil
 - These are not small fixes, however short the change: anything that changes how a skill behaves, the structure of a template, or an accepted decision (an ADR, or a rule in `docs/DESIGN.md` or this file). They get an issue and a pull request of their own.
 - Put a small fix into the next pull request that touches the same area (the same skill, template, document, or script). List it in that pull request's body under "Small Fixes Included", one line each: what was wrong and the fix.
 - If no related pull request is coming, collect small fixes and open one pull request for all of them, with one issue for the batch or none. List each fix under "Small Fixes Included" in the same way.
-- A small fix still follows the plugin version bump rule in "Where things live": if it changes a skill, a script a skill runs, or a file a skill reads, the pull request that carries it bumps `version`. A batched pull request bumps it once.
+- A small fix still follows the plugin version bump rule in "Where things live": if it changes a skill, a script a skill runs, or a file a skill reads, the pull request that carries it bumps `version`. A batched pull request bumps it once. The exception there for the phase 3 skills not yet released applies to small fixes too: a small fix to one of those skills does not bump `version`.
 
 ## Review comments
 
