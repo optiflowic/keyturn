@@ -18,7 +18,8 @@ What the review before a pull request checks ([ADR 0019](adr/0019-pre-pull-reque
 
 ## Skills: `skills/**/SKILL.md`
 
-- [ ] If the work stops after any step and is started again, nothing is recorded twice and nothing is lost ([Resuming Work](DESIGN.md#resuming-work)).
+- [ ] If the work stops after any step and is started again, nothing is recorded twice, nothing is lost, and every check the skill runs still passes on what was already recorded, such as a decision the client has since agreed to ([Resuming Work](DESIGN.md#resuming-work)).
+- [ ] Every way an answer can come in (for example, an answer to a card that stands for agreeing to a decision) moves each status it affects, and none is left waiting.
 - [ ] The skill says what to do when an input is missing ([Roles are usable on their own](DESIGN.md#roles-are-usable-on-their-own)), and when the repository is in a state it did not create, such as another branch or files committed before keyturn.
 - [ ] The client's words that change what will be built are not committed or recorded before their English is confirmed ([ADR 0013](adr/0013-confirming-translations-into-english.md)).
 - [ ] Every skill, script, or file the skill relies on exists on `main` or in this pull request.
