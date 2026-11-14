@@ -15,7 +15,7 @@ Template: review findings (internal). Filled in by the reviewer, or by the secur
 - Compared against: <the documents used, with links: design.md, conventions.md, threat-model.md, ADRs>
 
 <!--
-List any input document that was missing and what the review did instead,
+List any input document that was missing, or scan that did not run, and what the review did instead,
 for example: "No design document: reviewed the diff for readability and conventions only."
 Delete the line below when nothing was missing.
 -->
@@ -79,7 +79,10 @@ A card that is still waiting does not count as accepted.
 One row per finding from the gate's scans (SAST, dependency, secret scanning).
 - Triage is real or false positive. Only the security role may mark a false positive, and the reason is required.
 - A real finding is also listed under "Findings" above, with its severity.
-Leave "No scan findings." when there are none.
+Leave "No scan findings." only when the scans ran and found nothing.
+When a scan did not run (for example, before the project has a gate), write which scans did not run and why instead,
+such as "SAST, dependency scanning, and secret scanning did not run: the project has no gate yet.", and list them under "Missing inputs" too.
+In either case, delete the table. If only some scans ran, keep a row for each of their findings and name the scans that did not run.
 -->
 
 | Tool | Finding | Location | Triage | Reason |
