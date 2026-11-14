@@ -26,7 +26,7 @@ Template: handoff notes (internal). Filled in by the developer when handing work
 <!--
 The changes, grouped by part of the design, with the requirements each serves.
 Every changed path must be inside "Areas the work may change" in the design. This file, the developer's own output, is the one exception.
-A change outside the areas is not made: the developer stops before it and asks for the design to be updated first, and says here what is waiting for that.
+A change outside the areas is not made: the developer stops before it and asks for the design to be updated first, and lists that part under "What is left" (the question also goes under "Notes for the next role").
 -->
 
 - <part>: <what changed> (R-<n>)
