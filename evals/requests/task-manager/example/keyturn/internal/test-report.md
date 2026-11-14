@@ -28,7 +28,7 @@ None.
 
 ## Untested areas
 
-- AC-5, AC-6, AC-8: not in delivery 1 (planned for delivery 2).
+- AC-5 (R-5, Must), AC-6 (R-6, Must), AC-8 (R-9, Nice): not in delivery 1 (planned for delivery 2).
 - The look of the pages on phones: not covered by any acceptance criterion.
 - The `Secure` cookie over HTTPS: the tests run on `localhost` without HTTPS. The client sets up HTTPS on their server.
 
