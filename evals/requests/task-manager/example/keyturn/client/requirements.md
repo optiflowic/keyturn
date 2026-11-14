@@ -24,13 +24,13 @@ You want a simple to-do list for yourself and a few friends. You will run it on 
 
 Priority: Must
 
-A person creates an account with an email address and a password. The password must be at least 12 characters long. One email address can have only one account.
+A person creates an account with a username they choose and a password. The password must be at least 12 characters long. One username can have only one account: if a username is taken, the sign-up page says so, and the person chooses another. Usernames are not secret: anyone can find out whether a username is taken. The app asks for no email address.
 
 ### R-2: Sign in and sign out
 
 Priority: Must
 
-A person signs in with their email address and password, and signs out. Someone who is not signed in sees only the sign-in and sign-up pages.
+A person signs in with their username and password, and signs out. Someone who is not signed in sees only the sign-in and sign-up pages.
 
 ### R-3: Add a task
 
@@ -79,7 +79,7 @@ A signed-in person can choose to hide the tasks that are done, and show them aga
 ### AC-1: An account works from sign-up to sign-in
 
 - Covers: R-1, R-2
-- When: you sign up with a new email address and a password of 12 or more characters, sign out, and sign in again with the same email address and password
+- When: you sign up with a new username and a password of 12 or more characters, sign out, and sign in again with the same username and password
 - Expected result: after signing in, you see your task list. After signing out, opening the task list page shows the sign-in page instead.
 
 ### AC-2: A short password is refused
@@ -130,12 +130,13 @@ A signed-in person can choose to hide the tasks that are done, and show them aga
 - Someone who is not signed in opens the task list or a task link: prevented by R-2 and R-7
 - Someone guesses a password by trying many passwords: prevented by R-1 (long passwords) and R-8
 - Someone puts code in a task title so that it runs in another person's browser: prevented by R-3 (titles are shown as plain text) and R-7 (other people never see your titles)
+- Someone finds out whether a username has an account, from the sign-up page, the sign-in page, or the block after wrong passwords: not a problem, because usernames are public on purpose (R-1)
 
 ## Out of scope
 
 - Resetting a forgotten password
 - Sharing tasks with other people
-- Checking that an email address is real (no confirmation email is sent)
+- Email addresses: the app keeps none and sends no email
 - A phone app
 - Setting up the server, the domain, or backups (you run it yourself)
 
@@ -144,3 +145,4 @@ A signed-in person can choose to hide the tasks that are done, and show them aga
 | Version | Date | Change |
 |---|---|---|
 | 1 | 2026-11-08 | First version |
+| 2 | 2026-11-08 | R-1, R-2, AC-1: sign up and sign in with a username instead of an email address, so that the app keeps no email address; Misuse and Out of scope updated to match. The PM proposed it. |

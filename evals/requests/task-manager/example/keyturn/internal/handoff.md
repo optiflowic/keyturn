@@ -2,7 +2,7 @@
 
 - From: developer
 - To: QA, security, reviewer
-- Based on requirements version 1 and the design document: [design.md](design.md)
+- Based on requirements version 2 and the design document: [design.md](design.md)
 - Branch and commit: `task/delivery-1` at `4e1c9a7`
 
 ## Summary

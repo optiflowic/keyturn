@@ -1,6 +1,6 @@
 # Test report: delivery 1
 
-- Specification: requirements version 1
+- Specification: requirements version 2
 - Tested commit: `task/delivery-1` at `9b02d4f`
 - Date: 2026-11-08
 

@@ -1,6 +1,6 @@
 # Worked example: task manager
 
-Every keyturn template, filled in by hand for [the task manager request](../request.md), as the roles would fill them in. Later skills and evaluations can compare their output with it.
+Every keyturn template, filled in by hand for [the task manager request](../request.md), as the roles would fill them in. Later skills and evaluations can compare their output with it. The client's request asks for sign-up with an email address; the PM proposed usernames instead, so that the app keeps no email address and whether a username is taken can be public (requirements version 2).
 
 - Nothing was built. The commits, test names, results, findings, and tool versions are illustrative: they show what each document should contain, not the result of a real run.
 - Versions and vulnerability IDs are made up or left out. Versions of real libraries and tools are not written down, because they go out of date; the documents say where the version is pinned instead (for example, `api/go.mod` or `web/package.json`). Vulnerability IDs, such as `GO-0000-0001`, are made up, so they cannot be mistaken for real advisories.
@@ -33,12 +33,12 @@ Every keyturn template, filled in by hand for [the task manager request](../requ
 
 ## Checking the approval record
 
-[`approvals.md`](keyturn/client/approvals.md) records two hashes, taken when version 1 was sent: the SHA-256 of `requirements.md` (also the `sha256` on the first line of the Japanese translation), and the SHA-256 of the translation file the client read. The translation is kept only locally, so only the first one can be checked from this repository. To check that the approval is still current, from the repository root:
+[`approvals.md`](keyturn/client/approvals.md) has one row per version sent to the client (version 1 and version 2); the current row is version 2's. Each row records two hashes, taken when that version was sent: the SHA-256 of `requirements.md` (also the `sha256` on the first line of the Japanese translation), and the SHA-256 of the translation file the client read. The translation is kept only locally, so only the first one can be checked from this repository. To check that the approval is still current, from the repository root:
 
 ```sh
 shasum -a 256 evals/requests/task-manager/example/keyturn/client/requirements.md
 ```
 
-If the result differs from the row in `approvals.md`, the requirements changed after the approval, and the approval is stale.
+If the result differs from the version 2 row in `approvals.md`, the requirements changed after the approval, and the approval is stale.
 
-The repository's `.gitattributes` makes Git write these documents with LF in every checkout, whatever `core.autocrlf` says, so the hash is the same on every platform, as it must be in a real project ([ADR 0012](../../../../docs/adr/0012-stable-approval-hashes.md)). In the project, the PM would keep the Japanese translation the client approved next to the current translation, as `.keyturn/i18n/ja/keyturn/client/requirements.v1.approved.md`, so that its link to `approvals.md` still opens the current status.
+The repository's `.gitattributes` makes Git write these documents with LF in every checkout, whatever `core.autocrlf` says, so the hash is the same on every platform, as it must be in a real project ([ADR 0012](../../../../docs/adr/0012-stable-approval-hashes.md)). In the project, the PM would keep the Japanese translation the client approved next to the current translation, as `.keyturn/i18n/ja/keyturn/client/requirements.v2.approved.md`, so that its link to `approvals.md` still opens the current status.
