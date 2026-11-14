@@ -380,7 +380,7 @@ The most likely failure is not malice but an agent "making the checks pass" inst
 
 ### 3. New dependencies are checked
 
-AI agents sometimes suggest packages that do not exist or that imitate popular ones. Every new dependency is checked for existence, maintenance status, known vulnerabilities, and license, and the result is recorded. This includes the development tools approved by the stack profile: not needing the client's approval never means skipping the check. The design lists only direct dependencies, including the peer dependencies they require; indirect ones are fixed by the lock file, which is always committed, and checked by the gate's dependency scan, whose result, indirect dependencies included, is in the delivery report. See [ADR 0018](adr/0018-direct-dependencies-in-the-design.md).
+AI agents sometimes suggest packages that do not exist or that imitate popular ones. Every new direct dependency is checked for existence, maintenance status, known vulnerabilities, and license, and the result is recorded. This includes the development tools approved by the stack profile: not needing the client's approval never means skipping the check. The design lists only direct dependencies, including the peer dependencies they require; indirect ones are fixed by the lock file, which is always committed, and checked for known vulnerabilities by the gate's dependency scan, whose result, indirect dependencies included, is in the delivery report. See [ADR 0018](adr/0018-direct-dependencies-in-the-design.md).
 
 ### 4. The environment limits the damage
 

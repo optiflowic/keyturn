@@ -62,8 +62,8 @@ Leave the section with "No stored data." when there is none.
 ## Libraries and external services
 
 <!--
-Every direct dependency and external service the work adds or relies on: what the project's manifest names itself, including the peer dependencies a direct dependency requires.
-Indirect dependencies are not listed: the lock file (for example package-lock.json or go.sum) fixes them and is always committed, and the gate's dependency scan checks them (ADR 0018 in keyturn).
+Every direct dependency and external service the work adds or relies on: what the project's manifest names itself (for Go, the `require` entries in go.mod without an `// indirect` comment), including the peer dependencies a direct dependency requires.
+Indirect dependencies are not listed: the lock file fixes them and is always committed (for example package-lock.json for npm; for Go, go.mod, whose `// indirect` entries fix them, with go.sum for their checksums), and the gate's dependency scan checks them (ADR 0018 in keyturn).
 "Kind" says what each dependency is (see ADR 0015 in keyturn):
 - runtime: a library or tool that is part of the deliverable or builds it (for example React, or Vite). Never a profile tool, even if the stack profile recommends it.
 - profile tool: a development tool the stack profile names, that only checks, formats, or tests the code and is not part of the deliverable (for example a linter or a test tool).

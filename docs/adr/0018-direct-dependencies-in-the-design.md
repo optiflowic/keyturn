@@ -21,8 +21,8 @@ Indirect dependencies are still a real attack path (a compromised or vulnerable 
 
 Option 3.
 
-- The design lists only direct dependencies: what the project's manifest names itself, including the peer dependencies that a direct dependency requires (for example, `typescript` for `typescript-eslint`). Each one gets the client's approval by its kind (ADR 0015) and the dependency check, as today.
-- Indirect dependencies are not listed in the design. The lock file (`package-lock.json`, `go.sum`, or the stack's equivalent) is always committed, so every indirect version is fixed and reviewable.
+- The design lists only direct dependencies: what the project's manifest names itself (for Go, the `require` entries in `go.mod` without an `// indirect` comment), including the peer dependencies that a direct dependency requires (for example, `typescript` for `typescript-eslint`). Each one gets the client's approval by its kind (ADR 0015) and the dependency check, as today.
+- Indirect dependencies are not listed in the design. The lock file is always committed, so every indirect version is fixed and reviewable: `package-lock.json` for npm, `go.mod` for Go (its `// indirect` entries fix the indirect versions) together with `go.sum` (the checksums that verify them), or the stack's equivalent.
 - The gate's dependency scan (phase 5) checks every package in the lock file, indirect ones included, for known vulnerabilities. The delivery report gives its result. Until the gate has a dependency scan, the delivery report lists the indirect dependencies under "What was not verified".
 
 ## Reasons
