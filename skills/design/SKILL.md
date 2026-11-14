@@ -7,7 +7,7 @@ description: Act as keyturn's architect. Turn approved requirements into a desig
 
 Turn the requirements the client approved into a design that fits their size, record every meaningful decision, and write down how the deliverable could be attacked or misused and what stops it. This is keyturn's architect role. The developer builds only what the design covers, and the security role checks the implementation against the threat model.
 
-Everything this skill needs is in this file, the templates it names, and the scripts of the `project-config`, `spec`, and `localize` skills. The background is in keyturn's `docs/DESIGN.md` ("Architect", "Guardrails", "Client attention budget") and ADRs 0003, 0009, 0010, 0013, 0015, 0016, and 0017, for whoever has them; the procedure does not depend on reading them.
+Everything this skill needs is in this file, the templates it names, and the scripts of the `project-config`, `spec`, and `localize` skills. The background is in keyturn's `docs/DESIGN.md` ("Architect", "Guardrails", "Client attention budget") and ADRs 0003, 0009, 0010, 0013, 0015, 0016, 0017, and 0018, for whoever has them; the procedure does not depend on reading them.
 
 ## Rules
 
@@ -110,9 +110,9 @@ Until stack profiles exist (phase 4), no tool is approved by a profile: every de
 
 Two things are not dependencies and are not listed: the language toolchain and its standard library (for example Go, Node.js, or Python), which approving the stack covers, including the tools that ship with the toolchain (for example `gofmt`, `go vet`, and `go test`), which are not other tools even though they format, lint, or test, and the gate's scanners (for example Semgrep, gitleaks, or Trivy), which the gate installs and which are never added to the project.
 
-List only direct dependencies: what the project's manifest names itself, including the peer dependencies a direct dependency requires (for example, `typescript` for `typescript-eslint`). Indirect dependencies are not listed: the lock file fixes them and is always committed, and the gate's dependency scan checks them (ADR 0018 in keyturn's `docs/adr/`).
+List only direct dependencies: what the project's manifest names itself (for Go, the `require` entries in `go.mod` without an `// indirect` comment), including the peer dependencies a direct dependency requires (for example, `typescript` for `typescript-eslint`). Indirect dependencies are not listed: the lock file fixes them and is always committed, and the gate's dependency scan checks them for known vulnerabilities (ADR 0018 in keyturn's `docs/adr/`).
 
-Every new dependency, of every kind, is checked for existence, maintenance status, known vulnerabilities (for example, in OSV, sending only the name and version), and license, and the result goes in "Check" in `design.md`. Write the version you checked in "Version": the developer pins exactly that version, and a different version needs a new check. A check from memory is not a check: it needs current data.
+Every new direct dependency, of every kind, is checked for existence, maintenance status, known vulnerabilities (for example, in OSV, sending only the name and version), and license, and the result goes in "Check" in `design.md`. Write the version you checked in "Version": the developer pins exactly that version, and a different version needs a new check. A check from memory is not a check: it needs current data.
 
 - If you cannot check a dependency (for example, there is no network access), write `not checked: <why>` in "Check" and under "Open questions", and say in its design summary entry that it is not checked yet. Go on with the rest of the design. Only the parts that need that dependency wait, until it is checked and agreed; report what access the check needs (step 8).
 - Choose a dependency, or no dependency, for fit. Avoid a dependency only when the alternative fits as well (for example, the standard library already does it). Never choose a weaker design to avoid the agreement or the check: a dependency that fits best is proposed and checked, or waits for the check. Skipping the client's agreement for a profile tool never means skipping its check.
