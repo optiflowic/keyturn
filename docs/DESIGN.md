@@ -111,6 +111,7 @@ Each profile defines:
 - Security checks (SAST rules, dependency scanning, secret scanning)
 - Recommended project structure and design patterns for different project sizes
 - Secure defaults and patterns to avoid
+- Where QA's tests live, as a folder of their own (see [ADR 0017](adr/0017-qa-tests-in-their-own-folder.md))
 - What cannot be checked mechanically for this stack (this goes into the delivery report as a known gap)
 
 Profiles live in `profiles/<stack>/`. Add one profile at a time, and only after the previous ones work well. Some stacks have much weaker mechanical security checks than others (e.g., Neovim plugins); the profile must say so honestly rather than pretend coverage exists.
@@ -289,7 +290,7 @@ The developer fixes what any of them report; none of them fix the code themselve
 The security role reviews the deliverable from an attacker's point of view, in a context separate from the developer and the reviewer.
 
 - Checks the change against the architect's threat model: every listed threat must have a mitigation that is actually implemented.
-- The only exception is a risk the client accepted. The client may accept the risk of a low threat, or of the part of a threat that its mitigation does not cover, on a decision card that also offers mitigating it. The security role confirms that the threat is low. A threat that could let someone get in, get more rights, or read, change, or delete data they should not, or that comes through a dependency or an external service, is never accepted. Every accepted risk is listed under "Remaining risks" in each delivery report. See [ADR 0010](adr/0010-accepting-the-risk-of-a-low-threat.md).
+- The only exception is a risk the client accepted. The client may accept the risk of a low threat, or of the part of a threat that its mitigation does not cover, on a decision card that also offers mitigating it. The security role confirms that the threat is low. A threat that could let someone get in, get more rights, or read, change, or delete data they should not, or that comes through a dependency or an external service, is never accepted. Learning whether an account exists counts as reading data, except for an identifier the approved requirements make public on purpose, such as a unique username; a private identifier, such as an email address, is never covered ([ADR 0016](adr/0016-account-existence-is-data.md)). Every accepted risk is listed under "Remaining risks" in each delivery report. See [ADR 0010](adr/0010-accepting-the-risk-of-a-low-threat.md).
 - Looks for what scanners usually miss: missing authorization checks, one user reaching another user's data, insecure handling of tokens and sessions, and abuse of business logic.
 - Triages scan results from the gate. A finding can only be marked as a false positive by the security role, with a recorded reason; the developer cannot dismiss findings.
 - Reports findings with a severity. High-severity findings block delivery like a failing gate.
@@ -365,7 +366,7 @@ Agents must not run out of control. Guardrails work in layers, so that no single
 
 The most likely failure is not malice but an agent "making the checks pass" instead of fixing the problem. The gate detects this mechanically and fails the change:
 
-- Changes by the developer to protected paths: gate scripts, stack profiles, the CI jobs that run the gates, linter configs, conventions, and tests written by QA (other CI/CD work is allowed when the approved requirements include it)
+- Changes by the developer to protected paths: gate scripts, stack profiles, the CI jobs that run the gates, linter configs, conventions, and tests written by QA (other CI/CD work is allowed when the approved requirements include it). QA's tests live in their own folders, named in the design and kept out of the areas the developer may change, so that the path alone protects them; the developer's own unit tests stay in the developer's areas. See [ADR 0017](adr/0017-qa-tests-in-their-own-folder.md).
 - New suppression comments (e.g., `//nolint`, `eslint-disable`, `# nosec`, `#[allow(...)]`) without an approved decision record
 - A drop in the number of tests or in coverage
 - Skipped or disabled tests
@@ -379,7 +380,7 @@ The most likely failure is not malice but an agent "making the checks pass" inst
 
 ### 3. New dependencies are checked
 
-AI agents sometimes suggest packages that do not exist or that imitate popular ones. Every new dependency is checked for existence, maintenance status, known vulnerabilities, and license, and the result is recorded. This includes the development tools approved by the stack profile: not needing the client's approval never means skipping the check.
+AI agents sometimes suggest packages that do not exist or that imitate popular ones. Every new direct dependency is checked for existence, maintenance status, known vulnerabilities, and license, and the result is recorded. This includes the development tools approved by the stack profile: not needing the client's approval never means skipping the check. The design lists only direct dependencies, including the peer dependencies they require; indirect ones are fixed by the lock file, which is always committed, and checked for known vulnerabilities by the gate's dependency scan, whose result, indirect dependencies included, is in the delivery report. Until the gate has a dependency scan, nothing checks the indirect dependencies, and the delivery report lists them under "What was not verified". See [ADR 0018](adr/0018-direct-dependencies-in-the-design.md).
 
 ### 4. The environment limits the damage
 
@@ -494,9 +495,11 @@ adapters/
 github/                   # workflow templates, labels, project setup
 evals/
   requests/               # evaluation requests
+scripts/                  # tools for developing keyturn (not run by skills), with their tests
 docs/
   DESIGN.md               # this document
   adr/                    # keyturn's own decision records
+  pre-pr-checklist.md     # what the review before a pull request checks
 AGENTS.md
 README.md
 LICENSE                   # MIT

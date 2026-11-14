@@ -6,8 +6,13 @@
 
 ## Related Issue
 
-<!-- Link the issue this PR closes. One PR per issue. -->
+<!-- Link the issue this PR closes. One PR per issue; a batch of small fixes may have one issue or none. -->
 <!-- e.g. Closes #12 -->
+
+## Small Fixes Included
+
+<!-- Small fixes this PR carries (see "Small fixes" in AGENTS.md), one line each: what was wrong and the fix. A batch of small fixes lists every fix, even when one issue covers the batch. -->
+<!-- Write "None" if there are none. -->
 
 ## How It Was Verified
 

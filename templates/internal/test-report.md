@@ -32,7 +32,7 @@ Otherwise delete the note.
 <!--
 One row per acceptance criterion that is not removed.
 - Result is pass, fail, or not tested. A "not tested" row is also listed under "Untested areas" with the reason.
-- "Tests" says where the tests for the criterion are (files or test names).
+- "Tests" says where the tests for the criterion are (files or test names). QA's tests are only in the folders listed under "QA's tests" in design.md.
 Without a specification, use one row per observed behavior instead, with a short name in place of the AC-n ID.
 -->
 
