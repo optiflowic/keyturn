@@ -4,7 +4,7 @@ What the review before a pull request checks ([ADR 0019](adr/0019-pre-pull-reque
 
 ## Every change
 
-- [ ] Every link in the diff points to a file that exists on `main` or in this pull request, not to a file that only an unmerged pull request adds.
+- [ ] Every link in the diff to a file in this repository points to a file that exists on `main` or in this pull request, not to a file that only an unmerged pull request adds.
 - [ ] A claim that uses "every", "all", "never", "only", or "always" has no counterexample. Look for one before accepting the claim.
 - [ ] A definition holds for every case it covers, such as every stack or tool it names, not only the first one that comes to mind.
 
