@@ -48,7 +48,7 @@ Committed on the current branch (with `deliver`, the task's branch). This skill 
 - Otherwise, `<head>` is `HEAD`, and `<base>` is `git merge-base HEAD <default branch>`, where the default branch is what `git symbolic-ref --short refs/remotes/origin/HEAD` names, or else `main` if it exists; if neither gives one, ask what to review. If `HEAD` is on the default branch, or the range is empty, ask what to review.
 - Run `git status --porcelain`. Uncommitted changes are not part of the range: if there are any, say so, and ask whether they should be committed before the review.
 
-Read the change with `git diff --name-status <base>..<head>` and `git diff <base>..<head>`, never with `git log` messages. What is missing never shows in a diff: read every changed file in full, the entry points it adds or touches, and the code they call, up to where the data is read or written.
+Read the change with `git diff --name-status <base>..<head>` and `git diff <base>..<head>`, never with `git log` messages. What is missing never shows in a diff: read every changed file in full, the entry points it adds or touches, and the code they call, up to where the data is read or written. Read them as they are at `<head>` (`git show <head>:<path>`), never from a checkout at another commit, where a later fix would look like part of the change; run the deliverable for a manual check only from a checkout of `<head>`.
 
 ### 2. Read the inputs
 
@@ -98,7 +98,7 @@ One row per threat in the threat model, in the "Threat model check" table, in or
 1. **Confirm its severity.** Judge it yourself from what the threat lets someone do. If you judge it higher than the threat model says, or a threat marked low could let anyone get in, get more rights, or read, change, or delete data they should not, report a high finding located at the threat in the threat model: the architect corrects the threat model, and an acceptance based on the lower severity no longer counts. Never change the severity yourself.
 2. **Is the mitigation implemented?** `yes`, `partly`, or `no`, from what you found in step 3, with the evidence: code locations, tests, and manual checks. `partly` or `no` is a high finding, unless what is left is validly accepted (step 6).
 3. **Remaining risk.** Copy it from the threat model: `none`, `waiting: decision card <n>`, or `accepted: decision card <n>`, linked. If the implementation leaves more than the threat model's "What is left" describes, that part is not accepted: report a high finding.
-4. **Status** in the threat model: `verified: link to this report` (with the finding, if one confirmed it) when the mitigation is implemented and you have evidence (a test that ran, or a check you made yourself on the local copy, saying exactly what you did and what you saw); `implemented` when it is in the code but the only planned verification (for example, a QA test for an acceptance criterion) has not run yet; `planned` when it is missing or partial and nothing is accepted; `accepted: link to the card` only when the client validly accepted the whole risk and nothing is implemented.
+4. **Status** in the threat model: `verified: link to this report` (with the finding, if one confirmed it) when the mitigation is implemented and you have evidence (a test that ran, or a check you made yourself on the local copy, saying exactly what you did and what you saw); `implemented` when it is in the code but the only planned verification (for example, a QA test for an acceptance criterion) has not run yet; `planned` when it is missing or partial and nothing is accepted; `accepted: link to the card` only when the client validly accepted the whole risk and nothing is implemented. A mitigation that is `partly` implemented, with what is left validly accepted (step 6), gets the status of the part that is implemented, `verified` or `implemented`; "Remaining risk" records the acceptance.
 
 ### 6. Check every accepted risk
 
@@ -131,7 +131,7 @@ Start from `../../templates/internal/review.md`, write `keyturn/internal/securit
 - **Summary**: the number of findings by severity, whether any blocks delivery, and what was not verified (scans that did not run, threats with no evidence, parts you could not run).
 - Keep the "Security" section; this report is the security role's.
 
-Update each threat's "Status" in the threat model (step 5). Commit the report and the threat model together, and only them (`git commit -- keyturn/internal/security-review.md keyturn/internal/threat-model.md`), so that uncommitted work of anyone else stays out of the commit.
+Update each threat's "Status" in the threat model (step 5). Commit the report and the threat model together, and only them, so that uncommitted work of anyone else stays out of the commit: `git add -- keyturn/internal/security-review.md keyturn/internal/threat-model.md`, then `git commit -- keyturn/internal/security-review.md keyturn/internal/threat-model.md`. The report is new on the first review, so it must be added first. Without a threat model, leave its path out of both commands.
 
 ### 9. Report
 
