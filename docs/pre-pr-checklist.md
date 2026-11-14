@@ -1,10 +1,10 @@
 # Pre-pull-request checklist
 
-What the review before a pull request checks ([ADR 0019](adr/0019-pre-pull-request-review.md)). Each section names the paths it applies to; the reviewer gets only the sections that match the changed paths. The items point to the rules in `AGENTS.md` and the ADRs instead of repeating them.
+What the review before a pull request checks ([ADR 0019](adr/0019-pre-pull-request-review.md)). Each section names the paths it applies to; the reviewer gets only the sections that match the changed paths. Where a rule is already stated in `AGENTS.md`, `docs/DESIGN.md`, or an ADR, the item links to it instead of repeating it.
 
 ## Every change
 
-- [ ] Every link and every file path the diff names points to a file that exists on `main` or in this pull request, not to a file that only an unmerged pull request adds.
+- [ ] Every link in the diff points to a file that exists on `main` or in this pull request, not to a file that only an unmerged pull request adds.
 - [ ] A claim that uses "every", "all", "never", "only", or "always" has no counterexample. Look for one before accepting the claim.
 - [ ] A definition holds for every case it covers, such as every stack or tool it names, not only the first one that comes to mind.
 
@@ -14,13 +14,13 @@ What the review before a pull request checks ([ADR 0019](adr/0019-pre-pull-reque
 - [ ] After a line was changed, the other lines in the same file that depend on it (a recommendation, a summary, an example) still agree with it.
 - [ ] Nothing presents a `proposed` ADR as decided ([ADR rules](adr/README.md)).
 - [ ] A worked example fills in every part its template asks for, and a template change has its example updated ("Before opening a pull request" in [`AGENTS.md`](../AGENTS.md)).
-- [ ] A procedure in "Trying changes locally" in [`AGENTS.md`](../AGENTS.md), done exactly as written, reaches the state it is meant to try.
+- [ ] A procedure in "Trying changes locally" in [`AGENTS.md`](../AGENTS.md), followed step by step as written, reaches the state it is meant to try (for example, a file is committed before a step that reads the committed file).
 
 ## Skills: `skills/**/SKILL.md`
 
 - [ ] If the work stops after any step and is started again, nothing is recorded twice and nothing is lost ([Resuming Work](DESIGN.md#resuming-work)).
 - [ ] The skill says what to do when an input is missing ([Roles are usable on their own](DESIGN.md#roles-are-usable-on-their-own)), and when the repository is in a state it did not create, such as another branch or files committed before keyturn.
-- [ ] The client's words are not committed or recorded before their English is confirmed ([ADR 0013](adr/0013-confirming-translations-into-english.md)).
+- [ ] The client's words that change what will be built are not committed or recorded before their English is confirmed ([ADR 0013](adr/0013-confirming-translations-into-english.md)).
 - [ ] Every skill, script, or file the skill relies on exists on `main` or in this pull request.
 
 ## Scripts and their tests: `skills/**/scripts/**`, `scripts/**`

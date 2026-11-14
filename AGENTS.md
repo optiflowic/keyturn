@@ -47,13 +47,13 @@ This is the only committed instructions file. If your tool reads a different fil
 - Check that nothing under `.keyturn/` and no tool-specific instructions file (such as a local symbolic link to `AGENTS.md`) is staged.
 - Check that links in the Markdown you changed point to files that exist.
 - If you changed a template, update the worked example in `evals/requests/*/example/` in the same pull request. If you changed an example's `requirements.md`, its approval in `approvals.md` is stale: record a new one with the new hashes.
-- When the change is ready, have a fresh subagent that did not write it review the diff once ([ADR 0019](docs/adr/0019-pre-pull-request-review.md)). In Claude Code, use a subagent with the Sonnet model. Give it:
+- When the change is ready, have a fresh subagent that did not write it review the diff once ([ADR 0019](docs/adr/0019-pre-pull-request-review.md)). In Claude Code, use a subagent with the Sonnet model; on a tool without subagents, use a separate process on a lower-tier model. Give it:
   - the diff against `main` (`git diff main...HEAD`);
   - the sections of `docs/DESIGN.md` and the ADRs that the change relates to, and the files the diff links to, and nothing else from the repository;
   - the sections of `docs/pre-pr-checklist.md` whose paths match the changed files;
   - the `path_instructions` in `.coderabbit.yaml` whose paths match the changed files.
 
-  Ask it to report findings without editing files. Fix the findings that are right, and do not run the review again after the fixes.
+  Ask it to report findings without editing files. Fix the findings that are right, then run the tests and checks above again for what the fixes touched. Do not run the review again.
 - Write what you ran, and the result, under "How It Was Verified" in the pull request. Include what the review found, what you fixed, and why you left the rest.
 
 ## Task management

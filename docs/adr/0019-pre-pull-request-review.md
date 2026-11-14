@@ -7,7 +7,7 @@
 
 Every keyturn pull request is reviewed by CodeRabbit ([ADR 0004](0004-independent-ai-reviewer.md)). Its review allowance is limited: it reviews a pull request automatically once, re-reviews only when asked, and rate limits often delay both ("CodeRabbit rate limits" in `AGENTS.md`). Each round of fixes costs a re-review and waiting time.
 
-On the 14 most recent pull requests it reviewed (#64 to #95), CodeRabbit made 42 verified points. About 31 of them could have been found by reading the repository, without deep analysis:
+On the 14 most recent pull requests it reviewed (#64 to #95), CodeRabbit made 42 verified points (counted by hand from its review comments on those pull requests, on 2026-11-14). About 31 of them could have been found by reading the repository, without deep analysis:
 
 - contradictions between documents, or between a document and what a script does (8);
 - claims and definitions broader than they should be (4);
@@ -35,14 +35,14 @@ Option 3. Before a pull request is opened, a fresh subagent that did not write t
 - the sections of [`docs/pre-pr-checklist.md`](../pre-pr-checklist.md) whose paths match the changed files;
 - the `path_instructions` in `.coderabbit.yaml` whose paths match the changed files.
 
-It reports findings and does not edit files. The author fixes the findings that are right and writes in the pull request what was found and fixed. The review is not repeated after the fixes. The checklist links to the rules in `AGENTS.md` and the ADRs instead of copying them.
+It reports findings and does not edit files. The author fixes the findings that are right and writes in the pull request what was found and fixed. The review is not repeated after the fixes. On a tool without subagents, the review runs in a separate process on a lower-tier model. Where a rule is already stated in `AGENTS.md`, `docs/DESIGN.md`, or an ADR, the checklist links to it instead of copying it.
 
 ## Reasons
 
-- The points this review targets are found by comparing what is written: a document with another document, a claim with a counterexample, a script with its error cases. That is well-defined work, which "Model Tiers" in `docs/DESIGN.md` gives to a lower-tier model. Deep analysis, such as the threats in a worked example, is left to CodeRabbit.
+- The points this review targets are found by comparing what is written: a document with another document, a claim with a counterexample, a script with its error cases. A lower-tier model is enough for that. "Model Tiers" in `docs/DESIGN.md` gives the review of a lower-tier model's output to a higher-tier model; this review is not that one. It is a cheap check before the review, and the review that needs judgment stays with CodeRabbit and the maintainer. Deep analysis, such as the threats in a worked example, is left to CodeRabbit.
 - A subagent that did not write the change does not share the author's reasoning, like the separate contexts of design principle 5.
 - Reading only what the diff needs keeps the review short and cheap. Reading all of `docs/DESIGN.md` and every ADR would cost more and spread the reviewer's attention.
-- A checklist that links to the rules cannot drift from them: when a rule changes, only its source changes.
+- Where a rule is already stated elsewhere, the checklist links to it instead of copying it, so a change to the rule is made in one place.
 - One review is enough to remove most of the points that reading finds. Repeating it would cost more than it saves, and CodeRabbit reviews the result anyway.
 
 ## Consequences
