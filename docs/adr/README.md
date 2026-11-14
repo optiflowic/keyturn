@@ -32,4 +32,5 @@ See "Architecture decision records" in [`docs/DESIGN.md`](../DESIGN.md).
 | [0015](0015-dependency-kinds.md) | Which tools and libraries need the client's approval depends on their kind | accepted |
 | [0016](0016-account-existence-is-data.md) | Learning whether an account exists counts as reading data | accepted |
 | [0017](0017-qa-tests-in-their-own-folder.md) | QA's tests live in their own folder, outside the areas the developer may change | accepted |
+| [0018](0018-direct-dependencies-in-the-design.md) | The design lists direct dependencies; the lock file covers the rest | accepted |
 | [0019](0019-pre-pull-request-review.md) | A fresh subagent reviews the diff once before a pull request is opened | accepted |
