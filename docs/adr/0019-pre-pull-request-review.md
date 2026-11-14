@@ -5,7 +5,7 @@
 
 ## Context
 
-Every keyturn pull request is reviewed by CodeRabbit ([ADR 0004](0004-independent-ai-reviewer.md)). Its review allowance is limited: it reviews a pull request automatically once, re-reviews only when asked, and rate limits often delay both ("CodeRabbit rate limits" in `AGENTS.md`). Each round of fixes costs a re-review and waiting time.
+Every keyturn pull request is reviewed by CodeRabbit ([ADR 0004](0004-independent-ai-reviewer.md)). Its review allowance is limited: it reviews a pull request automatically once, re-reviews only when asked, and rate limits often delay both ("CodeRabbit rate limits" in `AGENTS.md`). Each review it makes, and each re-review that its points need, costs part of that allowance and waiting time.
 
 On the 14 most recent pull requests it reviewed (#64 to #95), CodeRabbit made 42 verified points (counted by hand from its review comments on those pull requests, on 2026-11-14). About 31 of them could have been found by reading the repository, without deep analysis:
 
