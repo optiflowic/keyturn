@@ -19,6 +19,7 @@ This is the only committed instructions file. If your tool reads a different fil
 
 - `docs/DESIGN.md`: the design and the phases.
 - `docs/adr/`: decisions about keyturn itself. Follow the rules in `docs/adr/README.md`: one decision per file, started from `template.md`, added to the index; never edit an accepted ADR, supersede it with a new one.
+- `docs/pre-pr-checklist.md`: what the review before a pull request checks, in sections by changed path.
 - `skills/<name>/SKILL.md`: one skill per role, written to the Agent Skills standard. Frontmatter uses only `name` and `description`. A skill says what a role does (inputs, procedure, outputs), not which tool runs it. Scripts a skill needs go in `skills/<name>/scripts/`, with their tests next to them.
 - `templates/client/` and `templates/internal/`: document templates (from phase 2). Client-facing documents are written in the client's language by default; internal ones always in English.
 - `evals/requests/<name>/`: evaluation requests (from phase 2). Each has `request.md`, written as a client would write it, and may have a worked example in `example/` with every template filled in by hand. Update the example when a template changes.
@@ -46,7 +47,14 @@ This is the only committed instructions file. If your tool reads a different fil
 - Check that nothing under `.keyturn/` and no tool-specific instructions file (such as a local symbolic link to `AGENTS.md`) is staged.
 - Check that links in the Markdown you changed point to files that exist.
 - If you changed a template, update the worked example in `evals/requests/*/example/` in the same pull request. If you changed an example's `requirements.md`, its approval in `approvals.md` is stale: record a new one with the new hashes.
-- Write what you ran, and the result, under "How It Was Verified" in the pull request.
+- When the change is ready, have a fresh subagent that did not write it review the diff once ([ADR 0019](docs/adr/0019-pre-pull-request-review.md)). In Claude Code, use a subagent with the Sonnet model. Give it:
+  - the diff against `main` (`git diff main...HEAD`);
+  - the sections of `docs/DESIGN.md` and the ADRs that the change relates to, and the files the diff links to, and nothing else from the repository;
+  - the sections of `docs/pre-pr-checklist.md` whose paths match the changed files;
+  - the `path_instructions` in `.coderabbit.yaml` whose paths match the changed files.
+
+  Ask it to report findings without editing files. Fix the findings that are right, and do not run the review again after the fixes.
+- Write what you ran, and the result, under "How It Was Verified" in the pull request. Include what the review found, what you fixed, and why you left the rest.
 
 ## Task management
 
