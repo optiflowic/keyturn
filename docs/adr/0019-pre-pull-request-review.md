@@ -48,6 +48,6 @@ It reports findings and does not edit files. The author fixes the findings that 
 ## Consequences
 
 - `AGENTS.md` "Before opening a pull request" describes the review. "Where things live" in `AGENTS.md` and "Repository Layout" in `docs/DESIGN.md` list the checklist.
-- When CodeRabbit keeps finding points of a kind the checklist does not cover, and reading the repository could have found them, an item for that kind is added to the checklist.
+- When CodeRabbit makes a point that this review could have found, the pull request that fixes the point also updates the checklist: it rewords an existing item that should have caught the point, or else adds one. The checklist stays at 30 items or fewer; a point that would need more is reported to the maintainer instead ("Review comments" in `AGENTS.md`).
 - This does not replace CodeRabbit ([ADR 0004](0004-independent-ai-reviewer.md)) or the maintainer: CodeRabbit is still the independent reviewer from another vendor, and the maintainer still merges.
 - The review is a step in developing keyturn, not part of keyturn's pipeline for client projects; the `review` skill (#59) is that.
