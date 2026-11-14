@@ -1,0 +1,54 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "number": 300,
+        "title": "feat(example): a change with many review threads",
+        "state": "OPEN",
+        "reviewDecision": "REVIEW_REQUIRED",
+        "latestReviews": {
+          "nodes": [
+            {
+              "author": {
+                "login": "coderabbitai"
+              },
+              "state": "COMMENTED",
+              "submittedAt": "2026-11-12T08:30:00Z"
+            }
+          ]
+        },
+        "reviewThreads": {
+          "pageInfo": {
+            "hasNextPage": true,
+            "endCursor": "cursor-1"
+          },
+          "nodes": [
+            {
+              "isResolved": true,
+              "isOutdated": false,
+              "path": "a.py",
+              "line": 1,
+              "startLine": null,
+              "originalLine": 1,
+              "originalStartLine": null,
+              "comments": {
+                "nodes": [
+                  {
+                    "author": {
+                      "login": "coderabbitai"
+                    },
+                    "body": "Resolved point on the first page.",
+                    "createdAt": "2026-11-12T08:30:00Z"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "comments": {
+          "nodes": []
+        }
+      }
+    }
+  }
+}
