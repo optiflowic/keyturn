@@ -16,7 +16,7 @@ There are 5 "Must check" items and no optional ones. The check takes about 20 mi
 
 1. Start the app on your computer by following "Try it on your computer" in the project's README. It takes one command.
 2. Open `http://localhost:8080` in your web browser.
-3. Have four different usernames ready, one for each test account below.
+3. Have four different usernames ready, one for each test account below. Anyone can see whether a username is taken, so do not use a private name.
 
 ## Must check
 
