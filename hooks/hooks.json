@@ -1,0 +1,17 @@
+{
+  "description": "keyturn safety guardrails: stop tool calls when a Claude usage window reaches the hard limit (see adapters/claude/README.md).",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/adapters/claude/scripts/usage.py\" hook",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
