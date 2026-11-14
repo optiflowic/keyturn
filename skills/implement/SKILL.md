@@ -52,12 +52,12 @@ Run `project_config.py check`. If it reports any problem, stop and show every li
 
 ### 2. Check that the requirements are approved and the design matches them
 
-1. Run `approval.py status`, adding `--lang <client_language>` when `english_only` is `true`. Go on only when its line `version <n>: current, answer: <answer>` says `current` and the answer is the approval and nothing else: exactly `approved` when `approvals.md` is in English, or the same word in its language. `waiting`, an empty answer, "not approved", and an approval with conditions are not approvals: stop, because nothing is built before the client approves. If the only errors are about the kept copy of the translation, the requirements are still approved; go on, and report the error to whoever runs `spec`.
-2. Check that `design.md` and `threat-model.md` say "Based on requirements version <n>" with the same `<n>`. If they are based on an older version, stop: the design must be updated with the `design` skill first.
+1. Run `approval.py status`, adding `--lang <client_language>` when `english_only` is `true`. Go on only when its line `version <n>: current, answer: <answer>` says `current` and the answer is the approval and nothing else: exactly `approved` when `approvals.md` is in English, or the same word in its language. `waiting`, an empty answer, "not approved", and an approval with conditions are not approvals: stop, because nothing is built before the client approves. If every error names only the kept copy of the approved translation (`.keyturn/i18n/<lang>/keyturn/client/requirements.v<n>.approved.md`), the requirements are still approved; go on, and report the error to whoever runs `spec`. Any other error: stop and show it.
+2. Check that `design.md` and `threat-model.md` say "Based on requirements version <n>" with the same `<n>`. If they are based on an older version, stop: the design must be updated with the `design` skill first. If either document does not exist, follow "When inputs are missing" instead.
 
 ### 3. Decide what can be built now
 
-Read the design, its ADRs, and the threat model, and list the parts of this task that can be built now. A part waits, with the reason, when:
+Read the design, its ADRs, and the threat model (or what "When inputs are missing" gives in their place), and list the parts of this task that can be built now. A part waits, with the reason, when:
 
 - it depends on an ADR whose status is `proposed`: the client has not agreed, or a decision card is unanswered;
 - the design's "Open questions" say it waits for an answer;
@@ -69,7 +69,7 @@ Everything else goes on.
 
 Before every change, check that the design already covers it. Stop that part and ask (step 6) when it would:
 
-- **add a dependency the design does not list** with its kind and a passing check (ADR 0015 in keyturn's `docs/adr/`). Use each listed dependency at exactly the version the design names, and commit the lock file it changes (for example `package-lock.json` or `go.sum`), so every indirect dependency is fixed (ADR 0018 in keyturn's `docs/adr/`). If the design names no version for a dependency, ask the architect instead of choosing one. Use a runtime dependency or an other tool only when its ADR is `accepted`. A profile tool needs no agreement, but still needs its listing and its check. The language toolchain and its standard library need nothing more than the stack's approval. Never add a gate scanner (for example Semgrep, gitleaks, or Trivy) to the project;
+- **add a dependency the design does not list** with its kind and a passing check (ADR 0015 in keyturn's `docs/adr/`). Use each listed dependency at exactly the version the design names, and commit the lock file it changes (for example `package-lock.json` or `go.sum`), so every indirect dependency is fixed (ADR 0018 in keyturn's `docs/adr/`). If the design names no version for a dependency, ask the architect instead of choosing one. Use a runtime dependency or an other tool only when its ADR is `accepted`. A development tool that a stack profile names needs no agreement, but still needs its listing and its check; until stack profiles exist (phase 4), no tool is named by one, so every tool needs its ADR to be `accepted`. The language toolchain and its standard library need nothing more than the stack's approval. Never add a gate scanner (for example Semgrep, gitleaks, or Trivy) to the project;
 - **use an external service** the design does not list, or use a listed one in a way it does not describe;
 - **change how people sign in, what each person may see or change, or what data is kept**, where, and for how long, beyond what the design's parts, data model, and ADRs say;
 - **delete data**, including a migration that drops or rewrites stored data, unless an approved requirement and the design call for exactly that;
@@ -115,21 +115,23 @@ Then commit the code and the unit tests, saying what changed and which requireme
 When a part waits (step 3), needs approval (step 3, "What needs approval"), or cannot be built without guessing, do not build it, and do not choose for the client:
 
 - **With `deliver`**: write the question under "What is left" and "Notes for the next role" in the handoff notes, and report it to `deliver`, which sends it to the role that decides: the `design` skill for anything the design does not cover or that needs the client's agreement (it updates the design and asks the client on a decision card), the `spec` skill for an unclear or conflicting requirement, the `conventions` skill for a rule, and the role that raised a finding for a finding you think is wrong.
-- **On your own**: ask the person who asked you, in the language they use with you, in one message with every question: what you need, why (the requirement, the threat, or the finding), and the options you see. When the answer changes the design or a requirement, say that it must be recorded there first (with the `design` or `spec` skill, or by hand); do not build on an answer that is only in the conversation. Without a design document ("When inputs are missing"), record the answer in "Notes for the next role" instead.
+- **On your own**: ask the person who asked you, in the language they use with you, in one message with every question: what you need, why (the requirement, the threat, or the finding), and the options you see. When the answer changes the design or a requirement, say that it must be recorded there first (with the `design` or `spec` skill, or by the person; never by you, since those documents are protected paths); do not build on an answer that is only in the conversation. Without a design document ("When inputs are missing"), record the answer in "Notes for the next role" instead.
 
 Go on with every part that does not depend on the answer.
 
 ### 7. Write the handoff notes
 
-Start from `templates/internal/handoff.md`, write `keyturn/internal/handoff.md`, and remove the template's comments and placeholders. Replace the earlier notes in a rework: they describe the newest commit only.
+Start from `templates/internal/handoff.md`, write `keyturn/internal/handoff.md`, and remove the template's comments and placeholders. Replace earlier notes, in a rework or a rerun, even if the work stopped after they were written: they describe the newest code commit only.
 
 - **From**: developer. **To**: QA, security, reviewer (or whoever you hand off to when you run on your own).
+- **Based on**: the requirements version from step 2 and a link to `design.md` (or what "When inputs are missing" says to write).
 - **Branch and commit**: the branch, and the commit of the code from step 5. The handoff is committed on top of it and changes no code, so QA and security test the head of the branch.
+- **Summary**: about three lines: what was done, and whether anything is left.
 - **What was done**: the changes, grouped by part of the design, with the requirements each serves. In rework, name each finding fixed (for example, "review F-1"), with what changed.
 - **Requirements covered**: one row per requirement in this task.
 - **What is left**: every part that waits, every question asked in step 6, and every finding not fixed, each with why.
 - **How to run**: this is the only section QA and security receive, so it must stand on its own. Give every step to build, start, and test the deliverable from a fresh clone: versions to install, commands, configuration, test accounts and sample data, and where to find a secret, never the secret. Do not explain how the code works, why it is correct, or what to test. Follow your own steps once in a fresh clone of the commit, in a temporary folder outside the repository, and fix them until they work.
-- **Notes for the next role**: facts the reviewer and `deliver` need: questions waiting, requests to change a convention, tools that were not installed, tests removed with their code, and any guardrail you hit.
+- **Notes for the next role**: facts the reviewer and `deliver` need: questions and decision cards waiting, requests to change a convention, tools that were not installed, tests removed with their code, and any guardrail you hit.
 
 Commit the handoff notes on their own commit. This is the step's checkpoint.
 
