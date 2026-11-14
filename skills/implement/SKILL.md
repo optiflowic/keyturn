@@ -72,6 +72,7 @@ Before every change, check that the design already covers it. Stop that part and
 - **add a dependency the design does not list** with its kind and a passing check (ADR 0015 in keyturn's `docs/adr/`). Use each listed dependency at exactly the version the design names, and commit the lock file it changes (for example `package-lock.json` or `go.sum`), so every indirect dependency is fixed (ADR 0018 in keyturn's `docs/adr/`). If the design names no version for a dependency, ask the architect instead of choosing one. Use a runtime dependency or an other tool only when its ADR is `accepted`. A development tool that a stack profile names needs no agreement, but still needs its listing and its check; until stack profiles exist (phase 4), no tool is named by one, so every tool needs its ADR to be `accepted`. The language toolchain and its standard library need nothing more than the stack's approval. Never add a gate scanner (for example Semgrep, gitleaks, or Trivy) to the project;
 - **use an external service** the design does not list, or use a listed one in a way it does not describe;
 - **change how people sign in, what each person may see or change, or what data is kept**, where, and for how long, beyond what the design's parts, data model, and ADRs say;
+- **build an external service, sign-in, access, or data-keeping decision that has no `accepted` ADR with "Needs client agreement: yes"**, even when the design lists it: the design covers these only once the client agreed;
 - **delete data**, including a migration that drops or rewrites stored data, unless an approved requirement and the design call for exactly that;
 - **change a path outside "Areas the work may change"**, or a protected path;
 - **meet a requirement differently from the design**, or leave out a mitigation the threat model gives to a part of this task.
@@ -86,7 +87,7 @@ For each part that can be built, in an order that keeps the deliverable working 
 - **Design**: put the code where the part's "Location" says, and let each part do only what the design gives it and talk to the others only as the design says.
 - **Threat model**: implement every mitigation the threat model gives to the parts of this task. Never let a message, a status, or a response time tell someone whether an account exists, unless the approved requirements make the identifier it reveals public on purpose (for example, a username chosen to be unique; never a private identifier such as an email address) (ADR 0016 in keyturn's `docs/adr/`). Never write a secret into the code, the tests, or the documents; read secrets from where the design says.
 - **Conventions**: follow every checklist item in `conventions.md` and every tool rule. When a rule blocks code that is correct and readable, do not work around it: write the code that meets the rule, or, if none can, ask for a change in "Notes for the next role" (the standards role decides it, with an ADR).
-- **Unit tests**: test your own code next to it, inside the design's areas, never in QA's test folders. Test the behavior a function or module promises, including the cases that go wrong. Change one of your tests only when the behavior it tests was changed on purpose; remove one only with the code it tests, and say so in the notes (the gate flags a drop in the number of tests).
+- **Unit tests**: test your own code next to it, inside the design's areas, never in QA's test folders. Test the behavior a function or module promises, including the cases that go wrong. Change one of your tests only when the behavior it tests was changed on purpose; never remove one, not even with the code it tests, because a drop in the number of tests or in coverage fails the gate: when an approved change removes the code a test covers, stop and ask (step 6) before removing the test.
 
 #### How the code reads
 
@@ -105,10 +106,10 @@ Before handing off, check that:
 
 - the formatter and linters under "Tool rules" in `conventions.md` pass, and every test passes: your unit tests, and QA's tests when they exist. Run each tool as the conventions say; for a tool that is not installed, say so in the notes. If a config or rule file that "Tool rules" lists is missing from the repository, do not write it and do not run a stand-in: it is a protected path. Report it to the standards role (`conventions`) in "Notes for the next role", and go on;
 - every changed path (`git status`, and `git diff --name-only <base>` from the commit this task started from) is inside "Areas the work may change", and none is a protected path or inside "QA's tests". Your own output, `keyturn/internal/handoff.md`, is the one file outside the areas you write;
-- no suppression comment, skipped test, or loosened test was added, and no dependency the design does not list;
+- no suppression comment, skipped test, or loosened test was added, no test was removed, and no dependency the design does not list;
 - every finding you were given is fixed, or is listed under "What is left" with why (step 6).
 
-Then commit the code and the unit tests, saying what changed and which requirements it serves. Commit in steps if that keeps each commit to one logical change.
+Then commit the code and the unit tests, saying what changed and which requirements it serves. Commit in steps if that keeps each commit to one logical change. If every part waits and no code changed, there is nothing to commit here: the handoff names the branch head before it instead.
 
 ### 6. Stop and ask
 
@@ -125,13 +126,13 @@ Start from `templates/internal/handoff.md`, write `keyturn/internal/handoff.md`,
 
 - **From**: developer. **To**: QA, security, reviewer (or whoever you hand off to when you run on your own).
 - **Based on**: the requirements version from step 2 and a link to `design.md` (or what "When inputs are missing" says to write).
-- **Branch and commit**: the branch, and the commit of the code from step 5. The handoff is committed on top of it and changes no code, so QA and security test the head of the branch.
+- **Branch and commit**: the branch, and the commit of the code from step 5 (or the branch head, when no code changed). The handoff is committed on top of it and changes no code, so QA and security test the head of the branch.
 - **Summary**: about three lines: what was done, and whether anything is left.
 - **What was done**: the changes, grouped by part of the design, with the requirements each serves. In rework, name each finding fixed (for example, "review F-1"), with what changed.
 - **Requirements covered**: one row per requirement in this task.
 - **What is left**: every part that waits, every question asked in step 6, and every finding not fixed, each with why.
-- **How to run**: this is the only section QA and security receive, so it must stand on its own. Give every step to build, start, and test the deliverable from a fresh clone: versions to install, commands, configuration, test accounts and sample data, and where to find a secret, never the secret. Do not explain how the code works, why it is correct, or what to test. Follow your own steps once in a fresh clone of the commit, in a temporary folder outside the repository, and fix them until they work.
-- **Notes for the next role**: facts the reviewer and `deliver` need: questions and decision cards waiting, requests to change a convention, tools that were not installed, tests removed with their code, and any guardrail you hit.
+- **How to run**: this is the only section QA and security receive, so it must stand on its own. Give every step to build, start, and test the deliverable from a fresh clone: versions to install, commands, configuration, test accounts and sample data, and where to find a secret, never the secret. Do not explain how the code works, why it is correct, or what to test. Follow your own steps once in a fresh clone of the commit, in a temporary folder outside the repository, and fix them until they work. When a step cannot work because a part waits (for example, nothing can start yet), give the steps that do work, say which step cannot run yet, and point to "What is left"; still commit the handoff, so the question reaches whoever decides.
+- **Notes for the next role**: facts the reviewer and `deliver` need: questions and decision cards waiting, requests to change a convention, tools that were not installed, tests waiting to be removed with their code, and any guardrail you hit.
 
 Commit the handoff notes on their own commit. This is the step's checkpoint.
 
