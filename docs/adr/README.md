@@ -31,3 +31,4 @@ See "Architecture decision records" in [`docs/DESIGN.md`](../DESIGN.md).
 | [0014](0014-project-configuration-in-json.md) | The project configuration is a JSON file, checked by a script before use | accepted |
 | [0015](0015-dependency-kinds.md) | Which tools and libraries need the client's approval depends on their kind | accepted |
 | [0016](0016-account-existence-is-data.md) | Learning whether an account exists counts as reading data | accepted |
+| [0017](0017-qa-tests-in-their-own-folder.md) | QA's tests live in their own folder, outside the areas the developer may change | accepted |

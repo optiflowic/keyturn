@@ -117,6 +117,13 @@ No external services.
 | `web/package.json`, `web/package-lock.json` | the npm dependencies listed above only: those approved in ADR 0004 and the `react-spa` profile's development tools | R-1 to R-9 |
 | `web/vite.config.ts` | the development server's proxy to the API only (added in delivery 1, see the delivery report) | R-1 to R-9 |
 
+## QA's tests
+
+| Path | What is tested there |
+|---|---|
+| `api/qa/**` | the API, through its HTTP interface only |
+| `web/e2e/**` | the pages in a browser, against the built web client and the API |
+
 ## Requirements coverage
 
 | Requirement | Parts |

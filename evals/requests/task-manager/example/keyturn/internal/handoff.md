@@ -45,4 +45,5 @@ Changing, deleting, and hiding tasks (R-5, R-6, R-9) are left for delivery 2.
 
 - The session length (7 days) comes from decision card 1, answered by the client.
 - Repeated sign-in blocking (T-6) is not prevented: the client accepted the risk on decision card 2. Do not add a limit by network address; it would change R-8.
+- QA's tests go in `api/qa/` and `web/e2e/` (design.md "QA's tests"), outside the areas this work may change. The unit tests next to the code, such as `api/internal/account/password_test.go`, are the developer's.
 - The task routes for changing and deleting (`PATCH` and `DELETE /api/tasks/{id}`) do not exist yet.

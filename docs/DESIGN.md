@@ -111,6 +111,7 @@ Each profile defines:
 - Security checks (SAST rules, dependency scanning, secret scanning)
 - Recommended project structure and design patterns for different project sizes
 - Secure defaults and patterns to avoid
+- Where QA's tests live, as a folder of their own (see [ADR 0017](adr/0017-qa-tests-in-their-own-folder.md))
 - What cannot be checked mechanically for this stack (this goes into the delivery report as a known gap)
 
 Profiles live in `profiles/<stack>/`. Add one profile at a time, and only after the previous ones work well. Some stacks have much weaker mechanical security checks than others (e.g., Neovim plugins); the profile must say so honestly rather than pretend coverage exists.
@@ -365,7 +366,7 @@ Agents must not run out of control. Guardrails work in layers, so that no single
 
 The most likely failure is not malice but an agent "making the checks pass" instead of fixing the problem. The gate detects this mechanically and fails the change:
 
-- Changes by the developer to protected paths: gate scripts, stack profiles, the CI jobs that run the gates, linter configs, conventions, and tests written by QA (other CI/CD work is allowed when the approved requirements include it)
+- Changes by the developer to protected paths: gate scripts, stack profiles, the CI jobs that run the gates, linter configs, conventions, and tests written by QA (other CI/CD work is allowed when the approved requirements include it). QA's tests live in their own folders, named in the design and kept out of the areas the developer may change, so that the path alone protects them; the developer's own unit tests stay in the developer's areas. See [ADR 0017](adr/0017-qa-tests-in-their-own-folder.md).
 - New suppression comments (e.g., `//nolint`, `eslint-disable`, `# nosec`, `#[allow(...)]`) without an approved decision record
 - A drop in the number of tests or in coverage
 - Skipped or disabled tests
