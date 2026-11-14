@@ -54,6 +54,7 @@ One heading per threat, numbered T-1, T-2, ... An ID is never changed or reused.
   Until the threat is mitigated or the client has accepted what is left, it blocks delivery.
 - "Remaining risk" is what the mitigation does not cover: none, waiting for the client (with the card), or accepted (with the card and the date of the answer).
 - "Status" is updated by the security role: planned, implemented, verified (with the finding that confirmed it), or accepted (the client accepted the whole risk, so nothing is implemented).
+  A mitigation that is implemented only in part, with the rest accepted under "Remaining risk", gets the status of the part that is implemented (implemented or verified).
 -->
 
 ### T-1: <short title>
