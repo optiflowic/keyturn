@@ -14,7 +14,7 @@ What the review before a pull request checks ([ADR 0019](adr/0019-pre-pull-reque
 - [ ] After a line was changed, the other lines in the same file that depend on it (a recommendation, a summary, an example) still agree with it. A new exception to a rule is also stated, or pointed to, wherever another section restates that rule.
 - [ ] Nothing presents a `proposed` ADR as decided ([ADR rules](adr/README.md)).
 - [ ] A worked example fills in every part its template asks for, and a template change has its example updated ("Before opening a pull request" in [`AGENTS.md`](../AGENTS.md)).
-- [ ] A procedure in "Trying changes locally" in [`AGENTS.md`](../AGENTS.md), followed step by step as written, reaches the state it is meant to try (for example, a file is committed before a step that reads the committed file).
+- [ ] A procedure in "Trying changes locally" in [`AGENTS.md`](../AGENTS.md), followed step by step as written, reaches the state it is meant to try (for example, a file is committed before a step that reads the committed file), and every check it asks for passes on a correct run, including the exceptions the skill allows.
 
 ## Skills: `skills/**/SKILL.md`
 
@@ -23,6 +23,7 @@ What the review before a pull request checks ([ADR 0019](adr/0019-pre-pull-reque
 - [ ] The skill says what to do when an input is missing ([Roles are usable on their own](DESIGN.md#roles-are-usable-on-their-own)), and when the repository is in a state it did not create, such as another branch or files committed before keyturn.
 - [ ] The client's words that change what will be built are not committed or recorded before their English is confirmed ([ADR 0013](adr/0013-confirming-translations-into-english.md)).
 - [ ] Every skill, script, or file the skill relies on exists on `main` or in this pull request.
+- [ ] The skill allows nothing that the [Guardrails](DESIGN.md#guardrails) forbid or make wait for the client: what always needs the client's approval, even when a document lists it, and what fails the gate (such as a drop in the number of tests).
 
 ## Scripts and their tests: `skills/**/scripts/**`, `scripts/**`
 
