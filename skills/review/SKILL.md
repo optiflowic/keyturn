@@ -42,15 +42,15 @@ Below, `project_config.py` and `approval.py` mean the full paths of the scripts 
 
 - If whoever asked names the change (a range, a branch, or commits), use it. `deliver` names it: from the commit before the developer's work to the developer's latest commit.
 - Otherwise, `<head>` is `HEAD`, and `<base>` is `git merge-base HEAD <default branch>`, where the default branch is what `git symbolic-ref --short refs/remotes/origin/HEAD` names, or else `main` if it exists; if neither gives one, ask what to review. If `HEAD` is on the default branch, or the range is empty, ask what to review.
-- Run `git status --porcelain`. Uncommitted changes are not part of the range: if there are any, say so, and ask whether they should be committed before the review.
+- Run `git status --porcelain`. Uncommitted changes are not part of the range: if there are any, other than to `keyturn/internal/review.md` (see "Rerunning after a fix"), say so, and ask whether they should be committed before the review.
 
-Read the change with `git diff --name-status <base>..<head>` and `git diff <base>..<head>`. Then read every changed file in full, and the code it calls and that calls it, as they are at `<head>` (`git show <head>:<path>`), never from a checkout at another commit: a diff shows what changed, not whether the result still fits the part it is in.
+List every changed path with `git diff --name-status <base>..<head>`: a change to a protected path shows there (step 3). Read the content without the documents of the other roles, which you must not read and which are not code: `git diff <base>..<head> -- . ':(exclude)keyturn/internal/handoff.md' ':(exclude)keyturn/internal/security-review.md' ':(exclude)keyturn/internal/test-report.md' ':(exclude)keyturn/internal/state' ':(exclude)keyturn/internal/review.md'`. Then read every changed file in full, and the code it calls and that calls it, as they are at `<head>` (`git show <head>:<path>`), never from a checkout at another commit: a diff shows what changed, not whether the result still fits the part it is in.
 
 ### 2. Read the inputs
 
 Read the design, the conventions, and the ADRs. For each one that is missing, follow "When inputs are missing", and write it under "Missing inputs" in the report.
 
-Run `project_config.py check`; if it reports any problem, stop and report every line it printed. Read `english_only` and `client_language` with `project_config.py get`. Run `approval.py status`, adding `--lang <client_language>` when `english_only` is `true`. Go on only when its line `version <n>: current, answer: <answer>` says `current` and the answer is the approval and nothing else: exactly `approved` when `approvals.md` is in English, or the same word in its language. If the only errors are about the kept copy of the approved translation (`.keyturn/i18n/<lang>/keyturn/client/requirements.v<n>.approved.md`), the requirements are still approved; go on, and report the error to whoever runs `spec`. Otherwise, or if the design or the conventions say they are not based on approved requirements, follow "When inputs are missing".
+If there is no `keyturn/client/requirements.md`, skip the rest of this paragraph and follow "No requirements" in "When inputs are missing". Otherwise, if there is no `keyturn/config.json`, follow "No `keyturn/config.json`" first. Run `project_config.py check`; if it reports any problem, stop and report every line it printed. Read `english_only` and `client_language` with `project_config.py get`. Run `approval.py status`, adding `--lang <client_language>` when `english_only` is `true`. Go on only when its line `version <n>: current, answer: <answer>` says `current` and the answer is the approval and nothing else: exactly `approved` when `approvals.md` is in English, or the same word in its language. If the only errors are about the kept copy of the approved translation (`.keyturn/i18n/<lang>/keyturn/client/requirements.v<n>.approved.md`), the requirements are still approved; go on, and report the error to whoever runs `spec`. Otherwise, or if the design or the conventions say they are not based on approved requirements, follow "When inputs are missing".
 
 Sort the ADRs by status. An `accepted` ADR is a decision the change must follow. A `proposed` ADR is not decided yet: code that builds what only a proposed ADR decides is a finding. A `superseded` ADR is replaced by the one it links to; follow that one.
 
@@ -58,22 +58,22 @@ Sort the ADRs by status. An `accepted` ADR is a decision the change must follow.
 
 Go through the change part by part, as the design divides it. For each changed file:
 
-- **Design fit.** The code is in the part the design gives that work, and does only what the design says that part does (for example, a handler that only parses input and calls a service does not check a business rule itself). It uses the interfaces and the data model as the design describes them: no new table, field, route, or public function the design does not have, and nothing the design has left out or done differently. Every library it uses is one the design lists, used for what the design lists it for. A requirement met in another way than the design says is a finding, even if it works.
+- **Design fit.** The code is in the part the design gives that work, and does only what the design says that part does (for example, a handler that only parses input and calls a service does not check a business rule itself). It uses the interfaces and the data model as the design describes them: no new table, field, route, or public function the design does not have, and nothing the design has left out or done differently. Every library it uses is one the design lists, used for what the design lists it for. A requirement met by another behavior, data model, or mechanism than the design says is a finding, even if it works; a rule that is enforced as designed but in the wrong part is a design fit finding of its own (step 4).
 - **ADR conflict.** Nothing contradicts an accepted ADR of the project, or builds what only a proposed one decides. Check the ADRs whose subject the change touches (for example, how sessions work, which database is used, how the repository is laid out), not only the ones the design links to.
 - **Readability.** Names say what a value or function is, in the words of the requirements and the design. Control flow is simple: early returns over deep nesting, one thing per function, no clever code where plain code works. Comments explain why, not what, and agree with the code. No unused code, no abstraction with a single use that does not make the code clearer, and no extension point for a need the requirements do not have. Judge what makes the code hard for the next person to change, not taste.
 - **Conventions.** Check every item of the "Reviewer checklist" against the change, one by one, and name the `C-n` a finding breaks. Do not repeat what the "Tool rules" check: the gate runs them.
-- **What the gate relies on.** These weaken a check, so report them even though the gate also looks: a new comment that silences a tool (for example `//nolint`, `eslint-disable`, `# nosec`) without an accepted ADR that allows it; a test that is skipped or disabled; and a change by the developer to a protected path (gate scripts, stack profiles, the CI jobs that run the gates, linter configs, `keyturn/internal/conventions.md`, or a path under the folders in the design's "QA's tests").
+- **What the gate relies on.** These weaken a check, so report them even though the gate also looks: a new comment that silences a tool (for example `//nolint`, `eslint-disable`, `# nosec`) without an accepted ADR that allows it; a test that is skipped, disabled, or removed (a test removed with the code it tested, with nothing in its place, still lowers the number of tests); and a change by the developer to a protected path (gate scripts, stack profiles, the CI jobs that run the gates, linter configs, `keyturn/internal/conventions.md`, or a path under the folders in the design's "QA's tests").
 
 Whether changed paths stay inside "Areas the work may change" is the gate's check, not this role's. If you notice a security problem, report it as a finding with the category `security`, and say that it is for the security role to confirm; do not look for more.
 
 ### 4. Write the findings
 
-One finding per problem, numbered `F-1`, `F-2`, ... with every field of the template. Location is a file and line (or range), or the part of the design it concerns. Category is `design fit`, `readability`, `conventions`, `ADR conflict`, or, for what step 3 says, `security`. "Based on" names the design part, the convention (`C-n`), the requirement (`R-n`), or the ADR.
+One finding per problem, numbered `F-1`, `F-2`, ... with every field of the template. Location is a file and line (or range), or the part of the design it concerns. Category is `design fit`, `readability`, `conventions`, `ADR conflict`, or, for what step 3 says, `security`. "Based on" names the design part, the convention (`C-n`), the requirement (`R-n`), the ADR, or, for a `security` finding, the threat (`T-n`) if there is one.
 
 Severity:
 
-- **high**: it contradicts an accepted ADR; it builds what only a proposed ADR decides; it changes the structure the design fixes (a part reaches what the design keeps from it, or a table, route, or library the design does not have); it meets a requirement differently from the design; or it is one of the changes under "What the gate relies on". High findings block delivery like a failing gate.
-- **medium**: the code works but is in the wrong part, or breaks a convention (`C-n`) in a way that makes the code harder to change or check (for example, a business rule checked in a handler instead of in the service).
+- **high**: it contradicts an accepted ADR; it builds what only a proposed ADR decides; it changes the structure the design fixes (a part reaches what the design keeps from it, or a table, route, or library the design does not have); it meets a requirement by another behavior, data model, or mechanism than the design says; or it is one of the changes under "What the gate relies on". High findings block delivery like a failing gate.
+- **medium**: the code works and does what the design says, but in the wrong part, or it breaks a convention (`C-n`) in a way that makes the code harder to change or check (for example, a password rule checked in a handler instead of in the service the design gives it to).
 - **low**: it is harder to read than it needs to be (for example, an unclear name, or a comment that repeats the code).
 
 When you are unsure between two severities, choose the higher one and say why.
@@ -83,10 +83,12 @@ When you are unsure between two severities, choose the higher one and say why.
 Start from `../../templates/internal/review.md`, write `keyturn/internal/review.md` in English, delete the "Security" section, and remove the template's comments and placeholders.
 
 - Title `# Review: <task or issue>`, "Reviewed by: reviewer", "Reviewed change: `<base>`..`<head>`", and "Compared against": the documents you used, with links (the design, the conventions, and every ADR you checked the change against).
-- **Missing inputs**: every input that was missing, and what you reviewed instead.
+- If the review is not based on approved requirements ("When inputs are missing"), say so in a line right under the title.
+- **Missing inputs**: every input that was missing, and what you reviewed instead. Delete the line when nothing was missing.
 - **Summary**: the number of findings by severity, and whether any blocks delivery.
+- **Findings**: "None." when there are none.
 
-Commit the report, and only it, so that uncommitted work of anyone else stays out of the commit: `git add -- keyturn/internal/review.md`, then `git commit -- keyturn/internal/review.md`. The report is new on the first review, so it must be added first.
+Commit the report, and only it, so that uncommitted work of anyone else stays out of the commit: `git add -- keyturn/internal/review.md`, then `git commit -- keyturn/internal/review.md`. The report is new on the first review, so it must be added first. If the report did not change (a rerun that found the same), there is nothing to commit: say so, and give the commit of the earlier report.
 
 ### 6. Report
 
@@ -102,13 +104,13 @@ This skill does not write the task's state file, and does not send anything to t
 
 When the developer has fixed findings and the review runs again:
 
-- Read the earlier `keyturn/internal/review.md` first, as committed: if it has uncommitted changes from a run that stopped before its commit, discard them and redo the review from step 1. Review the new range: from the same base to the new head. If the head has not moved since the last report, say so, and redo the checks without renumbering the findings.
+- Read the earlier `keyturn/internal/review.md` first, as committed: if it has uncommitted changes from a run that stopped before its commit, discard them and redo the review from step 1. Review the new range: from the same base to the new head. The report's own commits are not part of the change (step 1 leaves the report out of the diff): if no commit since the earlier report's "Reviewed change" head changes anything but `keyturn/internal/review.md`, the head has not moved; say so, and redo the checks without renumbering the findings.
 - Check each open finding again. Set it to `fixed` only when you have read the fix; otherwise keep it `open`. Never change or reuse a finding's number; new findings get the next numbers.
 - Review the whole range again, not only the fixes: a fix can break something else.
 
 ## When inputs are missing
 
-- **No Git repository**: stop and report it; there is no change to review, and the report is checkpointed by committing it.
+- **No Git repository**: stop and report it; there is no diff to review, and no commit to record the report in.
 - **No change** (an empty range): say there is nothing to review, and stop.
 - **No design**: if the task's state file shows the design step as done, stop and report it: the design must produce one. On its own, review the diff for readability and conventions only, and write under "Missing inputs": "No design document: reviewed the diff for readability and conventions only." Without the design's "QA's tests", protected-path changes to QA's tests cannot be told apart; say so.
 - **No conventions**: if the task's state file shows the conventions step as done, stop and report it. On its own, review readability by the rules in step 3 only, and say under "Missing inputs" that no `C-n` was checked.
@@ -121,4 +123,4 @@ When the developer has fixed findings and the review runs again:
 
 ## Notes
 
-- The reviewer runs in a context of its own, separate from the developer's and the security role's. When this skill is started for you by another role, you should have been given only the change and the documents above; if you were given the developer's notes or the security review, do not use them, and say so in your report.
+- The reviewer runs in a context of its own, separate from the developer's and the security role's. When this skill is started for you by another role, you should have been given only the change and the documents above; if you were given the developer's notes or the security review, do not use them, and say so to whoever asked (step 6).
