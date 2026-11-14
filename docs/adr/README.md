@@ -8,6 +8,7 @@ This folder holds the decisions made for keyturn itself. Projects that use keytu
 - Each ADR has a status: `proposed`, `accepted`, or `superseded`.
 - Check the existing ADRs before making a decision. If an accepted ADR already covers the question, follow it.
 - Do not edit an accepted ADR, except to mark it superseded. To change a decision, add a new ADR that explains what changed and links to the one it replaces.
+- When a new ADR replaces only part of an accepted ADR, the old ADR stays `accepted`, and its status line names the part that was replaced and the new ADR's number.
 
 See "Architecture decision records" in [`docs/DESIGN.md`](../DESIGN.md).
 
