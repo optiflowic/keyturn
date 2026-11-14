@@ -33,6 +33,9 @@ Latest review per reviewer:
 - coderabbitai: changes requested, 2026-11-12T08:30Z
 - maintainer: commented, 2026-11-12T09:00Z
 CodeRabbit rate limit: posted 2026-11-12T10:20Z, wait until 2026-11-12T11:04Z (34 min from now)
+Failed pre-merge checks in CodeRabbit's latest review:
+- Out of Scope Changes
+- Docstring Coverage
 
 Unresolved threads: 2
 
@@ -138,6 +141,31 @@ class SummaryTest(unittest.TestCase):
             "CodeRabbit rate limit: posted 2026-11-12T07:00Z, wait until 2026-11-12T08:03Z (passed)\n",
             pr_review.summarize(data, AFTER_THE_WAIT_ENDS),
         )
+
+    def test_leaves_out_the_failed_checks_line_when_none_failed(self):
+        data = load(REVIEW)
+        reviews = data["data"]["repository"]["pullRequest"]["latestReviews"]["nodes"]
+        reviews[1]["body"] = "**Actionable comments posted: 2**\n"
+        self.assertNotIn("Failed pre-merge checks", pr_review.summarize(data, BEFORE_THE_WAIT_ENDS))
+
+    def test_reads_failed_checks_only_from_coderabbits_latest_review(self):
+        # The maintainer's review in the sample lists a check too; it is not read.
+        self.assertNotIn("Not CodeRabbit", summary())
+        data = load(REVIEW)
+        reviews = data["data"]["repository"]["pullRequest"]["latestReviews"]["nodes"]
+        reviews.append({**reviews[1], "body": "Failed pre-merge checks:\n- Title check:\nShorten it.\n",
+                        "submittedAt": "2026-11-12T08:00:00Z"})
+        text = pr_review.summarize(data, BEFORE_THE_WAIT_ENDS)
+        self.assertIn("- Out of Scope Changes\n- Docstring Coverage\n\n", text)
+        self.assertNotIn("Title", text)
+
+    def test_reads_failed_checks_separated_by_blank_lines(self):
+        body = "Failed pre-merge checks:\n- Title check:\nShorten it.\n\n- Description check:\nFill it in.\n\nDone.\n- Later:\n"
+        self.assertEqual(pr_review.failed_checks(body), ["Title", "Description"])
+
+    def test_stops_reading_failed_checks_at_a_fence(self):
+        body = "```\nFailed pre-merge checks:\n- Title check:\nShorten it.\n```\n- Line 3:\n"
+        self.assertEqual(pr_review.failed_checks(body), ["Title"])
 
     def test_warns_when_not_every_thread_was_read(self):
         data = load(REVIEW)

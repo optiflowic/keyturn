@@ -8,6 +8,7 @@ Usage:
 It prints, in plain text:
 - the review decision and the latest review of each reviewer;
 - whether CodeRabbit has posted a rate limit comment, and until when it asked to wait;
+- the name of each failed pre-merge check that CodeRabbit's latest review lists, if it lists any;
 - every review thread that is neither resolved nor outdated: file and line, who wrote it, how many replies it has
   and who wrote the last one, and the point itself in a few lines. HTML, collapsed <details> sections (analysis
   chains, run logs, prompts for AI agents, committable suggestions), and suggested diffs are stripped out.
@@ -44,7 +45,7 @@ query($owner: String!, $name: String!, $number: Int!, $after: String) {
       state
       reviewDecision
       latestReviews(first: 100) {
-        nodes { author { login } state submittedAt }
+        nodes { author { login } state body submittedAt }
       }
       reviewThreads(first: 100, after: $after) {
         pageInfo { hasNextPage endCursor }
@@ -83,6 +84,11 @@ RATE_LIMIT_MARKER = "<!-- This is an auto-generated comment: rate limited by cod
 RATE_LIMITED_REPLY = "Review rate limited."
 WAIT_LINE_RE = re.compile(r"available in ([^.*\n]+)|wait \**([^*\n]+?)\** before", re.IGNORECASE)
 DURATION_PART_RE = re.compile(r"(\d+)\s*(hour|minute|second)s?", re.IGNORECASE)
+
+# CodeRabbit lists the checks that failed under this line of its review, each as "- <name> check:" followed by
+# what to do about it.
+FAILED_CHECKS_HEADING = "Failed pre-merge checks:"
+FAILED_CHECK_RE = re.compile(r"- (?P<name>.+?)(?: check)?:")
 
 HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
 DETAILS_TAG_RE = re.compile(r"<details\b[^>]*>|</details\s*>", re.IGNORECASE)
@@ -253,6 +259,39 @@ def rate_limit(pr: dict, now: datetime) -> str:
     return text
 
 
+def failed_checks(body: str) -> list[str]:
+    """The names of the checks listed under "Failed pre-merge checks:" in a review body.
+
+    The list ends at a fence, or at a blank line that is not followed by another check.
+    """
+    lines = [line.strip() for line in body.splitlines()]
+    if FAILED_CHECKS_HEADING not in lines:
+        return []
+    names = []
+    rest = lines[lines.index(FAILED_CHECKS_HEADING) + 1:]
+    for number, line in enumerate(rest):
+        if line.startswith(("```", "~~~")):
+            break
+        if not line:
+            following = next((later for later in rest[number + 1:] if later), "")
+            if not FAILED_CHECK_RE.fullmatch(following):
+                break
+            continue
+        check = FAILED_CHECK_RE.fullmatch(line)
+        if check:
+            names.append(check.group("name"))
+    return names
+
+
+def latest_failed_checks(pr: dict) -> list[str]:
+    """The failed pre-merge checks in CodeRabbit's latest review."""
+    reviews = [review for review in pr["latestReviews"]["nodes"] if is_coderabbit(review)]
+    if not reviews:
+        return []
+    latest = max(reviews, key=lambda review: review.get("submittedAt") or "")
+    return failed_checks(latest.get("body") or "")
+
+
 def lines_of(thread: dict) -> str:
     if thread.get("isOutdated") or thread.get("line") is None:
         end, start = thread.get("originalLine"), thread.get("originalStartLine")
@@ -301,6 +340,10 @@ def summarize(data: dict, now: datetime, full: bool = False) -> str:
     else:
         out.append("Latest review per reviewer: none")
     out.append(f"CodeRabbit rate limit: {rate_limit(pr, now)}")
+    checks = latest_failed_checks(pr)
+    if checks:
+        out.append("Failed pre-merge checks in CodeRabbit's latest review:")
+        out.extend(f"- {name}" for name in checks)
 
     threads = pr["reviewThreads"]["nodes"]
     unresolved = [thread for thread in threads if not thread.get("isResolved")]
