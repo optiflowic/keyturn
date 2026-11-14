@@ -499,6 +499,7 @@ scripts/                  # tools for developing keyturn (not run by skills), wi
 docs/
   DESIGN.md               # this document
   adr/                    # keyturn's own decision records
+  pre-pr-checklist.md     # what the review before a pull request checks
 AGENTS.md
 README.md
 LICENSE                   # MIT
