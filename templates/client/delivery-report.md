@@ -43,6 +43,7 @@ One row per requirement in this delivery. Removed requirements are left out.
 One row per kind of check that ran. Use these rows, and add others only if they ran.
 Name who did each check in plain words, as in the rows below, not with internal role names:
 - Automated checks (the gate): the mechanical checks (tests, lint, formatting, and, where the stack profile has them, scans for known vulnerability patterns, vulnerable dependencies, and leaked secrets).
+  The dependency scan covers every component in the lock file, including the ones the chosen components pull in; say so in its result.
 - Independent tester (QA): tests written from the requirements only, never from the code.
 - Security reviewer: a review from an attacker's point of view, against the threat model.
 - Code reviewer: design fit, readability, and conventions.
@@ -61,6 +62,7 @@ Name who did each check in plain words, as in the rows below, not with internal 
 <!--
 Everything that was not checked, and why: checks the stack profile cannot run, a stack without a profile (gate coverage is limited),
 acceptance criteria QA could not test, threats without a verified mitigation, and checks that only the client can do by hand.
+While the gate has no dependency scan, list the components the chosen ones pull in (the indirect dependencies) here: nothing has checked them.
 Never leave this section empty: if everything listed in the stack profile ran, say what the profile itself cannot check.
 -->
 

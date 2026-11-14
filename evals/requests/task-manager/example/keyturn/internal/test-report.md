@@ -13,13 +13,13 @@ No failures in the final run.
 
 | Criterion | Covers | Result | Tests |
 |---|---|---|---|
-| AC-1 | R-1, R-2 | pass | `api/internal/http/account_test.go`: `TestSignUpSignOutSignIn`, `TestTasksNeedSession`; `web/e2e/account.spec.ts` |
-| AC-2 | R-1 | pass | `api/internal/http/account_test.go`: `TestSignUpRejectsShortPassword` |
-| AC-3 | R-3, R-4 | pass | `api/internal/http/task_test.go`: `TestCreateTaskKeepsTitleAsTyped`; `web/e2e/tasks.spec.ts` |
-| AC-4 | R-7 | pass | `api/internal/http/task_test.go`: `TestOtherUserCannotListTasks`, `TestOtherUserTaskIsNotFound` |
+| AC-1 | R-1, R-2 | pass | `api/qa/account_test.go`: `TestSignUpSignOutSignIn`, `TestTasksNeedSession`; `web/e2e/account.spec.ts` |
+| AC-2 | R-1 | pass | `api/qa/account_test.go`: `TestSignUpRejectsShortPassword` |
+| AC-3 | R-3, R-4 | pass | `api/qa/task_test.go`: `TestCreateTaskKeepsTitleAsTyped`; `web/e2e/tasks.spec.ts` |
+| AC-4 | R-7 | pass | `api/qa/task_test.go`: `TestOtherUserCannotListTasks`, `TestOtherUserTaskIsNotFound` |
 | AC-5 | R-5 | not tested | |
 | AC-6 | R-6 | not tested | |
-| AC-7 | R-8 | pass | `api/internal/http/account_test.go`: `TestSignInBlockedAfterFiveFailures`, `TestBlockEndsAfterFifteenMinutes`, `TestSessionWorksWhileBlocked` |
+| AC-7 | R-8 | pass | `api/qa/account_test.go`: `TestSignInBlockedAfterFiveFailures`, `TestBlockEndsAfterFifteenMinutes`, `TestSessionWorksWhileBlocked` |
 | AC-8 | R-9 | not tested | |
 
 ## Failures
@@ -36,4 +36,4 @@ None.
 
 - Tests: 39 (32 Go, 7 browser)
 - Skipped or disabled tests: 0
-- Coverage: 84% (Go); not measured (web)
+- Coverage: 84% (Go, measured across all packages with `-coverpkg=./...`, because the tests in `api/qa/` are in a package of their own); not measured (web)

@@ -62,7 +62,9 @@ Leave the section with "No stored data." when there is none.
 ## Libraries and external services
 
 <!--
-Every dependency and external service the work adds or relies on. "Kind" says what each dependency is (see ADR 0015 in keyturn):
+Every direct dependency and external service the work adds or relies on: what the project's manifest names itself (for Go, the `require` entries in go.mod without an `// indirect` comment), including the peer dependencies a direct dependency requires.
+Indirect dependencies are not listed: the lock file fixes them and is always committed (for example package-lock.json for npm; for Go, go.mod, whose `// indirect` entries fix them, with go.sum for their checksums), and the gate's dependency scan checks them (ADR 0018 in keyturn). Until the gate has a dependency scan, nothing checks them, and the delivery report lists them under "What was not verified".
+"Kind" says what each dependency is (see ADR 0015 in keyturn):
 - runtime: a library or tool that is part of the deliverable or builds it (for example React, or Vite). Never a profile tool, even if the stack profile recommends it.
 - profile tool: a development tool the stack profile names, that only checks, formats, or tests the code and is not part of the deliverable (for example a linter or a test tool).
 - other tool: a development tool no stack profile names. While no profile exists, every development tool is an other tool.
@@ -83,12 +85,26 @@ Leave the section with "None." when there are none.
 <!--
 The files and folders the developer may change, as paths or glob patterns relative to the repository root, one per row.
 The gate compares the changed files with this list and flags anything outside it (phase 4). A change outside these areas needs an updated design first.
-Never list the protected paths here: gate scripts, stack profiles, the CI jobs that run the gates, linter configs, conventions, and tests written by QA.
+Never list the protected paths here: gate scripts, stack profiles, the CI jobs that run the gates, linter configs, conventions, and tests written by QA (the folders in "QA's tests").
 -->
 
 | Path | What changes | Serves |
 |---|---|---|
 | `<path or glob>` | <what changes there> | R-<n> |
+
+## QA's tests
+
+<!--
+The folders where QA writes its tests, as glob patterns relative to the repository root, one per row. See ADR 0017 in keyturn's docs/adr/.
+- Each is a folder of its own, outside every path in "Areas the work may change": the developer may not change QA's tests, and the gate checks this by path alone (phase 4).
+  Never list one of these folders, or a path inside it, under "Areas the work may change".
+- Use the folder name the stack profile sets. Without a profile, name a folder that the stack's test runner finds.
+- The developer's own unit tests are not listed here: they stay next to the code, inside the developer's areas.
+-->
+
+| Path | What is tested there |
+|---|---|
+| `<folder>/**` | <for example, the API through HTTP, or the pages in a browser> |
 
 ## Requirements coverage
 
