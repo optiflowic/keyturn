@@ -70,7 +70,16 @@ def valid_window(window: object) -> bool:
     if not isinstance(window, dict):
         return False
     used, resets = window.get("used_percentage"), window.get("resets_at")
-    return is_number(used) and 0 <= used <= 100 and is_number(resets)
+    return is_number(used) and 0 <= used <= 100 and is_number(resets) and is_time(resets)
+
+
+def is_time(epoch: float) -> bool:
+    """A finite number may still be outside what a date can hold; such a window must not break the others."""
+    try:
+        utc(epoch)
+    except (OverflowError, OSError, ValueError):
+        return False
+    return True
 
 
 # --- Recording ----------------------------------------------------------------------------------------------------

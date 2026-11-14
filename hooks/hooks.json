@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/adapters/claude/scripts/usage.py\" hook --hard 90",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/adapters/claude/scripts/usage.py\" hook",
             "timeout": 10
           }
         ]

@@ -18,7 +18,7 @@ This is the only committed instructions file. If your tool reads a different fil
 ## Where things live
 
 - `docs/DESIGN.md`: the design and the phases.
-- `docs/adr/`: decisions about keyturn itself. Follow the rules in `docs/adr/README.md`: one decision per file, started from `template.md`, added to the index; never edit an accepted ADR, supersede it with a new one.
+- `docs/adr/`: decisions about keyturn itself. Follow the rules in `docs/adr/README.md`: one decision per file, started from `template.md`, added to the index; never edit an accepted ADR, supersede it with a new one (the only edits are marking it superseded, or naming the part that a new ADR replaces, as that README says).
 - `docs/pre-pr-checklist.md`: what the review before a pull request checks, in sections by changed path.
 - `skills/<name>/SKILL.md`: one skill per role, written to the Agent Skills standard. Frontmatter uses only `name` and `description`. A skill says what a role does (inputs, procedure, outputs), not which tool runs it. Scripts a skill needs go in `skills/<name>/scripts/`, with their tests next to them.
 - `templates/client/` and `templates/internal/`: document templates (from phase 2). Client-facing documents are written in the client's language by default; internal ones always in English.

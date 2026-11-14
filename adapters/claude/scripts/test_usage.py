@@ -160,6 +160,19 @@ class UsageTest(unittest.TestCase):
         self.record(status(five_hour=95.0, resets_in=60))
         self.assertEqual(self.run_script("hook", stdin="{}", now=NOW + 120).stdout, "")
 
+    def test_hook_still_denies_when_the_other_window_has_an_impossible_reset_time(self):
+        windows = {"five_hour": {"used_percentage": 95.0, "resets_at": NOW + HOUR, "recorded_at": NOW},
+                   "seven_day": {"used_percentage": 10.0, "resets_at": -1e100, "recorded_at": NOW}}
+        self.file.write_text(json.dumps({"written_at": NOW, "windows": windows}))
+        result = self.run_script("hook", stdin="{}")
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("5-hour window at 95%", json.loads(result.stdout)["hookSpecificOutput"]["permissionDecisionReason"])
+
+    def test_installed_hook_takes_the_hard_limit_from_the_environment(self):
+        hooks = json.loads((SCRIPT.parents[3] / "hooks" / "hooks.json").read_text())
+        command = hooks["hooks"]["PreToolUse"][0]["hooks"][0]["command"]
+        self.assertNotIn("--hard", command)
+
     def test_hook_hard_limit_is_configurable(self):
         self.record(status(five_hour=75.0))
         self.assertIn("deny", self.run_script("hook", "--hard", "70", stdin="{}").stdout)
