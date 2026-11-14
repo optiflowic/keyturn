@@ -10,8 +10,8 @@ What the review before a pull request checks ([ADR 0019](adr/0019-pre-pull-reque
 
 ## Documents: `docs/**`, `AGENTS.md`, `templates/**`, `evals/**`, `.github/**`
 
-- [ ] A changed rule or statement says the same as every other place that states it: `docs/DESIGN.md`, the ADRs, `AGENTS.md`, the templates, the worked examples, the skills, and what the scripts do.
-- [ ] After a line was changed, the other lines in the same file that depend on it (a recommendation, a summary, an example) still agree with it.
+- [ ] A changed rule or statement says the same as every other place that states it: `docs/DESIGN.md`, the ADRs, `AGENTS.md`, the templates (including the issue forms and the pull request template), the worked examples, the skills, and what the scripts do.
+- [ ] After a line was changed, the other lines in the same file that depend on it (a recommendation, a summary, an example) still agree with it. A new exception to a rule is also stated, or pointed to, wherever another section restates that rule.
 - [ ] Nothing presents a `proposed` ADR as decided ([ADR rules](adr/README.md)).
 - [ ] A worked example fills in every part its template asks for, and a template change has its example updated ("Before opening a pull request" in [`AGENTS.md`](../AGENTS.md)).
 - [ ] A procedure in "Trying changes locally" in [`AGENTS.md`](../AGENTS.md), followed step by step as written, reaches the state it is meant to try (for example, a file is committed before a step that reads the committed file).

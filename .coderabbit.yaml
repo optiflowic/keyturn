@@ -17,6 +17,9 @@ reviews:
     # Review each pull request once automatically. Re-reviews are asked for with
     # `@coderabbitai review` after all fixes are pushed, to save the review allowance.
     auto_incremental_review: false
+    # Skip automatic reviews of small pull requests that are merged without waiting for a review.
+    labels:
+      - "!no-review"
 
   path_instructions:
     - path: "**"

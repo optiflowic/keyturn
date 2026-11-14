@@ -13,6 +13,7 @@
                 "login": "maintainer"
               },
               "state": "COMMENTED",
+              "body": "Failed pre-merge checks:\n- Not CodeRabbit check:\nA maintainer's review is not read for checks.\n",
               "submittedAt": "2026-11-12T09:00:00Z"
             },
             {
@@ -20,6 +21,7 @@
                 "login": "coderabbitai"
               },
               "state": "CHANGES_REQUESTED",
+              "body": "<!-- coderabbit-ai-generated:v1 -->\n\n**Actionable comments posted: 2**\n\n<details>\n<summary>Prompt to fix all issues</summary>\n<dl>\n<dd>\n\n```\nInline comments:\nReview comments at @skills/example/scripts/example.py:\n- Line 146: Check the exit code before printing success.\n\n---\n\nFailed pre-merge checks:\n- Out of Scope Changes check:\nMove the unrelated changes into a separate pull request that has its own\nissue. Then reassess.\n- Docstring Coverage check:\nAdd docstrings to the new functions.\n\nAfter applying the fix, consider running `coderabbit review --agent` for local\nreview.\n```\n\n</dd>\n</dl>\n</details>\n",
               "submittedAt": "2026-11-12T08:30:00Z"
             }
           ]

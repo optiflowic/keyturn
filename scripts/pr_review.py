@@ -8,6 +8,7 @@ Usage:
 It prints, in plain text:
 - the review decision and the latest review of each reviewer;
 - whether CodeRabbit has posted a rate limit comment, and until when it asked to wait;
+- the name of each failed pre-merge check that CodeRabbit's latest review lists, if it lists any;
 - every review thread that is neither resolved nor outdated: file and line, who wrote it, how many replies it has
   and who wrote the last one, and the point itself in a few lines. HTML, collapsed <details> sections (analysis
   chains, run logs, prompts for AI agents, committable suggestions), and suggested diffs are stripped out.
@@ -44,7 +45,7 @@ query($owner: String!, $name: String!, $number: Int!, $after: String) {
       state
       reviewDecision
       latestReviews(first: 100) {
-        nodes { author { login } state submittedAt }
+        nodes { author { login } state body submittedAt }
       }
       reviewThreads(first: 100, after: $after) {
         pageInfo { hasNextPage endCursor }
@@ -83,6 +84,11 @@ RATE_LIMIT_MARKER = "<!-- This is an auto-generated comment: rate limited by cod
 RATE_LIMITED_REPLY = "Review rate limited."
 WAIT_LINE_RE = re.compile(r"available in ([^.*\n]+)|wait \**([^*\n]+?)\** before", re.IGNORECASE)
 DURATION_PART_RE = re.compile(r"(\d+)\s*(hour|minute|second)s?", re.IGNORECASE)
+
+# CodeRabbit lists the checks that failed under this line of its review, each as "- <name> check:" followed by
+# what to do about it, on the same line or the next ones.
+FAILED_CHECKS_HEADING = "Failed pre-merge checks:"
+FAILED_CHECK_RE = re.compile(r"- (?P<name>[^:]+?) check:(?:\s.*)?")
 
 HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
 DETAILS_TAG_RE = re.compile(r"<details\b[^>]*>|</details\s*>", re.IGNORECASE)
@@ -196,39 +202,57 @@ def parse_duration(text: str) -> timedelta | None:
     return timedelta(seconds=seconds) if found else None
 
 
+def wait_of(body: str) -> timedelta | None:
+    """The wait a rate limit comment asks for, or None if it gives none."""
+    for match in WAIT_LINE_RE.finditer(HTML_COMMENT_RE.sub("", body)):
+        wait = parse_duration(match.group(1) or match.group(2))
+        if wait is not None:
+            return wait
+    return None
+
+
+def describe_wait(posted: datetime, wait: timedelta, now: datetime) -> str:
+    until = posted + wait
+    # Round up to the minute, so that the time shown is never before the wait is over.
+    if until.second or until.microsecond:
+        until = until.replace(second=0, microsecond=0) + timedelta(minutes=1)
+    if until <= now:
+        return f"wait until {show_time(until)} (passed)"
+    minutes = -(-int((until - now).total_seconds()) // 60)
+    return f"wait until {show_time(until)} ({minutes} min from now)"
+
+
 def rate_limit(pr: dict, now: datetime) -> str:
-    """Describe CodeRabbit's latest rate limit comment, or say there is none."""
-    latest = None
+    """Describe CodeRabbit's latest rate limit comment, or say there is none.
+
+    A "Review rate limited." reply gives no wait time. When the latest comment gives none, the wait is read from
+    the latest one that does, which is usually the summary comment CodeRabbit edits on each limit, as long as
+    that wait had not ended when the latest comment was posted.
+    """
+    notices = []
     for comment in pr["comments"]["nodes"]:
         body = comment.get("body") or ""
         if not is_coderabbit(comment):
             continue
         if RATE_LIMIT_MARKER not in body and RATE_LIMITED_REPLY not in body:
             continue
-        posted = parse_github_time(comment.get("updatedAt") or comment["createdAt"])
-        if latest is None or posted > latest[0]:
-            latest = (posted, body)
-    if latest is None:
+        notices.append((parse_github_time(comment.get("updatedAt") or comment["createdAt"]), wait_of(body)))
+    if not notices:
         return "none"
-    posted, body = latest
+    notices.sort(key=lambda notice: notice[0])
+    posted, wait = notices[-1]
     text = f"posted {show_time(posted)}"
-    wait = None
-    for match in WAIT_LINE_RE.finditer(HTML_COMMENT_RE.sub("", body)):
-        wait = parse_duration(match.group(1) or match.group(2))
-        if wait is not None:
-            break
-    if wait is None:
-        text += ", no wait time given"
+    if wait is not None:
+        text += ", " + describe_wait(posted, wait, now)
     else:
-        until = posted + wait
-        # Round up to the minute, so that the time shown is never before the wait is over.
-        if until.second or until.microsecond:
-            until = until.replace(second=0, microsecond=0) + timedelta(minutes=1)
-        if until <= now:
-            text += f", wait until {show_time(until)} (passed)"
-        else:
-            minutes = -(-int((until - now).total_seconds()) // 60)
-            text += f", wait until {show_time(until)} ({minutes} min from now)"
+        text += ", no wait time given"
+        # An earlier wait counts only if it was still running when the latest notice came; one that had already
+        # ended belongs to an earlier limit.
+        timed = [notice for notice in notices if notice[1] is not None and notice[0] + notice[1] > posted]
+        if timed:
+            timed_posted, timed_wait = timed[-1]
+            text += f"; the last one that gave one, posted {show_time(timed_posted)}, said to "
+            text += describe_wait(timed_posted, timed_wait, now)
     reviewed_after = [
         review for review in pr["latestReviews"]["nodes"]
         if is_coderabbit(review) and review.get("submittedAt") and parse_github_time(review["submittedAt"]) > posted
@@ -236,6 +260,41 @@ def rate_limit(pr: dict, now: datetime) -> str:
     if reviewed_after:
         text += "; CodeRabbit has reviewed since"
     return text
+
+
+def failed_checks(body: str) -> list[str]:
+    """The names of the checks listed under "Failed pre-merge checks:" in a review body.
+
+    The list ends at a fence, or at a blank line that is not followed by another check.
+    """
+    lines = [line.strip() for line in body.splitlines()]
+    if FAILED_CHECKS_HEADING not in lines:
+        return []
+    names = []
+    rest = lines[lines.index(FAILED_CHECKS_HEADING) + 1:]
+    for number, line in enumerate(rest):
+        if line.startswith(("```", "~~~")):
+            break
+        if not line:
+            following = next((later for later in rest[number + 1:] if later), "")
+            if not FAILED_CHECK_RE.fullmatch(following):
+                break
+            continue
+        check = FAILED_CHECK_RE.fullmatch(line)
+        if check:
+            names.append(check.group("name"))
+    return names
+
+
+def latest_failed_checks(pr: dict) -> tuple[str, list[str]]:
+    """When CodeRabbit's latest review was submitted, and the failed pre-merge checks it lists."""
+    reviews = [review for review in pr["latestReviews"]["nodes"] if is_coderabbit(review)]
+    if not reviews:
+        return "", []
+    latest = max(reviews, key=lambda review: review.get("submittedAt") or "")
+    when = latest.get("submittedAt")
+    when = show_time(parse_github_time(when)) if when else "not submitted"
+    return when, failed_checks(latest.get("body") or "")
 
 
 def lines_of(thread: dict) -> str:
@@ -286,6 +345,11 @@ def summarize(data: dict, now: datetime, full: bool = False) -> str:
     else:
         out.append("Latest review per reviewer: none")
     out.append(f"CodeRabbit rate limit: {rate_limit(pr, now)}")
+    # The checks are as of that review: fixes pushed after it do not change them until CodeRabbit reviews again.
+    when, checks = latest_failed_checks(pr)
+    if checks:
+        out.append(f"Failed pre-merge checks in CodeRabbit's latest review ({when}):")
+        out.extend(f"- {name}" for name in checks)
 
     threads = pr["reviewThreads"]["nodes"]
     unresolved = [thread for thread in threads if not thread.get("isResolved")]
