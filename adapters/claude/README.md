@@ -10,19 +10,23 @@ keyturn must not use up a subscription's usage windows ("Subscription usage limi
 
 | Command | Where it runs | What it does |
 |---|---|---|
-| `usage.py statusline` | the status line | Records both windows in `~/.keyturn/usage.json` (one file per user: the windows belong to the account, not to a project) and prints them, for example `5-hour 42%  7-day 13%`. |
+| `usage.py statusline` | the status line | Records both windows in `~/.keyturn/usage.json` (one file per user: the windows belong to the account, not to a project) and prints them, for example `5-hour 42%  7-day 13%`. A window the input leaves out (for example, before the session's first API response) keeps its last value until it resets, so a high value is never erased. |
 | `usage.py check` | before each new step (the `deliver` skill) | Soft stop. Exits 0 when both windows are below `--soft` (default 80). Exits 1, with a `stop:` line per reason, when a window is at or above it, or when a value is unknown: nothing recorded, a window missing, a recording older than 15 minutes (`--max-age-minutes`), or a window past its reset with no newer value. A stop for usage says when it can continue. |
 | `usage.py hook` | every tool call, as a PreToolUse hook | Hard stop. Denies the call when a recorded window is at or above `--hard` (default 90) and has not reset yet, even if the recording is old (usage only grows until the reset). A missing value never blocks a tool call; `check` stops at the next step boundary instead. |
 
-Both limits apply to the 5-hour and the 7-day window. To change them, pass `--soft` to `check` and `--hard` to `hook`.
+Both limits apply to the 5-hour and the 7-day window. To change them, set `KEYTURN_SOFT_LIMIT` and `KEYTURN_HARD_LIMIT` (percentages) in the environment Claude Code starts in, or pass `--soft` to `check` and `--hard` to `hook`. The hook's `--hard 90` in `hooks/hooks.json` is part of the installed plugin, so set the variable rather than editing it.
+
+A value in the file that is missing, out of range, or of the wrong type counts as unknown. A setup error (a limit that is not a percentage, or a `KEYTURN_USAGE_FILE` that is not an absolute path) fails closed: `check` stops, and the hook blocks every tool call with the error until it is fixed. Any other unexpected error makes `check` stop and lets the hook allow the call, as for a missing value.
 
 ### Setting it up
 
 - The hook is part of the plugin ([`hooks/hooks.json`](../../hooks/hooks.json)), so it is on whenever the plugin is enabled, also inside subagents.
 - A plugin cannot set the status line, so add it to your user settings (`~/.claude/settings.json`), as in [`statusline-settings.json`](statusline-settings.json), with the path of the plugin's folder (your working copy, when you load it with `claude --plugin-dir .`). If you already have a status line, call `usage.py statusline` from it with the same input on stdin, and print its line with yours.
-- The file can also be moved with `KEYTURN_USAGE_FILE`, set the same way for the status line, the hook, and `check`.
+- The file can also be moved with `KEYTURN_USAGE_FILE`, an absolute path, set the same way for the status line, the hook, and `check` (in the environment Claude Code starts in).
 
 ### What is not known yet
 
 - Headless runs (`claude -p`) and subagents may not run the status line. Then no recording is fresh, and `check` stops every new step: run the pipeline in an interactive session until a usage source exists for those runs.
+- Without a subscription (an API key), Claude Code gives no `rate_limits`, so `check` stops every new step. The limits are for subscription plans; there is no way to turn `check` off yet.
+- The hook runs `python3`. If it is not on the `PATH`, Claude Code treats the failed hook as a non-blocking error, and the hard stop is off without a warning.
 - Codex needs its own usage source (phase 10).
