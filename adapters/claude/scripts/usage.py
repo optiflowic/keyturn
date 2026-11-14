@@ -15,61 +15,104 @@ This script records those values and answers two questions from them:
                `check` stops at the next step boundary instead.
 
 The usage is the account's, not a project's, so it is kept in one file per user:
-~/.keyturn/usage.json, or the path in KEYTURN_USAGE_FILE.
+~/.keyturn/usage.json, or the absolute path in KEYTURN_USAGE_FILE. The default
+limits can be set with KEYTURN_SOFT_LIMIT and KEYTURN_HARD_LIMIT.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import sys
+import tempfile
 import time
 from datetime import datetime, timezone
 from pathlib import Path
 
 WINDOWS = {"five_hour": "5-hour", "seven_day": "7-day"}
-DEFAULT_SOFT = 80.0
-DEFAULT_HARD = 90.0
+DEFAULT_SOFT = "80"
+DEFAULT_HARD = "90"
 # The status line runs on every assistant message, so a recording older than this
 # means nothing has updated it (for example, a headless run) and it may be too low.
-DEFAULT_MAX_AGE_MINUTES = 15
+DEFAULT_MAX_AGE_MINUTES = "15"
+
+
+class ConfigError(Exception):
+    """The script was set up wrongly: the person must fix it, so it is never treated as missing data."""
 
 
 def usage_file() -> Path:
-    return Path(os.environ.get("KEYTURN_USAGE_FILE") or Path.home() / ".keyturn" / "usage.json")
+    configured = os.environ.get("KEYTURN_USAGE_FILE")
+    if configured:
+        path = Path(configured)
+        if not path.is_absolute():
+            # A relative path would point to a different file in each process's folder.
+            raise ConfigError(f"KEYTURN_USAGE_FILE must be an absolute path: {configured}")
+        return path
+    try:
+        return Path.home() / ".keyturn" / "usage.json"
+    except RuntimeError as error:
+        raise ConfigError(f"cannot find the home folder ({error}); set KEYTURN_USAGE_FILE") from None
 
 
 def utc(epoch: float) -> str:
     return datetime.fromtimestamp(epoch, timezone.utc).strftime("%Y-%m-%dT%H:%MZ")
 
 
+def is_number(value: object) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+
+
+def valid_window(window: object) -> bool:
+    """The one check for a window's values, whether they come from Claude Code or from the file."""
+    if not isinstance(window, dict):
+        return False
+    used, resets = window.get("used_percentage"), window.get("resets_at")
+    return is_number(used) and 0 <= used <= 100 and is_number(resets)
+
+
 # --- Recording ----------------------------------------------------------------------------------------------------
 
 
-def windows_from_status(status: dict) -> dict:
+def windows_from_status(status: dict, now: float) -> dict:
     """Keep only well-formed windows; a window Claude Code left out stays out."""
     limits = status.get("rate_limits")
-    found = {}
     if not isinstance(limits, dict):
-        return found
-    for name in WINDOWS:
-        window = limits.get(name)
-        if not isinstance(window, dict):
-            continue
-        used, resets = window.get("used_percentage"), window.get("resets_at")
-        if isinstance(used, (int, float)) and isinstance(resets, (int, float)):
-            found[name] = {"used_percentage": float(used), "resets_at": float(resets)}
-    return found
+        return {}
+    return {name: {"used_percentage": float(limits[name]["used_percentage"]),
+                   "resets_at": float(limits[name]["resets_at"]),
+                   "recorded_at": now}
+            for name in WINDOWS if valid_window(limits.get(name))}
+
+
+def merge(new_windows: dict, record: dict | None, now: float) -> dict:
+    """Keep a recorded window that the new input leaves out until it resets.
+
+    Claude Code may leave rate_limits out (for example, before a session's first
+    API response); that must not erase a high value the hard stop relies on.
+    """
+    kept = {}
+    for name, window in (record or {}).get("windows", {}).items():
+        if name in WINDOWS and valid_window(window) and window["resets_at"] > now:
+            kept[name] = window
+    kept.update(new_windows)
+    return kept
 
 
 def write_record(windows: dict, now: float) -> None:
-    """Write atomically, so a check never reads half a file."""
+    """Write atomically, through a temporary file of its own, so a check never reads half a file."""
     path = usage_file()
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(path.name + ".tmp")
-    temporary.write_text(json.dumps({"written_at": now, "windows": windows}, indent=2) + "\n", encoding="utf-8")
-    temporary.replace(path)
+    descriptor, temporary = tempfile.mkstemp(dir=path.parent, prefix=path.name + ".", suffix=".tmp")
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as file:
+            file.write(json.dumps({"written_at": now, "windows": windows}, indent=2) + "\n")
+        os.replace(temporary, path)
+    except BaseException:
+        Path(temporary).unlink(missing_ok=True)
+        raise
 
 
 def status_text(windows: dict) -> str:
@@ -84,13 +127,13 @@ def cmd_statusline(now: float) -> int:
         status = json.load(sys.stdin)
     except (json.JSONDecodeError, UnicodeDecodeError):
         status = {}
-    windows = windows_from_status(status if isinstance(status, dict) else {})
+    new_windows = windows_from_status(status if isinstance(status, dict) else {}, now)
     try:
-        write_record(windows, now)
-    except OSError as error:
-        print(f"usage: not recorded ({error.strerror or error})")
+        write_record(merge(new_windows, read_record(), now), now)
+    except (OSError, ConfigError) as error:
+        print(f"usage: not recorded ({getattr(error, 'strerror', None) or error})")
         return 0
-    print(status_text(windows))
+    print(status_text(new_windows))
     return 0
 
 
@@ -113,13 +156,13 @@ def window_states(record: dict | None, now: float, max_age_minutes: float) -> di
             states[name] = {"unknown": f"{label} window: no usage recorded ({usage_file()})"}
             continue
         window = record["windows"].get(name)
-        written_at = record.get("written_at")
-        if not isinstance(window, dict) or not isinstance(written_at, (int, float)):
+        recorded_at = window.get("recorded_at") if isinstance(window, dict) else None
+        if not valid_window(window) or not is_number(recorded_at):
             states[name] = {"unknown": f"{label} window: not in the last recording"}
         elif window["resets_at"] <= now:
             states[name] = {"unknown": f"{label} window: reset at {utc(window['resets_at'])}, no newer value yet"}
-        elif now - written_at > max_age_minutes * 60:
-            states[name] = {"unknown": f"{label} window: last recorded at {utc(written_at)}, more than {max_age_minutes:g} minutes ago"}
+        elif now - recorded_at > max_age_minutes * 60:
+            states[name] = {"unknown": f"{label} window: last recorded at {utc(recorded_at)}, more than {max_age_minutes:g} minutes ago"}
         else:
             states[name] = {"used": window["used_percentage"], "resets_at": window["resets_at"]}
     return states
@@ -155,39 +198,72 @@ def cmd_hook(hard: float, now: float) -> int:
             "hookSpecificOutput": {
                 "hookEventName": "PreToolUse",
                 "permissionDecision": "deny",
+                # Every tool call is denied, so the agent cannot save anything now: resume uses the
+                # state saved at the last step boundary.
                 "permissionDecisionReason": "keyturn hard stop: " + "; ".join(reasons)
-                + ". Save the task's state and stop until the window resets.",
+                + ". Stop now and start no new work until the window resets; resume continues from the state saved at the last step.",
             }
         }
         print(json.dumps(decision))
     return 0
 
 
+# --- Arguments ----------------------------------------------------------------------------------------------------
+
+
 def percentage(value: str) -> float:
-    number = float(value)
-    if not 0 < number <= 100:
+    try:
+        number = float(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"not a percentage between 0 and 100: {value}") from None
+    if not (math.isfinite(number) and 0 < number <= 100):
         raise argparse.ArgumentTypeError(f"not a percentage between 0 and 100: {value}")
+    return number
+
+
+def minutes(value: str) -> float:
+    try:
+        number = float(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"not a positive number of minutes: {value}") from None
+    if not (math.isfinite(number) and number > 0):
+        raise argparse.ArgumentTypeError(f"not a positive number of minutes: {value}")
     return number
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Keep keyturn within the Claude subscription's usage windows.")
     parser.add_argument("--now", type=float, default=None, help=argparse.SUPPRESS)  # epoch seconds, for tests
-    parser.add_argument("--max-age-minutes", type=float, default=DEFAULT_MAX_AGE_MINUTES)
+    parser.add_argument("--max-age-minutes", type=minutes, default=DEFAULT_MAX_AGE_MINUTES)
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("statusline", help="record the usage from the status line input and print it")
     check = commands.add_parser("check", help="exit 0 if a new step may start, 1 if not")
-    check.add_argument("--soft", type=percentage, default=DEFAULT_SOFT)
+    # argparse applies `type` to a string default too, so a wrong KEYTURN_*_LIMIT is reported like a wrong option.
+    check.add_argument("--soft", type=percentage, default=os.environ.get("KEYTURN_SOFT_LIMIT") or DEFAULT_SOFT)
     hook = commands.add_parser("hook", help="PreToolUse hook: deny tool calls at the hard limit")
-    hook.add_argument("--hard", type=percentage, default=DEFAULT_HARD)
+    hook.add_argument("--hard", type=percentage, default=os.environ.get("KEYTURN_HARD_LIMIT") or DEFAULT_HARD)
     args = parser.parse_args()
 
     now = time.time() if args.now is None else args.now
-    if args.command == "statusline":
-        return cmd_statusline(now)
-    if args.command == "check":
-        return cmd_check(args.soft, now, args.max_age_minutes)
-    return cmd_hook(args.hard, now)
+    try:
+        if args.command == "statusline":
+            return cmd_statusline(now)
+        if args.command == "check":
+            return cmd_check(args.soft, now, args.max_age_minutes)
+        return cmd_hook(args.hard, now)
+    except ConfigError as error:
+        # Set up wrongly: fail closed. Exit 2 makes Claude Code block the tool call and show the message.
+        print(f"keyturn usage: {error}", file=sys.stderr)
+        if args.command == "check":
+            print(f"stop: {error}")
+            return 1
+        return 2
+    except Exception as error:  # an unexpected error must never look like "ok"
+        print(f"keyturn usage: unexpected error: {error!r}", file=sys.stderr)
+        if args.command == "check":
+            print(f"stop: cannot read the usage ({error!r}); treat it as unknown")
+            return 1
+        return 1  # hook: a non-blocking error, like missing data; check stops at the next step
 
 
 if __name__ == "__main__":

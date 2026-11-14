@@ -32,8 +32,11 @@ class UsageTest(unittest.TestCase):
     def tearDown(self):
         self.folder.cleanup()
 
-    def run_script(self, *args: str, stdin: str = "", now: float = NOW) -> subprocess.CompletedProcess:
-        env = dict(os.environ, KEYTURN_USAGE_FILE=str(self.file))
+    def run_script(self, *args: str, stdin: str = "", now: float = NOW,
+                   extra_env: dict | None = None) -> subprocess.CompletedProcess:
+        env = {name: value for name, value in os.environ.items() if not name.startswith("KEYTURN_")}
+        env["KEYTURN_USAGE_FILE"] = str(self.file)
+        env.update(extra_env or {})
         return subprocess.run([sys.executable, str(SCRIPT), "--now", str(now), *args],
                               input=stdin, capture_output=True, text=True, env=env)
 
@@ -47,7 +50,8 @@ class UsageTest(unittest.TestCase):
         self.assertEqual(result.stdout.strip(), "5-hour 42%  7-day 13%")
         saved = json.loads(self.file.read_text())
         self.assertEqual(saved["written_at"], NOW)
-        self.assertEqual(saved["windows"]["five_hour"], {"used_percentage": 42.0, "resets_at": NOW + 2 * HOUR})
+        self.assertEqual(saved["windows"]["five_hour"],
+                         {"used_percentage": 42.0, "resets_at": NOW + 2 * HOUR, "recorded_at": NOW})
 
     def test_statusline_without_rate_limits_records_nothing_known(self):
         result = self.run_script("statusline", stdin=json.dumps({"workspace": {}}))
@@ -55,8 +59,35 @@ class UsageTest(unittest.TestCase):
         self.assertEqual(json.loads(self.file.read_text())["windows"], {})
 
     def test_statusline_never_fails_on_bad_input(self):
-        result = self.run_script("statusline", stdin="not json")
-        self.assertEqual((result.returncode, result.stdout.strip()), (0, "usage: unknown"))
+        for text in ("not json", "[]", json.dumps({"rate_limits": []})):
+            with self.subTest(text=text):
+                result = self.run_script("statusline", stdin=text)
+                self.assertEqual((result.returncode, result.stdout.strip()), (0, "usage: unknown"))
+
+    def test_statusline_keeps_a_window_the_input_leaves_out_until_it_resets(self):
+        self.record(status(five_hour=95.0, resets_in=HOUR))
+        self.record(json.dumps({"workspace": {}}), now=NOW + 60)
+        decision = json.loads(self.run_script("hook", stdin="{}", now=NOW + 120).stdout)
+        self.assertIn("5-hour window at 95%", decision["hookSpecificOutput"]["permissionDecisionReason"])
+        self.record(json.dumps({"workspace": {}}), now=NOW + 2 * HOUR)
+        self.assertNotIn("five_hour", json.loads(self.file.read_text())["windows"])
+
+    def test_statusline_skips_values_out_of_range_or_of_the_wrong_type(self):
+        for used in (-1, 101, "42", True, None):
+            with self.subTest(used=used):
+                limits = {"five_hour": {"used_percentage": used, "resets_at": NOW + HOUR}}
+                result = self.run_script("statusline", stdin=json.dumps({"rate_limits": limits}))
+                self.assertEqual(result.stdout.strip(), "usage: unknown")
+
+    def test_statusline_reports_a_file_it_cannot_write(self):
+        blocker = Path(self.folder.name) / "not-a-folder"
+        blocker.write_text("")
+        env = dict(os.environ, KEYTURN_USAGE_FILE=str(blocker / "usage.json"))
+        result = subprocess.run([sys.executable, str(SCRIPT), "--now", str(NOW), "statusline"],
+                                input=status(), capture_output=True, text=True, env=env)
+        self.assertEqual(result.returncode, 0)
+        self.assertTrue(result.stdout.startswith("usage: not recorded ("), result.stdout)
+        self.assertEqual(result.stderr, "")
 
     # check (soft stop)
 
@@ -129,10 +160,64 @@ class UsageTest(unittest.TestCase):
         self.record(status(five_hour=95.0, resets_in=60))
         self.assertEqual(self.run_script("hook", stdin="{}", now=NOW + 120).stdout, "")
 
+    def test_hook_hard_limit_is_configurable(self):
+        self.record(status(five_hour=75.0))
+        self.assertIn("deny", self.run_script("hook", "--hard", "70", stdin="{}").stdout)
+
+    def test_limits_can_come_from_the_environment(self):
+        self.record(status(five_hour=75.0))
+        self.assertEqual(self.run_script("check", extra_env={"KEYTURN_SOFT_LIMIT": "70"}).returncode, 1)
+        self.assertIn("deny", self.run_script("hook", stdin="{}", extra_env={"KEYTURN_HARD_LIMIT": "70"}).stdout)
+
     def test_limits_must_be_percentages(self):
-        result = self.run_script("check", "--soft", "0")
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("not a percentage", result.stderr)
+        for value in ("0", "101", "nan", "inf", "abc"):
+            with self.subTest(value=value):
+                for args in (("check", "--soft", value), ("hook", "--hard", value)):
+                    result = self.run_script(*args, stdin="{}")
+                    self.assertEqual(result.returncode, 2)
+                    self.assertIn("not a percentage", result.stderr)
+                    self.assertNotIn("Traceback", result.stderr)
+
+    def test_max_age_must_be_positive(self):
+        for value in ("0", "-5", "nan", "abc"):
+            with self.subTest(value=value):
+                result = self.run_script("--max-age-minutes", value, "check")
+                self.assertEqual(result.returncode, 2)
+                self.assertIn("not a positive number of minutes", result.stderr)
+
+    # the recorded file
+
+    def test_a_malformed_file_is_unknown_never_ok_and_never_blocks(self):
+        bad_windows = [
+            {"recorded_at": NOW, "resets_at": NOW + HOUR},                                  # a missing key
+            {"used_percentage": "95", "resets_at": NOW + HOUR, "recorded_at": NOW},        # a string
+            {"used_percentage": float("nan"), "resets_at": NOW + HOUR, "recorded_at": NOW},
+            {"used_percentage": 150, "resets_at": NOW + HOUR, "recorded_at": NOW},
+            {"used_percentage": 50, "resets_at": "soon", "recorded_at": NOW},
+        ]
+        for window in bad_windows:
+            with self.subTest(window=window):
+                good = {"used_percentage": 10, "resets_at": NOW + HOUR, "recorded_at": NOW}
+                self.file.write_text(json.dumps({"written_at": NOW, "windows": {"five_hour": window, "seven_day": good}}))
+                check = self.run_script("check")
+                self.assertEqual(check.returncode, 1)
+                self.assertIn("5-hour window: not in the last recording", check.stdout)
+                self.assertNotIn("Traceback", check.stderr)
+                hook = self.run_script("hook", stdin="{}")
+                self.assertEqual((hook.returncode, hook.stdout), (0, ""))
+
+    def test_a_relative_usage_file_is_refused(self):
+        check = self.run_script("check", extra_env={"KEYTURN_USAGE_FILE": "usage.json"})
+        self.assertEqual(check.returncode, 1)
+        self.assertIn("stop: KEYTURN_USAGE_FILE must be an absolute path", check.stdout)
+        hook = self.run_script("hook", stdin="{}", extra_env={"KEYTURN_USAGE_FILE": "usage.json"})
+        self.assertEqual(hook.returncode, 2)
+        self.assertIn("must be an absolute path", hook.stderr)
+
+    def test_a_window_that_resets_now_is_past_its_reset(self):
+        self.record(status(five_hour=95.0, resets_in=60))
+        self.assertIn("no newer value yet", self.run_script("check", now=NOW + 60).stdout)
+        self.assertEqual(self.run_script("hook", stdin="{}", now=NOW + 60).stdout, "")
 
 
 if __name__ == "__main__":
