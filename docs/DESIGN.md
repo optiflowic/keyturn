@@ -320,6 +320,7 @@ Each role works as part of the full pipeline and on its own (e.g., the human wri
 - Roles depend on **artifacts** (documents, git diff, repository), not on each other.
 - Each skill defines what to do when its input documents are missing (e.g., review compares against the design document if one exists, otherwise reviews the diff only).
 - When QA runs without a specification, the report must state that the tests treat the current behavior as correct.
+- A role may work from input that is not approved (for example, requirements the client has not approved, or a request given in another form) only when a person uses it on its own and declines to have requirements written and approved with `spec`. Its outputs then say that they are not based on approved requirements. `deliver` never takes in an output that says so: inside `deliver`, every role works only from approved input.
 
 ## GitHub Integration
 
