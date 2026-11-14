@@ -33,7 +33,7 @@ Latest review per reviewer:
 - coderabbitai: changes requested, 2026-11-12T08:30Z
 - maintainer: commented, 2026-11-12T09:00Z
 CodeRabbit rate limit: posted 2026-11-12T10:20Z, wait until 2026-11-12T11:04Z (34 min from now)
-Failed pre-merge checks in CodeRabbit's latest review:
+Failed pre-merge checks in CodeRabbit's latest review (2026-11-12T08:30Z):
 - Out of Scope Changes
 - Docstring Coverage
 
@@ -118,6 +118,16 @@ class SummaryTest(unittest.TestCase):
             pr_review.summarize(data, BEFORE_THE_WAIT_ENDS),
         )
 
+    def test_ignores_an_earlier_wait_that_had_ended_before_the_latest_reply(self):
+        # The summary comment's wait ended at 11:04Z; a reply at 12:00Z belongs to a new limit.
+        data = load(REVIEW)
+        comments = data["data"]["repository"]["pullRequest"]["comments"]["nodes"]
+        comments[0]["createdAt"] = comments[0]["updatedAt"] = "2026-11-12T12:00:00Z"
+        self.assertIn(
+            "CodeRabbit rate limit: posted 2026-11-12T12:00Z, no wait time given\n",
+            pr_review.summarize(data, AFTER_THE_WAIT_ENDS),
+        )
+
     def test_ignores_rate_limit_text_from_other_authors(self):
         data = load(REVIEW)
         pr = data["data"]["repository"]["pullRequest"]
@@ -148,9 +158,12 @@ class SummaryTest(unittest.TestCase):
         reviews[1]["body"] = "**Actionable comments posted: 2**\n"
         self.assertNotIn("Failed pre-merge checks", pr_review.summarize(data, BEFORE_THE_WAIT_ENDS))
 
-    def test_reads_failed_checks_only_from_coderabbits_latest_review(self):
+    def test_reads_failed_checks_only_from_coderabbits_reviews(self):
         # The maintainer's review in the sample lists a check too; it is not read.
         self.assertNotIn("Not CodeRabbit", summary())
+
+    def test_reads_failed_checks_from_the_newest_coderabbit_review(self):
+        # latestReviews holds one review per author, so this guards against a response that holds more.
         data = load(REVIEW)
         reviews = data["data"]["repository"]["pullRequest"]["latestReviews"]["nodes"]
         reviews.append({**reviews[1], "body": "Failed pre-merge checks:\n- Title check:\nShorten it.\n",
@@ -160,7 +173,11 @@ class SummaryTest(unittest.TestCase):
         self.assertNotIn("Title", text)
 
     def test_reads_failed_checks_separated_by_blank_lines(self):
-        body = "Failed pre-merge checks:\n- Title check:\nShorten it.\n\n- Description check:\nFill it in.\n\nDone.\n- Later:\n"
+        body = "Failed pre-merge checks:\n- Title check:\nShorten it.\n\n- Description check:\nFill it in.\n\nDone.\n- Later check:\n"
+        self.assertEqual(pr_review.failed_checks(body), ["Title", "Description"])
+
+    def test_reads_a_check_with_its_point_on_the_same_line_and_skips_other_bullets(self):
+        body = "Failed pre-merge checks:\n- Title check: Shorten it.\n- Description check:\nAdd these:\n- Steps:\n- Why.\n"
         self.assertEqual(pr_review.failed_checks(body), ["Title", "Description"])
 
     def test_stops_reading_failed_checks_at_a_fence(self):
