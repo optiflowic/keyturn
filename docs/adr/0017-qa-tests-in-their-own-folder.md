@@ -30,7 +30,7 @@ Until the stack profiles exist, the design names the folders. From phase 4, each
 ## Reasons
 
 - A path check is the simplest check the gate can make, and a folder is the simplest thing it can check: no naming rule per stack, and no exclusion patterns inside the developer's areas.
-- A test file that is in the wrong place shows up as a change outside the areas, instead of silently losing its protection, as a wrongly named file would under option 2.
+- A file the developer puts under QA's folders shows up as a change outside the areas. The path check does not catch the other mistake, a QA test placed inside a developer area: that test loses its protection without notice, as a wrongly named file would under option 2. One rule prevents it: the `qa` skill (#57) writes QA's tests only in the folders the design lists.
 - Testing only through exported or external interfaces fits QA writing tests from the specification only: the tests check what the deliverable does, not how it is built.
 - Naming the folders in the design now gives the `design` and `qa` skills a rule in phase 3; the profiles can fix the names per stack later without changing the rule.
 
