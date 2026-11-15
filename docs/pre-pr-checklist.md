@@ -7,7 +7,7 @@ What the review before a pull request checks ([ADR 0019](adr/0019-pre-pull-reque
 - [ ] Every link in the diff to a file in this repository points to a file that exists on `main` or in this pull request, not to a file that only an unmerged pull request adds.
 - [ ] A claim that uses "every", "all", "never", "only", or "always" has no counterexample. Look for one before accepting the claim.
 - [ ] Every skill, script, or file that the change relies on, and every caller it says runs something (for example, "the `deliver` skill runs this"), exists on `main` or in this pull request; otherwise the change says what does not happen yet.
-- [ ] A definition, or a list of the values something may take, holds for every case it covers, such as every stack or tool it names or every state a rule allows, not only the first one that comes to mind.
+- [ ] A definition, or a list of the values something may take, holds for every case it covers, such as every stack or tool it names, every state a rule allows, or every kind of change a rule about changed files covers (a deleted or renamed file too), not only the first one that comes to mind.
 
 ## Documents: `docs/**`, `AGENTS.md`, `templates/**`, `evals/**`, `.github/**`
 
@@ -24,6 +24,7 @@ What the review before a pull request checks ([ADR 0019](adr/0019-pre-pull-reque
 - [ ] The skill says what to do when an input is missing ([Roles are usable on their own](design/roles.md#roles-are-usable-on-their-own)), and when the repository is in a state it did not create, such as another branch or files committed before keyturn.
 - [ ] A skill that works on a Git range reads the code at the range's head and the documents it judges the code by as they were before the range (at its base), never from a checkout at another commit; a change to those documents inside the range is a finding; and scripts that read the working tree run only on a checkout where those documents are as they were at the base.
 - [ ] The client's words that change what will be built are not committed or recorded before their English is confirmed ([ADR 0013](adr/0013-confirming-translations-into-english.md)).
+- [ ] Walk through the procedure step by step, as written, in three cases: the first run, in a repository that has none of the skill's outputs yet; each input missing, one at a time; and a rerun. Every step can be done as written and leaves what the next step expects; the other items in this section say what to check in each case.
 - [ ] Every command the skill gives works in each case the skill allows: the first run (for example, a new file is not yet tracked, so it must be added before `git commit -- <path>`), and each missing input.
 - [ ] The skill allows nothing that the [Guardrails](design/guardrails.md) forbid or make wait for the client: what always needs the client's approval, even when a document lists it, and what fails the gate (such as a drop in the number of tests).
 
