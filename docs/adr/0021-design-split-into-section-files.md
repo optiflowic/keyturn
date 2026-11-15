@@ -23,7 +23,7 @@ Option 1. The design lives in `docs/design/`, one file per top-level section of 
 
 - Agents read only what their work relates to, plus Phases, which is what makes the split worth doing.
 - Keeping the headings at the same level and in the same order keeps every former anchor, including the numbered ones GitHub gives repeated headings (`#flow-1`), so links from accepted ADRs, issues, and pull requests keep working without editing them.
-- Only the references between sections changed: "See Guardrails" or "see below" now link to the file that holds the section, because the reader of one file no longer has the others below it.
+- The content is moved, not rewritten. Each file has its own title, so the headings move up one level, which leaves their anchors as they were. References between sections ("See Guardrails", "see below", "the readability principle above") now link to the file that holds the section, because the reader of one file no longer has the others around it; "this document" in Maintainer Notes becomes "this design", and the repository layout lists `docs/design/`.
 
 ## Consequences
 

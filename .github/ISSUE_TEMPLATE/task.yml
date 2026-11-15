@@ -43,7 +43,7 @@ body:
       label: Completion Criteria
       description: How do we know this task is done? Write criteria that can be checked.
       placeholder: |
-        - [ ] `localize` translates `docs/DESIGN.md` into Japanese under `.keyturn/i18n/ja/`
+        - [ ] `localize` translates `docs/design/concept.md` into Japanese under `.keyturn/i18n/ja/`
         - [ ] Nothing under `.keyturn/` is committed
     validations:
       required: true
