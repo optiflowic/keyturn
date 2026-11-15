@@ -62,7 +62,7 @@ This is the only committed instructions file. If your tool reads a different fil
 
   Ask it to report findings without editing files. Fix the findings that are right, then run the tests and checks above again for what the fixes touched. Do not run this first review again.
 - If the pull request changes `skills/`, `gates/`, or `adapters/`, commit the fixes of that review, then have a second fresh subagent review the diff once more ([ADR 0022](docs/adr/0022-second-review-stage-for-skills-gates-adapters.md)). It must have written neither the change nor the first review. In Claude Code, use a subagent with the Opus model; on a tool without subagents, use a separate process on a higher-tier model. Give it:
-  - the diff against `main` (`git diff main...HEAD`);
+  - the diff against `main` (`git diff main...HEAD`), and every changed file in full as it is on the branch;
   - "Guardrails" and the other sections of `docs/DESIGN.md` and the ADRs that the change relates to, and the files the diff links to, and nothing else from the repository (not the first review's findings);
   - the `path_instructions` in `.coderabbit.yaml` whose paths match the changed files.
 
