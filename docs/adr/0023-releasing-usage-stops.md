@@ -1,6 +1,6 @@
 # 0023. A person releases a usage stop until the window resets
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-11-15
 
 ## Context
