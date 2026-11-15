@@ -22,9 +22,10 @@ The usage is the account's, not a project's, so it is kept in one file per user:
 ~/.keyturn/usage.json, or the absolute path in KEYTURN_USAGE_FILE; releases are
 kept next to it, in usage-release.json. The default limits can be set with
 KEYTURN_SOFT_LIMIT and KEYTURN_HARD_LIMIT. KEYTURN_PLAN_WINDOWS names the windows
-the plan has (default: five_hour,seven_day); a window it leaves out never stops
-`check`. A window is left out only when a person says so there, never because
-Claude Code does not send it: a missing value may only mean it has not arrived.
+the plan has (default: five_hour,seven_day); a missing value of a window it leaves
+out does not stop `check`, while a known one still does. A window is left out only
+when a person says so there, never because Claude Code does not send it: a missing
+value may only mean it has not arrived.
 """
 
 from __future__ import annotations
@@ -51,7 +52,7 @@ DEFAULT_MAX_AGE_MINUTES = "15"
 # A Bash command that runs this script's release command. The hook denies it: an agent must not lift its own stop.
 # Matched at the subcommand's place (after the script and its options), so that a command that only
 # mentions both, such as `usage.py check && git commit -m "release notes"`, is not denied.
-RELEASE_COMMAND = re.compile(r"usage\.py[\'\"]?(?:\s+-\S+(?:\s+[^-\s]\S*)?)*\s+release\b")
+RELEASE_COMMAND = re.compile(r"usage\.py[\'\"]?(?:\s+-\S+(?:\s+[^-\s]\S*)?)*(?:\s|\\\n)+[\'\"]?release\b")
 
 
 class ConfigError(Exception):
@@ -237,8 +238,10 @@ def cmd_check(soft: float, now: float, max_age_minutes: float) -> int:
     states = window_states(read_record(), now, max_age_minutes)
     releases = read_releases()
     stops, notes = [], []
-    for name in windows:
-        state, label = states[name], WINDOWS[name]
+    for name, label in WINDOWS.items():
+        state = states[name]
+        if "unknown" in state and name not in windows:
+            continue  # the person said the plan does not have it; a known value still counts below
         if "unknown" in state:
             stops.append(f"stop: {state['unknown']}; treat it as unknown")
         elif state["used"] >= soft and is_released(releases, name, state, "soft"):
@@ -249,7 +252,7 @@ def cmd_check(soft: float, now: float, max_age_minutes: float) -> int:
     if stops:
         print("\n".join(stops))
         return 1
-    print("ok: " + ", ".join(f"{WINDOWS[name]} window at {states[name]['used']:.0f}%" for name in windows))
+    print("ok: " + ", ".join(f"{WINDOWS[name]} window at {states[name]['used']:.0f}%" for name in WINDOWS if "used" in states[name]))
     for note in notes:
         print(f"note: {note}")
     return 0
@@ -317,17 +320,21 @@ def cmd_release(soft: float, hard: float, now: float) -> int:
             continue  # the plan does not have it, and the hook stops only on a known value
         if "unknown" in state:
             lines.append(f"not released: {state['unknown']}; a window can be released only while its value is known")
-        elif state["used"] >= soft:
+        elif state["used"] >= min(soft, hard):
             stop = "hard" if state["used"] >= hard else "soft"
             releases[name] = {"resets_at": state["resets_at"], "stop": stop, "released_at": now}
             released.append(name)
             lines.append(f"released: {label} window at {state['used']:.0f}%, {stop} stop"
                          f"{' and soft stop' if stop == 'hard' else ''} lifted until {utc(state['resets_at'])}")
     if not released:
-        lines.append(f"nothing to release: no window is at or above {soft:g}%")
+        lines.append(f"nothing to release: no window is at or above {min(soft, hard):g}%")
         print("\n".join(lines))
         return 1
-    write_json(release_file(), releases)
+    try:
+        write_json(release_file(), releases)
+    except OSError as error:
+        print(f"stop: the release was not recorded ({release_file()}: {error.strerror or error}); nothing was released")
+        return 1
     print("\n".join(lines))
     return 0
 

@@ -44,9 +44,9 @@ When keyturn runs on a subscription plan, it must not use up the plan's usage wi
   - **Soft stop (default 80%)**: the pipeline does not start a new step. The current state is saved (see [Resuming Work](resuming-work.md)) so work can resume after `resets_at`.
   - **Hard stop (default 90%)**: a safety hook blocks further tool calls, in case a single step runs long.
 - Both thresholds apply to the 5-hour and the 7-day window, and are configurable.
-- Proposed in [ADR 0023](../adr/0023-releasing-usage-stops-and-plan-windows.md), not decided yet:
-  - A person can release a stop until the window resets, by running a command themselves; the next window stops again at the same limits. The safety hook denies the plain ways an agent could try to release its own stop through a tool.
-  - Some plans have no 5-hour window. A window counts as one the plan does not have only when a person says so in a setting, never because the value is missing: a missing window may only mean it has not arrived yet.
+- Proposed, not decided yet:
+  - A person can release a stop until the window resets, by running a command themselves; the next window stops again at the same limits. A release of the hard stop lets that window be used up. The safety hook denies the plain ways an agent could try to release its own stop through a tool ([ADR 0023](../adr/0023-releasing-usage-stops.md)).
+  - Some plans have no 5-hour window. A window counts as one the plan does not have only when a person says so in a setting, never because the value is missing: a missing window may only mean it has not arrived yet. A value that is sent still counts ([ADR 0024](../adr/0024-windows-a-plan-has-are-a-setting.md)).
 - Things to verify during implementation: the values only appear after the first API response in a session, and may not be available in headless runs (`claude -p`) or subagents. If the value is missing, keyturn must treat it as unknown and stop at step boundaries rather than assume there is room.
 - Codex needs its own usage source; until one is available, the Codex adapter relies on the task budgets above.
 

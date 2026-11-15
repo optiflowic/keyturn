@@ -38,4 +38,5 @@ See "Architecture decision records" in [`docs/design/documents.md`](../design/do
 | [0020](0020-tool-specific-files-in-adapters.md) | Everything one tool uses lives in its adapter folder; files the tool needs at the plugin root stay thin | accepted |
 | [0021](0021-design-split-into-section-files.md) | The design is split into one file per section; `docs/DESIGN.md` stays as an index that keeps every heading | accepted |
 | [0022](0022-second-review-stage-for-skills-gates-adapters.md) | A second review stage, on a higher-tier model, before pull requests that change skills, gates, or adapters | accepted |
-| [0023](0023-releasing-usage-stops-and-plan-windows.md) | A person releases a usage stop until the window resets; the windows a plan has are a setting | proposed |
+| [0023](0023-releasing-usage-stops.md) | A person releases a usage stop until the window resets | proposed |
+| [0024](0024-windows-a-plan-has-are-a-setting.md) | The windows a plan has are a setting the person makes, never inferred from a missing value | proposed |

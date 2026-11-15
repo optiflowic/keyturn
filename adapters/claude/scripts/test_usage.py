@@ -319,6 +319,9 @@ class UsageTest(unittest.TestCase):
                      self.tool_call(command="python3 usage.py --max-age-minutes 5 release --soft 99"),
                      self.tool_call(command=f"echo '{{}}' > {release_path}"),
                      self.tool_call(command='python3 "${CLAUDE_PLUGIN_ROOT}/adapters/claude/scripts/usage.py" release'),
+                     self.tool_call(command='python3 usage.py "release"'),
+                     self.tool_call(command="python3 usage.py 'release'"),
+                     self.tool_call(command="python3 usage.py \\\nrelease"),
                      self.tool_call(file_path=release_path, content="{}"),
                      self.tool_call(file_path="usage-release.json", content="{}"),
                      json.dumps({"tool_name": "NotebookEdit", "tool_input": {"notebook_path": release_path}})):
@@ -359,9 +362,30 @@ class UsageTest(unittest.TestCase):
         self.assertEqual(self.run_script("release", extra_env=plan).returncode, 0)
         self.assertEqual(self.run_script("hook", stdin="{}").stdout, "")
 
+    def test_a_known_value_still_stops_a_window_the_plan_leaves_out(self):
+        self.record(status(five_hour=85.0, seven_day=10.0))
+        result = self.run_script("check", extra_env={"KEYTURN_PLAN_WINDOWS": "seven_day"})
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("5-hour window at 85%", result.stdout)
+
+    def test_release_lifts_a_hard_stop_below_the_soft_limit(self):
+        self.record(status(five_hour=92.0))
+        limits = {"KEYTURN_SOFT_LIMIT": "95"}
+        self.assertIn("deny", self.run_script("hook", stdin="{}").stdout)
+        self.assertEqual(self.run_script("release", extra_env=limits).returncode, 0)
+        self.assertEqual(self.run_script("hook", stdin="{}").stdout, "")
+
+    def test_release_says_when_it_cannot_be_recorded(self):
+        self.record(status(five_hour=95.0))
+        (Path(self.folder.name) / "usage-release.json").mkdir()
+        result = self.run_script("release")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("the release was not recorded", result.stdout)
+        self.assertIn("deny", self.run_script("hook", stdin="{}").stdout)
+
     def test_plan_windows_must_name_known_windows(self):
         self.record(status())
-        for value in ("", "five-hour", "seven_day,weekly", " , "):
+        for value in ("", "five-hour", "seven_day,weekly", " , ", "SEVEN_DAY"):
             with self.subTest(value=value):
                 result = self.run_script("check", extra_env={"KEYTURN_PLAN_WINDOWS": value})
                 self.assertEqual(result.returncode, 1)
