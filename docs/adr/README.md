@@ -10,7 +10,7 @@ This folder holds the decisions made for keyturn itself. Projects that use keytu
 - Do not edit an accepted ADR, except to mark it superseded. To change a decision, add a new ADR that explains what changed and links to the one it replaces.
 - When a new ADR replaces only part of an accepted ADR, the old ADR stays `accepted`, and its status line names the part that was replaced and the new ADR's number.
 
-See "Architecture decision records" in [`docs/DESIGN.md`](../DESIGN.md).
+See "Architecture decision records" in [`docs/design/documents.md`](../design/documents.md#architecture-decision-records).
 
 ## Index
 
@@ -36,4 +36,5 @@ See "Architecture decision records" in [`docs/DESIGN.md`](../DESIGN.md).
 | [0018](0018-direct-dependencies-in-the-design.md) | The design lists direct dependencies; the lock file covers the rest | accepted |
 | [0019](0019-pre-pull-request-review.md) | A fresh subagent reviews the diff once before a pull request is opened | accepted; "the review that needs judgment stays with CodeRabbit and the maintainer" superseded by [0022](0022-second-review-stage-for-skills-gates-adapters.md) for `skills/`, `gates/`, and `adapters/` |
 | [0020](0020-tool-specific-files-in-adapters.md) | Everything one tool uses lives in its adapter folder; files the tool needs at the plugin root stay thin | accepted |
+| [0021](0021-design-split-into-section-files.md) | The design is split into one file per section; `docs/DESIGN.md` stays as an index that keeps every heading | accepted |
 | [0022](0022-second-review-stage-for-skills-gates-adapters.md) | A second review stage, on a higher-tier model, before pull requests that change skills, gates, or adapters | accepted |

@@ -7,7 +7,7 @@ Templates for the documents that roles hand to each other and to the client.
 
 Each template has short filling instructions in HTML comments. Delete them, and the placeholders in `<angle brackets>`, when you fill in the template.
 
-See "Documents" in [`docs/DESIGN.md`](../docs/DESIGN.md).
+See [`docs/design/documents.md`](../docs/design/documents.md).
 
 ## Client-facing templates
 

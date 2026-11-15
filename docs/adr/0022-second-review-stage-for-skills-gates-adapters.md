@@ -8,7 +8,7 @@
 
 [ADR 0019](0019-pre-pull-request-review.md) has one review before a pull request: a fresh subagent on a lower-tier model compares what is written, and "the review that needs judgment stays with CodeRabbit and the maintainer" (its Reasons).
 
-On #101 (the `review` skill), a second stage was tried once at the maintainer's request, after the first stage's fixes: a fresh subagent on the session's model (Opus) took each rule of "Guardrails" in `docs/DESIGN.md` and of the matching `.coderabbit.yaml` path instructions, one at a time, and looked for a way the skill's procedure breaks it. It found 10 points that the first stage had missed. CodeRabbit's later review overlapped with 2 of them, and none of the 6 that were fixed came back. Most of what it found came from running the procedure in a case the author had not walked through: a rerun, a missing input, a range that changes the documents it is judged by.
+On #101 (the `review` skill), a second stage was tried once at the maintainer's request, after the first stage's fixes: a fresh subagent on the session's model (Opus) took each rule of "Guardrails" in the design ([`docs/design/guardrails.md`](../design/guardrails.md)) and of the matching `.coderabbit.yaml` path instructions, one at a time, and looked for a way the skill's procedure breaks it. It found 10 points that the first stage had missed. CodeRabbit's later review overlapped with 2 of them, and none of the 6 that were fixed came back. Most of what it found came from running the procedure in a case the author had not walked through: a rerun, a missing input, a range that changes the documents it is judged by.
 
 Skills, gates, and adapters are what a client's project runs, and what decides whether a check holds. A gap in them reaches every project that uses keyturn, while CodeRabbit's allowance is limited and each round of its points waits for it ("CodeRabbit rate limits" in `AGENTS.md`).
 
@@ -32,7 +32,7 @@ The author fixes the findings that are right, and reports those that need a deci
 
 ## Reasons
 
-- "Model Tiers" in `docs/DESIGN.md` has higher-tier models review a lower-tier model's output for what needs judgment, and ADR 0019 says its review is not that one. The second stage is that review, for the changes that reach client projects, run before the pull request rather than left to CodeRabbit's rounds.
+- "Model Tiers" in the design ([`docs/design/model-tiers.md`](../design/model-tiers.md)) has higher-tier models review a lower-tier model's output for what needs judgment, and ADR 0019 says its review is not that one. The second stage is that review, for the changes that reach client projects, run before the pull request rather than left to CodeRabbit's rounds.
 - On #101 the second stage found what the first stage cannot by comparing what is written: what happens when the procedure runs in a case the author did not walk through.
 - Limiting it to `skills/`, `gates/`, and `adapters/` spends the higher-tier model where a gap reaches every project, and keeps other pull requests as cheap as before.
 - Running it after the first stage's fixes, and once, keeps it from repeating what the first stage finds, and keeps its cost to one review.
