@@ -322,6 +322,8 @@ def cmd_release(soft: float, hard: float, now: float) -> int:
             lines.append(f"not released: {state['unknown']}; a window can be released only while its value is known")
         elif state["used"] >= min(soft, hard):
             stop = "hard" if state["used"] >= hard else "soft"
+            if is_released(releases, name, state, "hard"):
+                stop = "hard"  # releasing again, with other limits, never takes back a hard release of the same window
             releases[name] = {"resets_at": state["resets_at"], "stop": stop, "released_at": now}
             released.append(name)
             lines.append(f"released: {label} window at {state['used']:.0f}%, {stop} stop"

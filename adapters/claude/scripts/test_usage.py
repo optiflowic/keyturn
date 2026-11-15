@@ -294,6 +294,12 @@ class UsageTest(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("not a percentage", result.stderr)
 
+    def test_releasing_again_keeps_a_hard_release(self):
+        self.record(status(five_hour=95.0))
+        self.run_script("release", "--hard", "90")
+        self.assertIn("hard stop and soft stop lifted", self.run_script("release", "--hard", "99").stdout)
+        self.assertEqual(self.run_script("hook", stdin="{}").stdout, "")
+
     def test_release_with_nothing_to_release(self):
         self.record(status(five_hour=42.0))
         result = self.run_script("release")
