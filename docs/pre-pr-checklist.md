@@ -6,7 +6,7 @@ What the review before a pull request checks ([ADR 0019](adr/0019-pre-pull-reque
 
 - [ ] Every link in the diff to a file in this repository points to a file that exists on `main` or in this pull request, not to a file that only an unmerged pull request adds.
 - [ ] A claim that uses "every", "all", "never", "only", or "always" has no counterexample. Look for one before accepting the claim.
-- [ ] A definition holds for every case it covers, such as every stack or tool it names, not only the first one that comes to mind.
+- [ ] A definition, or a list of the values something may take, holds for every case it covers, such as every stack or tool it names or every state a rule allows, not only the first one that comes to mind.
 
 ## Documents: `docs/**`, `AGENTS.md`, `templates/**`, `evals/**`, `.github/**`
 
@@ -23,6 +23,7 @@ What the review before a pull request checks ([ADR 0019](adr/0019-pre-pull-reque
 - [ ] The skill says what to do when an input is missing ([Roles are usable on their own](DESIGN.md#roles-are-usable-on-their-own)), and when the repository is in a state it did not create, such as another branch or files committed before keyturn.
 - [ ] The client's words that change what will be built are not committed or recorded before their English is confirmed ([ADR 0013](adr/0013-confirming-translations-into-english.md)).
 - [ ] Every skill, script, or file the skill relies on exists on `main` or in this pull request.
+- [ ] Every command the skill gives works in each case the skill allows: the first run (for example, a new file is not yet tracked, so it must be added before `git commit -- <path>`), and each missing input.
 - [ ] The skill allows nothing that the [Guardrails](DESIGN.md#guardrails) forbid or make wait for the client: what always needs the client's approval, even when a document lists it, and what fails the gate (such as a drop in the number of tests).
 
 ## Scripts and their tests: `skills/**/scripts/**`, `scripts/**`
