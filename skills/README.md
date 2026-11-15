@@ -5,4 +5,4 @@ Each role's procedure lives here as `skills/<name>/SKILL.md`, written to the [Ag
 - Frontmatter uses only `name` and `description`.
 - A skill says what a role does (inputs, procedure, outputs). Who runs it is defined per tool in `adapters/`.
 
-See "Architecture" in [`docs/DESIGN.md`](../docs/DESIGN.md) and [ADR 0005](../docs/adr/0005-repository-root-as-plugin-root.md).
+See [`docs/design/architecture.md`](../docs/design/architecture.md) and [ADR 0005](../docs/adr/0005-repository-root-as-plugin-root.md).

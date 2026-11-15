@@ -32,7 +32,7 @@ body:
     id: phase
     attributes:
       label: Phase
-      description: Which phase in `docs/DESIGN.md` does this belong to? Also set the matching milestone.
+      description: Which phase in `docs/design/phases.md` does this belong to? Also set the matching milestone.
       placeholder: e.g., Phase 1 - Foundation
     validations:
       required: true
@@ -52,8 +52,8 @@ body:
     id: references
     attributes:
       label: Related Design and ADRs
-      description: Sections of `docs/DESIGN.md` and ADRs this task follows.
-      placeholder: e.g., DESIGN.md "Local translations", ADR-0003
+      description: Sections of the design (`docs/design/`) and ADRs this task follows.
+      placeholder: e.g., docs/design/language.md "Local translations", ADR-0003
 
   - type: textarea
     id: out_of_scope

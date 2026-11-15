@@ -7,7 +7,7 @@ A deliverable ships only because it passed mechanical checks (tests, static anal
 The name comes from a turnkey contract, where the contractor delivers something that is ready to use as soon as the client receives it.
 
 > [!NOTE]
-> keyturn is a work in progress. Only `localize` can be used today, and it is experimental. The full design, and the order in which it is built, are in [`docs/DESIGN.md`](docs/DESIGN.md). Progress on each phase is tracked in the [milestones](https://github.com/optiflowic/keyturn/milestones).
+> keyturn is a work in progress. Only `localize` can be used today, and it is experimental. The full design, and the order in which it is built, are in [`docs/DESIGN.md`](docs/DESIGN.md), an index of the files in [`docs/design/`](docs/design/). Progress on each phase is tracked in the [milestones](https://github.com/optiflowic/keyturn/milestones).
 
 ## Why
 
@@ -32,7 +32,7 @@ claude plugin marketplace add optiflowic/keyturn
 claude plugin install keyturn@keyturn
 ```
 
-Then, in the repository you want to read, ask for a file, an issue, or a pull request in your language, for example: "Translate docs/DESIGN.md into Japanese" or "Translate issue #9 into Japanese, with its comments." Issues and pull requests are fetched with the GitHub CLI (`gh`); nothing is posted to GitHub.
+Then, in the repository you want to read, ask for a file, an issue, or a pull request in your language, for example: "Translate docs/design/concept.md into Japanese" or "Translate issue #9 into Japanese, with its comments." Issues and pull requests are fetched with the GitHub CLI (`gh`); nothing is posted to GitHub.
 
 Translations are written to `.keyturn/i18n/<lang>/`, at the same paths as the originals (an issue's translation sits under `.keyturn/i18n/<lang>/.keyturn/github/`). When a document changes, only the changed sections are translated again, and when an issue gets a new comment, only that comment is translated. The full procedure is in [`skills/localize/SKILL.md`](skills/localize/SKILL.md).
 
@@ -49,7 +49,7 @@ See [ADR 0005](docs/adr/0005-repository-root-as-plugin-root.md) for how one `ski
 
 ## Documentation
 
-- [`docs/DESIGN.md`](docs/DESIGN.md): design principles, architecture, and phases
+- [`docs/DESIGN.md`](docs/DESIGN.md): the index of the design (principles, architecture, and phases), one file per section in [`docs/design/`](docs/design/)
 - [`docs/adr/`](docs/adr/): decisions about keyturn itself
 - [`AGENTS.md`](AGENTS.md): instructions for AI agents working on this repository
 - [`.github/SECURITY.md`](.github/SECURITY.md): how to report a vulnerability

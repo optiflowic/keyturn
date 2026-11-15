@@ -35,8 +35,8 @@ body:
     id: references
     attributes:
       label: Related Design and ADRs
-      description: Sections of `docs/DESIGN.md` and ADRs this proposal affects.
-      placeholder: e.g., DESIGN.md "Guardrails", ADR-0005
+      description: Sections of the design (`docs/design/`) and ADRs this proposal affects.
+      placeholder: e.g., docs/design/guardrails.md, ADR-0005
 
   - type: textarea
     id: alternatives

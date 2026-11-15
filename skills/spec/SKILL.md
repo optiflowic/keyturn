@@ -5,7 +5,7 @@ description: Act as keyturn's PM. Turn a client's request into requirements.md, 
 
 # spec
 
-Turn what the client asked for into requirements they can approve without reading code, and record exactly which text they approved. This is the PM role in keyturn's `docs/DESIGN.md` ("Phase 1 roles"). Later roles build and test only what the approved requirements say.
+Turn what the client asked for into requirements they can approve without reading code, and record exactly which text they approved. This is the PM role in keyturn's `docs/design/roles.md` ("Phase 1 roles"). Later roles build and test only what the approved requirements say.
 
 ## Rules
 
@@ -13,7 +13,7 @@ Turn what the client asked for into requirements they can approve without readin
 - **Propose, do not decide.** Priorities (Must or Nice to have), assumptions, and what is out of scope are proposals. The client decides them by approving or by telling you what to change.
 - **No answer is not consent.** Requirements that are not approved are never treated as approved, not even after a long wait. Work that depends on them waits (ADR 0009 in keyturn's `docs/adr/`).
 - **Never change a version after it is sent.** Once `requirements.md` is sent for approval, any edit, even to its status line, starts a new version that needs a new approval (ADR 0008).
-- **Keep the client's load small.** Write so that the whole document can be read in a few minutes. Ask only what you cannot reasonably propose, and send everything you need from the client at once ("Client attention budget" in `docs/DESIGN.md`).
+- **Keep the client's load small.** Write so that the whole document can be read in a few minutes. Ask only what you cannot reasonably propose, and send everything you need from the client at once ("Client attention budget" in `docs/design/documents.md`).
 
 ## Inputs
 
@@ -68,10 +68,10 @@ Start from `templates/client/requirements.md`, write `keyturn/client/requirement
   - Anything with accounts: who may sign up, what happens when a password is forgotten, whether an account can be changed or deleted, and what personal data is kept and deleted with it.
   - Anything with screens: the language of the screens and messages, which is separate from the language of these documents (English-only mode does not decide it; propose the client's language unless the request says otherwise), and which browsers or devices must work.
   - Who runs it, and what they can see of other people's data.
-  - Anything that needs a new external service (for example, sending email): propose it as a requirement the client must approve, or as out of scope, and say which ("Guardrails" in `docs/DESIGN.md`).
+  - Anything that needs a new external service (for example, sending email): propose it as a requirement the client must approve, or as out of scope, and say which ("Guardrails" in `docs/design/guardrails.md`).
 - **Priority**: propose Must for what the deliverable is useless or unsafe without, and Nice to have for the rest. A requirement that prevents misuse is Must.
 - **Acceptance criteria**: `AC-1`, `AC-2`, ... Each says what the client does and what they see, so they can check it by hand in the delivered deliverable. Every requirement is covered by at least one criterion. Never ask the client to inspect a server, a database, or code; if a requirement cannot be seen by hand, or checking it by hand would take unreasonable effort (typing 1,000 items), its expected result is what the delivery report shows about it (for example, "the delivery report shows that R-4 was tested and passed").
-- **Misuse**: think about how the deliverable could be misused or attacked: by another user, by someone who is not signed in, with wrong or harmful input (for example, text that looks like code), by repeated tries, and by using it against systems or data that are not the user's own. List the attack even when how it is stopped is left to the architect. Each entry names the requirement that prevents it; if none does, add one. If a requirement only reduces a risk, write "reduced by R-n", and list what remains under "Out of scope". If the deliverable can act on systems or data that are not the user's own (for example, a vulnerability scanner), add a requirement that it acts only on targets the user is authorized to use, checked before it acts ("Requirements must cover misuse" in `docs/DESIGN.md`).
+- **Misuse**: think about how the deliverable could be misused or attacked: by another user, by someone who is not signed in, with wrong or harmful input (for example, text that looks like code), by repeated tries, and by using it against systems or data that are not the user's own. List the attack even when how it is stopped is left to the architect. Each entry names the requirement that prevents it; if none does, add one. If a requirement only reduces a risk, write "reduced by R-n", and list what remains under "Out of scope". If the deliverable can act on systems or data that are not the user's own (for example, a vulnerability scanner), add a requirement that it acts only on targets the user is authorized to use, checked before it acts ("Requirements must cover misuse" in `docs/design/roles.md`).
 - **Out of scope**: what the client might expect but will not get, including what you assumed away, so there is no surprise at delivery.
 - **Unclear points**: when something is unclear, propose the most likely answer as a requirement or an out-of-scope item, so that approving or changing it answers the question. Ask a separate question (a decision card from `templates/client/decision-card.md`) only when no reasonable proposal exists, and send it together with the approval request.
 - **What you need to do**: ask the client to read the requirements and acceptance criteria by ID range, check the priorities, and approve them or say what to change. Point out by ID every requirement the client did not ask for (for example, one added to prevent misuse) and every assumption they should check.
