@@ -2,11 +2,11 @@
 
 Status: agreed
 
-Based on requirements version 1.
+Based on requirements version 2.
 
 ## Summary
 
-The app is one program that serves the pages and keeps the data in a single file on your server. People sign in with an email address and a password, and the server checks on every request that a person only reaches their own tasks.
+The app is one program that serves the pages and keeps the data in a single file on your server. People sign in with a username and a password, and the server checks on every request that a person only reaches their own tasks.
 You agreed to the three decisions that needed your agreement: where the data is kept, how signing in works, and the components the web pages are built with.
 
 ## What you need to do
@@ -48,7 +48,7 @@ You agreed to the three decisions that needed your agreement: where the data is 
 **Other options we considered**:
 
 - Keeping the sign-in only in the browser: signing out could not end it at once, and it is easier to steal.
-- Signing in with an outside account (for example, Google): you asked for email and password, and it would send sign-ins to an outside company.
+- Signing in with an outside account (for example, Google): you asked for your own accounts with a password, and it would send sign-ins to an outside company.
 
 **What it means for you**: People stay signed in for 7 days (you chose this in decision card 1). We checked the extra component: it is maintained, and its license lets you use it freely. It has one known security problem, in a part the app does not use; our automatic checks confirm that it stays unused.
 

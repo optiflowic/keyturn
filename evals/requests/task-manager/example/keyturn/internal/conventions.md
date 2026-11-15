@@ -1,6 +1,6 @@
 # Conventions: task manager
 
-Based on the design document: [design.md](design.md) (requirements version 1).
+Based on the design document: [design.md](design.md) (requirements version 2).
 
 - Stack profile: `go` for `api/`, `react-spa` for `web/`
 - Changed only by: an ADR in [adr/](adr/), listed under "Changes". The developer does not change this file or the files under "Tool rules".

@@ -12,7 +12,7 @@ You will know it works by following the acceptance guide we send with each deliv
 ## What you need to do
 
 > [!IMPORTANT]
-> - Read R-1 to R-9 and AC-1 to AC-8, check the priority of each requirement, and approve them, or tell us what to change.
+> - Read R-1 to R-9 and AC-1 to AC-9, check the priority of each requirement, and approve them, or tell us what to change.
 
 ## Background
 
@@ -24,13 +24,13 @@ You want a simple to-do list for yourself and a few friends. You will run it on 
 
 Priority: Must
 
-A person creates an account with an email address and a password. The password must be at least 12 characters long. One email address can have only one account.
+A person creates an account with a username they choose and a password. The password must be at least 12 characters long. One username can have only one account: if a username is taken, the sign-up page says so, and the person chooses another. A username cannot contain `@`, so that it is never an email address: if it does, the sign-up page says so. Usernames are not secret: anyone can find out whether a username is taken. The app asks for no email address.
 
 ### R-2: Sign in and sign out
 
 Priority: Must
 
-A person signs in with their email address and password, and signs out. Someone who is not signed in sees only the sign-in and sign-up pages.
+A person signs in with their username and password, and signs out. Someone who is not signed in sees only the sign-in and sign-up pages.
 
 ### R-3: Add a task
 
@@ -79,7 +79,7 @@ A signed-in person can choose to hide the tasks that are done, and show them aga
 ### AC-1: An account works from sign-up to sign-in
 
 - Covers: R-1, R-2
-- When: you sign up with a new email address and a password of 12 or more characters, sign out, and sign in again with the same email address and password
+- When: you sign up with a new username and a password of 12 or more characters, sign out, and sign in again with the same username and password
 - Expected result: after signing in, you see your task list. After signing out, opening the task list page shows the sign-in page instead.
 
 ### AC-2: A short password is refused
@@ -124,18 +124,26 @@ A signed-in person can choose to hide the tasks that are done, and show them aga
 - When: you mark a task as done and choose to hide finished tasks, then choose to show them again
 - Expected result: the finished task disappears from the list, and comes back when you show finished tasks again
 
+### AC-9: A username with `@` is refused
+
+- Covers: R-1
+- When: you try to sign up with the username `me@example.com` and a password of 12 or more characters
+- Expected result: no account is created, and the sign-up page says a username cannot contain `@`
+
 ## Misuse
 
 - Another signed-in person reads, changes, or deletes your tasks, for example by changing a link: prevented by R-7
 - Someone who is not signed in opens the task list or a task link: prevented by R-2 and R-7
 - Someone guesses a password by trying many passwords: prevented by R-1 (long passwords) and R-8
 - Someone puts code in a task title so that it runs in another person's browser: prevented by R-3 (titles are shown as plain text) and R-7 (other people never see your titles)
+- Someone finds out whether a username has an account, from the sign-up page, the sign-in page, or the block after wrong passwords: not a problem, because usernames are public on purpose (R-1)
+- Someone finds out whether an email address has an account, by trying it as a username: prevented by R-1 (a username cannot contain `@`, so no account has an email address as its username)
 
 ## Out of scope
 
 - Resetting a forgotten password
 - Sharing tasks with other people
-- Checking that an email address is real (no confirmation email is sent)
+- Email addresses: the app keeps none and sends no email
 - A phone app
 - Setting up the server, the domain, or backups (you run it yourself)
 
@@ -144,3 +152,4 @@ A signed-in person can choose to hide the tasks that are done, and show them aga
 | Version | Date | Change |
 |---|---|---|
 | 1 | 2026-11-08 | First version |
+| 2 | 2026-11-08 | R-1, R-2, AC-1, AC-9: sign up and sign in with a username instead of an email address, so that the app keeps no email address; a username cannot contain `@`, so that it is never an email address (AC-9 added); Misuse and Out of scope updated to match. The PM proposed it. |

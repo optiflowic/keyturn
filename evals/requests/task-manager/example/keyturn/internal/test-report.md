@@ -1,12 +1,12 @@
 # Test report: delivery 1
 
-- Specification: requirements version 1
+- Specification: requirements version 2
 - Tested commit: `task/delivery-1` at `9b02d4f`
 - Date: 2026-11-08
 
 ## Summary
 
-All 5 acceptance criteria in delivery 1 pass (AC-1 to AC-4, AC-7). AC-5, AC-6, and AC-8 belong to delivery 2 and were not tested.
+All 6 acceptance criteria in delivery 1 pass (AC-1 to AC-4, AC-7, AC-9). AC-5, AC-6, and AC-8 belong to delivery 2 and were not tested.
 No failures in the final run.
 
 ## Results
@@ -21,6 +21,7 @@ No failures in the final run.
 | AC-6 | R-6 | not tested | |
 | AC-7 | R-8 | pass | `api/qa/account_test.go`: `TestSignInBlockedAfterFiveFailures`, `TestBlockEndsAfterFifteenMinutes`, `TestSessionWorksWhileBlocked` |
 | AC-8 | R-9 | not tested | |
+| AC-9 | R-1 | pass | `api/qa/account_test.go`: `TestSignUpRejectsUsernameWithAt` |
 
 ## Failures
 
@@ -34,6 +35,6 @@ None.
 
 ## Test counts
 
-- Tests: 39 (32 Go, 7 browser)
+- Tests: 40 (33 Go, 7 browser)
 - Skipped or disabled tests: 0
 - Coverage: 84% (Go, measured across all packages with `-coverpkg=./...`, because the tests in `api/qa/` are in a package of their own); not measured (web)
