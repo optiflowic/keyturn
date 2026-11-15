@@ -8,6 +8,7 @@ This folder holds the decisions made for keyturn itself. Projects that use keytu
 - Each ADR has a status: `proposed`, `accepted`, or `superseded`.
 - Check the existing ADRs before making a decision. If an accepted ADR already covers the question, follow it.
 - Do not edit an accepted ADR, except to mark it superseded. To change a decision, add a new ADR that explains what changed and links to the one it replaces.
+- When a new ADR replaces only part of an accepted ADR, the old ADR stays `accepted`, and its status line names the part that was replaced and the new ADR's number.
 
 See "Architecture decision records" in [`docs/DESIGN.md`](../DESIGN.md).
 
@@ -19,7 +20,7 @@ See "Architecture decision records" in [`docs/DESIGN.md`](../DESIGN.md).
 | [0002](0002-mit-license.md) | MIT license | accepted |
 | [0003](0003-first-stack-profiles.md) | First stack profiles: `go` and `react-spa` | accepted |
 | [0004](0004-independent-ai-reviewer.md) | Independent AI reviewer from a different vendor | accepted |
-| [0005](0005-repository-root-as-plugin-root.md) | Repository root as the plugin root | accepted |
+| [0005](0005-repository-root-as-plugin-root.md) | Repository root as the plugin root | accepted; what `adapters/claude/` holds superseded by [0020](0020-tool-specific-files-in-adapters.md) |
 | [0006](0006-localize-helper-script.md) | A Python helper script for `localize` bookkeeping | accepted |
 | [0007](0007-github-content-as-local-source-files.md) | GitHub content is translated as local source files | accepted |
 | [0008](0008-approval-records-in-a-separate-file.md) | Approval records live in a separate file | accepted |
@@ -34,3 +35,4 @@ See "Architecture decision records" in [`docs/DESIGN.md`](../DESIGN.md).
 | [0017](0017-qa-tests-in-their-own-folder.md) | QA's tests live in their own folder, outside the areas the developer may change | accepted |
 | [0018](0018-direct-dependencies-in-the-design.md) | The design lists direct dependencies; the lock file covers the rest | accepted |
 | [0019](0019-pre-pull-request-review.md) | A fresh subagent reviews the diff once before a pull request is opened | accepted |
+| [0020](0020-tool-specific-files-in-adapters.md) | Everything one tool uses lives in its adapter folder; files the tool needs at the plugin root stay thin | accepted |

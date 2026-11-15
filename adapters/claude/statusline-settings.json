@@ -1,0 +1,6 @@
+{
+  "statusLine": {
+    "type": "command",
+    "command": "python3 \"<path to the keyturn plugin>/adapters/claude/scripts/usage.py\" statusline"
+  }
+}
