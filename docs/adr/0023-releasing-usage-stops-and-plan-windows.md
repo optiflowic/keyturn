@@ -26,7 +26,7 @@ Option 1. `usage.py release`, run by a person in a terminal of their own, lifts 
 ## Reasons
 
 - A release that ends at the window's reset cannot be forgotten into later windows, unlike raising the limits.
-- Only something the person does outside the agent's tools can lift a stop the agent is held to.
+- A stop the agent is held to is lifted by something the person does outside the agent's tools, and the hook denies the plain ways the agent could do it through a tool. It does not stop every way (for example, a script the agent writes first, or a made-up recording written to the usage file); those remain as before this decision.
 - A setting is something a person says; the absence of a value is not, so failing safe on missing data stays the rule.
 
 ## Consequences

@@ -49,7 +49,9 @@ DEFAULT_MAX_AGE_MINUTES = "15"
 
 
 # A Bash command that runs this script's release command. The hook denies it: an agent must not lift its own stop.
-RELEASE_COMMAND = re.compile(r"usage\.py\b.*\brelease\b", re.DOTALL)
+# Matched at the subcommand's place (after the script and its options), so that a command that only
+# mentions both, such as `usage.py check && git commit -m "release notes"`, is not denied.
+RELEASE_COMMAND = re.compile(r"usage\.py[\'\"]?(?:\s+-\S+(?:\s+[^-\s]\S*)?)*\s+release\b")
 
 
 class ConfigError(Exception):
@@ -200,7 +202,10 @@ def read_releases() -> dict:
 
 
 def is_released(releases: dict, name: str, state: dict, stop: str) -> bool:
-    """A release holds only for the window it was made for: a new window (a new reset time) stops again."""
+    """A release holds only for the window it was made for: a new window (a new reset time) stops again.
+
+    If Claude Code ever moved a window's reset time, the release would end early: that fails safe.
+    """
     release = releases.get(name)
     if not isinstance(release, dict) or "used" not in state or release.get("resets_at") != state["resets_at"]:
         return False
@@ -296,9 +301,12 @@ def cmd_hook(hard: float, now: float) -> int:
     return 0
 
 
-def cmd_release(soft: float, hard: float, now: float, max_age_minutes: float) -> int:
-    """Lift the stop of each window that has one now, until that window resets."""
-    states = window_states(read_record(), now, max_age_minutes)
+def cmd_release(soft: float, hard: float, now: float) -> int:
+    """Lift the stop of each window that has one now, until that window resets.
+
+    Like the hook, an old value counts: a hard stop denies the tool calls that would refresh it.
+    """
+    states = window_states(read_record(), now, max_age_minutes=float("inf"))
     releases = {name: release for name, release in read_releases().items()
                 if name in WINDOWS and isinstance(release, dict) and is_number(release.get("resets_at")) and release["resets_at"] > now}
     released, lines = [], []
@@ -370,7 +378,7 @@ def main() -> int:
         if args.command == "check":
             return cmd_check(args.soft, now, args.max_age_minutes)
         if args.command == "release":
-            return cmd_release(args.soft, args.hard, now, args.max_age_minutes)
+            return cmd_release(args.soft, args.hard, now)
         return cmd_hook(args.hard, now)
     except ConfigError as error:
         # Set up wrongly: fail closed. Exit 2 makes Claude Code block the tool call and show the message.

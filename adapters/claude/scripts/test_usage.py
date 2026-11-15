@@ -268,6 +268,32 @@ class UsageTest(unittest.TestCase):
         self.assertIn("deny", self.run_script("hook", stdin="{}", now=later).stdout)
         self.assertEqual(self.run_script("check", now=later).returncode, 1)
 
+    def test_a_release_ends_at_the_reset_time(self):
+        self.record(status(five_hour=95.0, resets_in=HOUR))
+        self.run_script("release")
+        after = NOW + HOUR + 60  # past the reset, before a new value arrives
+        self.assertIn("no newer value yet", self.run_script("check", now=after).stdout)
+        self.record(status(five_hour=95.0, resets_in=HOUR), now=after)  # an old value sent again does not count
+        self.assertEqual(self.run_script("check", now=after).returncode, 1)
+
+    def test_release_works_on_an_old_recording(self):
+        self.record(status(five_hour=95.0, resets_in=3 * HOUR))
+        later = NOW + HOUR  # the hard stop kept anything from refreshing the recording
+        self.assertIn("deny", self.run_script("hook", stdin="{}", now=later).stdout)
+        self.assertEqual(self.run_script("release", now=later).returncode, 0)
+        self.assertEqual(self.run_script("hook", stdin="{}", now=later).stdout, "")
+
+    def test_release_records_each_window_at_its_own_stop(self):
+        self.record(status(five_hour=95.0, seven_day=85.0))
+        result = self.run_script("release")
+        self.assertIn("5-hour window at 95%, hard stop and soft stop lifted", result.stdout)
+        self.assertIn("7-day window at 85%, soft stop lifted", result.stdout)
+
+    def test_release_limits_must_be_percentages(self):
+        result = self.run_script("release", "--soft", "abc")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("not a percentage", result.stderr)
+
     def test_release_with_nothing_to_release(self):
         self.record(status(five_hour=42.0))
         result = self.run_script("release")
@@ -292,7 +318,10 @@ class UsageTest(unittest.TestCase):
         for call in (self.tool_call(command="python3 adapters/claude/scripts/usage.py release"),
                      self.tool_call(command="python3 usage.py --max-age-minutes 5 release --soft 99"),
                      self.tool_call(command=f"echo '{{}}' > {release_path}"),
-                     self.tool_call(file_path=release_path, content="{}")):
+                     self.tool_call(command='python3 "${CLAUDE_PLUGIN_ROOT}/adapters/claude/scripts/usage.py" release'),
+                     self.tool_call(file_path=release_path, content="{}"),
+                     self.tool_call(file_path="usage-release.json", content="{}"),
+                     json.dumps({"tool_name": "NotebookEdit", "tool_input": {"notebook_path": release_path}})):
             with self.subTest(call=call):
                 result = self.run_script("hook", stdin=call)
                 decision = json.loads(result.stdout)["hookSpecificOutput"]
@@ -301,6 +330,7 @@ class UsageTest(unittest.TestCase):
 
     def test_hook_allows_other_calls_that_name_the_script(self):
         for call in (self.tool_call(command="python3 adapters/claude/scripts/usage.py check"),
+                     self.tool_call(command='python3 usage.py check && git commit -m "release notes"'),
                      self.tool_call(file_path="/tmp/README.md", content="run `usage.py release` yourself")):
             with self.subTest(call=call):
                 self.assertEqual(self.run_script("hook", stdin=call).stdout, "")
