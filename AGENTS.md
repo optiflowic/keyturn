@@ -6,18 +6,19 @@ This is the only committed instructions file. If your tool reads a different fil
 
 ## Start here
 
-- Read `docs/DESIGN.md` before doing anything. It is the source of truth for how keyturn is designed and in what order it is built.
+- Read the index in `docs/DESIGN.md` before doing anything, then the section files in `docs/design/` that your work relates to, and always `docs/design/phases.md`. The design is the source of truth for how keyturn is designed and in what order it is built. Do not read every section file when the work needs only some ([ADR 0021](docs/adr/0021-design-split-into-section-files.md)).
 - If `.keyturn/local/PLAN.md` exists, read it too. It holds the maintainer's local plan. Never copy its contents into committed files.
 
 ## How to work
 
-- Work phase by phase as described in the Phases section of `docs/DESIGN.md`. Stop at the end of each phase and report whether the completion criteria are met.
-- If `docs/DESIGN.md` or the maintainer's local plan lists an unresolved question about the work you are about to start, ask the human before starting.
+- Work phase by phase as described in `docs/design/phases.md`. Stop at the end of each phase and report whether the completion criteria are met.
+- If the design or the maintainer's local plan lists an unresolved question about the work you are about to start, ask the human before starting.
 - Record decisions as ADRs in `docs/adr/`. Check existing ADRs before making a decision.
 
 ## Where things live
 
-- `docs/DESIGN.md`: the design and the phases.
+- `docs/DESIGN.md`: the index of the design: every heading, with a link to the file that holds it.
+- `docs/design/`: the design, one file per section, including the phases (`phases.md`). A new, renamed, or removed heading in a section file is changed in the index too.
 - `docs/adr/`: decisions about keyturn itself. Follow the rules in `docs/adr/README.md`: one decision per file, started from `template.md`, added to the index; never edit an accepted ADR, supersede it with a new one (the only edits are marking it superseded, or naming the part that a new ADR replaces, as that README says).
 - `docs/pre-pr-checklist.md`: what the review before a pull request checks, in sections by changed path.
 - `skills/<name>/SKILL.md`: one skill per role, written to the Agent Skills standard. Frontmatter uses only `name` and `description`. A skill says what a role does (inputs, procedure, outputs), not which tool runs it. Scripts a skill needs go in `skills/<name>/scripts/`, with their tests next to them.
@@ -25,17 +26,17 @@ This is the only committed instructions file. If your tool reads a different fil
 - `evals/requests/<name>/`: evaluation requests (from phase 2). Each has `request.md`, written as a client would write it, and may have a worked example in `example/` with every template filled in by hand. Update the example when a template changes.
 - `.claude-plugin/`: only the Claude Code plugin manifests. The repository root is the plugin root, so every other plugin file sits at the root ([ADR 0005](docs/adr/0005-repository-root-as-plugin-root.md)). Bump `version` in `plugin.json` in any pull request that changes what someone who installed the plugin can use: a skill, a script a skill runs, or a file a skill reads (such as a template once a skill uses it). Files that no skill uses yet, and documentation, do not need a bump. Installed copies update only when the version changes. One exception, by the maintainer's decision: until #60 (`deliver`) is merged, `version` stays at 0.7.0, and #60 bumps it once.
 - `adapters/<tool>/`: everything that only that tool uses (from phase 3): subagent definitions, permission settings, and scripts with their tests in `adapters/<tool>/scripts/` ([ADR 0020](docs/adr/0020-tool-specific-files-in-adapters.md)). Everything shared stays out of `adapters/`. `adapters/claude/` holds the Claude Code parts, including the usage-limit script `scripts/usage.py`; see its README.
-- `hooks/hooks.json`: the plugin's safety hooks (Claude Code). They are always on while the plugin is enabled, so only safety guardrails go there, never quality gates ("Gates" in `docs/DESIGN.md`). Claude Code reads it only at the plugin root, so it stays there, kept thin: each hook calls a script in `adapters/claude/scripts/` ([ADR 0020](docs/adr/0020-tool-specific-files-in-adapters.md)).
+- `hooks/hooks.json`: the plugin's safety hooks (Claude Code). They are always on while the plugin is enabled, so only safety guardrails go there, never quality gates ("Gates" in `docs/design/architecture.md`). Claude Code reads it only at the plugin root, so it stays there, kept thin: each hook calls a script in `adapters/claude/scripts/` ([ADR 0020](docs/adr/0020-tool-specific-files-in-adapters.md)).
 - `.github/`: issue forms, the pull request template, and the security policy.
 - `scripts/`: tools for developing keyturn, with their tests next to them. No skill runs them, and they are not part of what someone who installed the plugin can use, so changing them needs no version bump. `scripts/pr_review.py` summarizes a pull request's review state and its unresolved review threads.
 - `.keyturn/`: local and git-ignored: translations, fetched GitHub content, and the maintainer's plan. Never commit anything under it.
-- The other folders in "Repository Layout" in `docs/DESIGN.md` (`gates/`, `profiles/`, `github/`) are created in the phase that needs them, not before.
+- The other folders in `docs/design/repository-layout.md` (`gates/`, `profiles/`, `github/`) are created in the phase that needs them, not before.
 
 ## Trying changes locally
 
 - Load the plugin from your working copy for one session: `claude --plugin-dir .` (Claude Code). This uses your edits without installing anything.
 - Try a template change on the worked example in `evals/requests/task-manager/example/`: fill in the changed part there as the role would, and check that it still reads well for someone who does not read code.
-- Try `localize` on this repository: ask for a document, issue, or pull request in another language (for example, "Translate docs/DESIGN.md into Japanese"). The translation is written under `.keyturn/i18n/<lang>/`, and `git status` must stay clean. To try the other direction, write a few lines in another language and ask for them in English as an answer to a decision card: the original, the English, and the back-translation go under `.keyturn/i18n/inbound/<lang>/`, and `git status` must still stay clean.
+- Try `localize` on this repository: ask for a document, issue, or pull request in another language (for example, "Translate docs/design/concept.md into Japanese"). The translation is written under `.keyturn/i18n/<lang>/`, and `git status` must stay clean. To try the other direction, write a few lines in another language and ask for them in English as an answer to a decision card: the original, the English, and the back-translation go under `.keyturn/i18n/inbound/<lang>/`, and `git status` must still stay clean.
 
 - Try `spec` in a scratch Git repository under `.keyturn/` (it is git-ignored), so that its commits never touch this repository: create its `keyturn/config.json` with `project-config`, then ask for requirements from `evals/requests/task-manager/request.md` and compare them with `evals/requests/task-manager/example/keyturn/client/requirements.md`. To try a request in another language, set English-only mode and write the request in that language.
 - Try `design` in such a scratch repository: commit the `.gitattributes` line `keyturn/client/*.md text eol=lf` and the example's `keyturn/config.json`, `keyturn/client/requirements.md`, and `keyturn/client/approvals.md`, ask for a design, and check that its threat model covers every case in the requirements' "Misuse" section.
@@ -56,16 +57,22 @@ This is the only committed instructions file. If your tool reads a different fil
 - If you changed a template, update the worked example in `evals/requests/*/example/` in the same pull request. If you changed an example's `requirements.md`, its approval in `approvals.md` is stale: record a new one with the new hashes.
 - When the change is ready and committed, have a fresh subagent that did not write it review the diff once ([ADR 0019](docs/adr/0019-pre-pull-request-review.md)). In Claude Code, use a subagent with the Sonnet model; on a tool without subagents, use a separate process on a lower-tier model. Give it:
   - the diff against `main` (`git diff main...HEAD`, which leaves out uncommitted changes);
-  - the sections of `docs/DESIGN.md` and the ADRs that the change relates to, and the files the diff links to, and nothing else from the repository;
+  - the section files in `docs/design/` and the ADRs that the change relates to, and the files the diff links to, and nothing else from the repository;
   - the sections of `docs/pre-pr-checklist.md` whose paths match the changed files;
   - the `path_instructions` in `.coderabbit.yaml` whose paths match the changed files.
 
-  Ask it to report findings without editing files. Fix the findings that are right, then run the tests and checks above again for what the fixes touched. Do not run the review again.
-- Write what you ran, and the result, under "How It Was Verified" in the pull request. Include what the review found, what you fixed, and why you left the rest.
+  Ask it to report findings without editing files. Fix the findings that are right, then run the tests and checks above again for what the fixes touched. Do not run this first review again.
+- If the pull request changes `skills/`, `gates/`, or `adapters/`, commit the fixes of that review, then have a second fresh subagent review the diff once more ([ADR 0022](docs/adr/0022-second-review-stage-for-skills-gates-adapters.md)). It must have written neither the change nor the first review. In Claude Code, use a subagent with the Opus model; on a tool without subagents, use a separate process on a higher-tier model. Give it:
+  - the diff against `main` (`git diff main...HEAD`), and every changed file in full as it is on the branch (a deleted file as it was on `main`);
+  - `docs/design/guardrails.md` and the other section files in `docs/design/` and the ADRs that the change relates to, and the files the diff links to, and nothing else from the repository (not the first review's findings);
+  - the `path_instructions` in `.coderabbit.yaml` whose paths match the changed files.
+
+  Ask it to take each rule in those, one at a time, look for a way the changed procedure or script breaks it, and walk through the procedure step by step on the first run, with each input missing, and on a rerun (for a script, a hook, or a gate: with each of its inputs). It reports findings without editing files. Fix the findings that are right, and run the tests and checks above again for what the fixes touched. Report the findings that need a decision to the maintainer. Do not run it again.
+- Write what you ran, and the result, under "How It Was Verified" in the pull request. Include what each review found, what you fixed, and why you left the rest; for the second stage, also what it was given.
 
 ## Task management
 
-- Work is tracked as GitHub issues. Each phase in `docs/DESIGN.md` is a milestone, and each piece of work in a phase is an issue in that milestone.
+- Work is tracked as GitHub issues. Each phase in `docs/design/phases.md` is a milestone, and each piece of work in a phase is an issue in that milestone.
 - One pull request per issue, linked with `Closes #N`. Small fixes are the exception: they ride along with another pull request or are batched, as "Small fixes" says.
 - Start each issue from the state of GitHub (issues, the project board, open pull requests, review threads) and of the repository, not from an earlier conversation. The maintainer clears the conversation after each issue, so anything that the next issue needs must be in an issue, a pull request, a review thread, or a committed file.
 - Write pull request bodies with every heading and the checklist from `.github/PULL_REQUEST_TEMPLATE.md`. `gh pr create --body` skips the template, so fill in the template in a file and pass it with `--body-file`.
@@ -77,7 +84,7 @@ This is the only committed instructions file. If your tool reads a different fil
 ## Small fixes
 
 - A small fix is a change too small to be worth its own issue, pull request, and review: a typo or a one-line correction, a broken link, a wording fix that does not change the meaning, or a decision too small for an ADR.
-- These are not small fixes, however short the change: anything that changes how a skill behaves, the structure of a template, or an accepted decision (an ADR, or a rule in `docs/DESIGN.md` or this file). They get an issue and a pull request of their own.
+- These are not small fixes, however short the change: anything that changes how a skill behaves, the structure of a template, or an accepted decision (an ADR, or a rule in the design (`docs/design/`) or this file). They get an issue and a pull request of their own.
 - Put a small fix into the next pull request that touches the same area (the same skill, template, document, or script). List it in that pull request's body under "Small Fixes Included", one line each: what was wrong and the fix.
 - If no related pull request is coming, collect small fixes and open one pull request for all of them, with one issue for the batch or none. List each fix under "Small Fixes Included" in the same way.
 - A small fix still follows the plugin version bump rule in "Where things live": if it changes a skill, a script a skill runs, or a file a skill reads, the pull request that carries it bumps `version`. A batched pull request bumps it once. The exception there applies to small fixes too: until #60 (`deliver`) is merged, `version` stays at 0.7.0.

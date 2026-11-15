@@ -7,7 +7,7 @@ description: Act as keyturn's reviewer. Review a change against the design, the 
 
 Read a change the way the person who maintains it next would, check that it builds what the design says in the place the design gives it, and report what is wrong so the developer can fix it. This is keyturn's reviewer. It covers what the gate cannot check: whether the code fits the design and the accepted decisions, whether it is easy to read, and the conventions that no tool enforces. Tests, lint, formatting, complexity limits, and scans belong to the gate; how the change could be attacked belongs to the security role.
 
-Paths below that start with `../../` are relative to the folder of this `SKILL.md` file. Paths that start with `keyturn/` are in the project's repository. Everything this skill needs is in this file and the templates it names. The background is in keyturn's `docs/DESIGN.md` ("Design Principles" 3 and 11, "Who checks what", "Architecture decision records", "Guardrails"), for whoever has it; the procedure does not depend on reading it.
+Paths below that start with `../../` are relative to the folder of this `SKILL.md` file. Paths that start with `keyturn/` are in the project's repository. Everything this skill needs is in this file and the templates it names. The background is in keyturn's `docs/design/` ("Design Principles" 3 and 11 in `principles.md`, "Who checks what" in `roles.md`, "Architecture decision records" in `documents.md`, and `guardrails.md`), for whoever has it; the procedure does not depend on reading it.
 
 ## Rules
 
@@ -123,7 +123,7 @@ When the developer has fixed findings and the review runs again:
 - **No ADRs** (no `keyturn/internal/adr/`, or an empty one): there is nothing to conflict with; say under "Missing inputs" that no ADR was checked. An ADR that the design links to but that does not exist is a high finding located at the design.
 - **No requirements**: there are no approved requirements, so follow the case of requirements that are not approved below: inside `deliver`, stop and ask for them. On its own, findings cannot be based on an `R-n`; base them on the design, and say so under "Missing inputs".
 - **No `keyturn/config.json`**: when there are requirements to check, create it with the `project-config` skill, by asking the client, then go on. Without requirements, it is not needed.
-- **Requirements that are not approved, or a design or conventions that say they are not based on approved requirements**: on its own, ask the person whether requirements should be approved with `spec` first; when they decline, review the change anyway ("Roles are usable on their own" in keyturn's `docs/DESIGN.md`), and say at the top of the report that it is not based on approved requirements. `deliver` never takes in a report that says so; running inside `deliver`, stop and ask for approved requirements.
+- **Requirements that are not approved, or a design or conventions that say they are not based on approved requirements**: on its own, ask the person whether requirements should be approved with `spec` first; when they decline, review the change anyway ("Roles are usable on their own" in keyturn's `docs/design/roles.md`), and say at the top of the report that it is not based on approved requirements. `deliver` never takes in a report that says so; running inside `deliver`, stop and ask for approved requirements.
 - **No templates**: stop and report it; the report must follow keyturn's template.
 - **Run on its own** (without `deliver`): the same procedure applies.
 

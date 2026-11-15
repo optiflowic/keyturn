@@ -5,12 +5,12 @@ description: Act as keyturn's standards role. Turn a project's design document (
 
 # conventions
 
-Make the project's coding conventions checkable. Everything a tool can check becomes a tool rule that the gate runs; only what no tool can check goes into `conventions.md`, as a checklist for the reviewer. This is the standards role in keyturn's `docs/DESIGN.md` ("Standards").
+Make the project's coding conventions checkable. Everything a tool can check becomes a tool rule that the gate runs; only what no tool can check goes into `conventions.md`, as a checklist for the reviewer. This is the standards role in keyturn's `docs/design/roles.md` ("Standards").
 
 ## Rules
 
 - **A tool rule, whenever a tool can check it.** Formatting, unused code, unchecked errors, complexity and function-length limits, imports between parts, and forbidden patterns are tool rules, never checklist items.
-- **Conventions are protected.** The developer never changes `conventions.md` or a tool config it lists. After the first version, every change, including allowing one suppression comment, is an ADR in `keyturn/internal/adr/` ("Guardrails" 1 in `docs/DESIGN.md`).
+- **Conventions are protected.** The developer never changes `conventions.md` or a tool config it lists. After the first version, every change, including allowing one suppression comment, is an ADR in `keyturn/internal/adr/` ("Guardrails" 1 in `docs/design/guardrails.md`).
 - **Never loosen a rule to make code pass.** When code breaks a rule, report it; the developer fixes the code. Do not fix the code yourself.
 - **Follow the design, do not change it.** Use the parts, locations, and decisions in the design document and its ADRs as they are. If a rule would need a design change, stop and report it to the architect.
 - **Add only the tools the design allows.** Which tools need the client's approval depends on their kind (ADR 0015 in keyturn's `docs/adr/`). A profile tool or an other tool is used only when the design's "Libraries and external services" lists it with its kind and a passing dependency check; toolchain tools and gate scanners are not listed there. You never approve or check a tool yourself.
@@ -73,7 +73,7 @@ Put each config where its tool finds it by default, at the root of the part it c
 
 - **Formatting**: the formatter's output is the only accepted layout.
 - **Correctness**: the linter's recommended rule set, including unused code and unchecked errors.
-- **Readability limits** ("Readable code is mandatory" in `docs/DESIGN.md`): cyclomatic complexity, function length, and nesting depth. Without a profile, start from complexity 10, 60 lines per function, and nesting depth 4, and list them as assumed.
+- **Readability limits** ("Readable code is mandatory" in `docs/design/principles.md`): cyclomatic complexity, function length, and nesting depth. Without a profile, start from complexity 10, 60 lines per function, and nesting depth 4, and list them as assumed.
 - **Boundaries between parts**: every design statement about what a part may use, as an import rule (for example, the HTTP handlers may not import the storage package).
 - **Forbidden patterns**: every pattern the threat model or the design forbids (for example, rendering text as HTML).
 

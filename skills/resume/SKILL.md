@@ -5,7 +5,7 @@ description: Resume a keyturn task that stopped (usage limit, closed session, cr
 
 # resume
 
-Continue a stopped task from the step where it stopped, using only what is in the repository. Everything this skill needs is in this file, the script next to it, and the files it names. For background, see "Resuming Work" in keyturn's `docs/DESIGN.md` and ADRs 0009 and 0011; the procedure does not depend on them.
+Continue a stopped task from the step where it stopped, using only what is in the repository. Everything this skill needs is in this file, the script next to it, and the files it names. For background, see keyturn's `docs/design/resuming-work.md` and ADRs 0009 and 0011; the procedure does not depend on them.
 
 Paths below that start with `scripts/`, `../`, or `../../` are relative to the folder of this `SKILL.md` file. Paths that start with `keyturn/` are in the project's repository.
 
