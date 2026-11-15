@@ -61,7 +61,13 @@ This is the only committed instructions file. If your tool reads a different fil
   - the `path_instructions` in `.coderabbit.yaml` whose paths match the changed files.
 
   Ask it to report findings without editing files. Fix the findings that are right, then run the tests and checks above again for what the fixes touched. Do not run the review again.
-- Write what you ran, and the result, under "How It Was Verified" in the pull request. Include what the review found, what you fixed, and why you left the rest.
+- If the pull request changes `skills/`, `gates/`, or `adapters/`, commit the fixes of that review, then have a second fresh subagent review the diff once more ([ADR 0022](docs/adr/0022-second-review-stage-for-skills-gates-adapters.md)). It must have written neither the change nor the first review. In Claude Code, use a subagent with the Opus model; on a tool without subagents, use a separate process on a higher-tier model. Give it:
+  - the diff against `main` (`git diff main...HEAD`);
+  - "Guardrails" and the other sections of `docs/DESIGN.md` and the ADRs that the change relates to, and the files the diff links to, and nothing else from the repository (not the first review's findings);
+  - the `path_instructions` in `.coderabbit.yaml` whose paths match the changed files.
+
+  Ask it to take each rule in those, one at a time, look for a way the changed procedure or script breaks it, and walk through the procedure step by step on the first run, with each input missing, and on a rerun. It reports findings without editing files. Fix the findings that are right, and run the tests and checks above again for what the fixes touched. Report the findings that need a decision to the maintainer. Do not run it again.
+- Write what you ran, and the result, under "How It Was Verified" in the pull request. Include what each review found, what you fixed, and why you left the rest; for the second stage, also what it was given.
 
 ## Task management
 
