@@ -1,6 +1,6 @@
 # 0005. Repository root as the plugin root
 
-- Status: accepted
+- Status: accepted; superseded by [0020](0020-tool-specific-files-in-adapters.md) only in what `adapters/claude/` holds (the first consequence)
 - Date: 2026-11-08
 
 ## Context
