@@ -4,7 +4,7 @@ The parts of keyturn that only Claude Code uses. Everything shared (skills, temp
 
 ## Usage limits
 
-keyturn must not use up a subscription's usage windows ("Subscription usage limits" in [`docs/DESIGN.md`](../../docs/DESIGN.md)). Claude Code gives a status line command the plan's usage, as `rate_limits.five_hour` and `rate_limits.seven_day` (`used_percentage`, and `resets_at` in epoch seconds), on Pro and Max plans once the session has had an API response.
+keyturn must not use up a subscription's usage windows ("Subscription usage limits" in [`docs/design/guardrails.md`](../../docs/design/guardrails.md#subscription-usage-limits)). Claude Code gives a status line command the plan's usage, as `rate_limits.five_hour` and `rate_limits.seven_day` (`used_percentage`, and `resets_at` in epoch seconds), on Pro and Max plans once the session has had an API response.
 
 [`scripts/usage.py`](scripts/usage.py) (Python 3.9 or later, standard library only) works from that:
 

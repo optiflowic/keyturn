@@ -1,6 +1,6 @@
 # Pre-pull-request checklist
 
-What the review before a pull request checks ([ADR 0019](adr/0019-pre-pull-request-review.md)). Each section names the paths it applies to; the reviewer gets only the sections that match the changed paths. Where a rule is already stated in `AGENTS.md`, `docs/DESIGN.md`, or an ADR, the item links to it instead of repeating it.
+What the review before a pull request checks ([ADR 0019](adr/0019-pre-pull-request-review.md)). Each section names the paths it applies to; the reviewer gets only the sections that match the changed paths. Where a rule is already stated in `AGENTS.md`, the design (`docs/design/`), or an ADR, the item links to it instead of repeating it.
 
 ## Every change
 
@@ -11,7 +11,7 @@ What the review before a pull request checks ([ADR 0019](adr/0019-pre-pull-reque
 
 ## Documents: `docs/**`, `AGENTS.md`, `templates/**`, `evals/**`, `.github/**`
 
-- [ ] A changed rule or statement says the same as every other place that states it: `docs/DESIGN.md`, the ADRs, `AGENTS.md`, the templates (including the issue forms and the pull request template), the worked examples, the skills, and what the scripts do.
+- [ ] A changed rule or statement says the same as every other place that states it: the design (`docs/design/`, and its index, `docs/DESIGN.md`, for headings), the ADRs, `AGENTS.md`, the templates (including the issue forms and the pull request template), the worked examples, the skills, and what the scripts do.
 - [ ] After a line was changed, the other lines in the same file that depend on it (a recommendation, a summary, an example) still agree with it. A new exception to a rule is also stated, or pointed to, wherever another section restates that rule.
 - [ ] Nothing presents a `proposed` ADR as decided ([ADR rules](adr/README.md)).
 - [ ] A worked example fills in every part its template asks for, and a template change has its example updated ("Before opening a pull request" in [`AGENTS.md`](../AGENTS.md)).
@@ -19,13 +19,13 @@ What the review before a pull request checks ([ADR 0019](adr/0019-pre-pull-reque
 
 ## Skills: `skills/**/SKILL.md`
 
-- [ ] If the work stops after any step and is started again, nothing is recorded twice, nothing is lost, and every check the skill runs still passes on what was already recorded, such as a decision the client has since agreed to ([Resuming Work](DESIGN.md#resuming-work)).
+- [ ] If the work stops after any step and is started again, nothing is recorded twice, nothing is lost, and every check the skill runs still passes on what was already recorded, such as a decision the client has since agreed to ([Resuming Work](design/resuming-work.md)).
 - [ ] Every way an answer can come in (for example, an answer to a card that stands for agreeing to a decision) moves each status it affects, and none is left waiting.
-- [ ] The skill says what to do when an input is missing ([Roles are usable on their own](DESIGN.md#roles-are-usable-on-their-own)), and when the repository is in a state it did not create, such as another branch or files committed before keyturn.
+- [ ] The skill says what to do when an input is missing ([Roles are usable on their own](design/roles.md#roles-are-usable-on-their-own)), and when the repository is in a state it did not create, such as another branch or files committed before keyturn.
 - [ ] A skill that works on a Git range reads the code at the range's head and the documents it judges the code by as they were before the range (at its base), never from a checkout at another commit; a change to those documents inside the range is a finding; and scripts that read the working tree run only on a checkout where those documents are as they were at the base.
 - [ ] The client's words that change what will be built are not committed or recorded before their English is confirmed ([ADR 0013](adr/0013-confirming-translations-into-english.md)).
 - [ ] Every command the skill gives works in each case the skill allows: the first run (for example, a new file is not yet tracked, so it must be added before `git commit -- <path>`), and each missing input.
-- [ ] The skill allows nothing that the [Guardrails](DESIGN.md#guardrails) forbid or make wait for the client: what always needs the client's approval, even when a document lists it, and what fails the gate (such as a drop in the number of tests).
+- [ ] The skill allows nothing that the [Guardrails](design/guardrails.md) forbid or make wait for the client: what always needs the client's approval, even when a document lists it, and what fails the gate (such as a drop in the number of tests).
 
 ## Scripts and their tests: `skills/**/scripts/**`, `scripts/**`
 

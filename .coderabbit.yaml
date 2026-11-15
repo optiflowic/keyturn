@@ -24,7 +24,7 @@ reviews:
   path_instructions:
     - path: "**"
       instructions: |
-        Review against docs/DESIGN.md and the accepted ADRs in docs/adr/.
+        Review against the design in docs/design/ (indexed in docs/DESIGN.md) and the accepted ADRs in docs/adr/.
         - Flag changes that contradict an accepted ADR without a new ADR superseding it.
         - Follow The Art of Readable Code: clear names, simple control flow, small functions, comments that explain why.
         - Flag unused abstractions, speculative extension points, and code that is not needed yet.

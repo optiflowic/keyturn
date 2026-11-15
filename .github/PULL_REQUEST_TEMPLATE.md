@@ -20,12 +20,12 @@
 
 ## Related Design and ADRs
 
-<!-- Sections of docs/DESIGN.md and ADRs this change follows or adds. -->
+<!-- Sections of the design (docs/design/) and ADRs this change follows or adds. -->
 
 ## Checklist
 
 - [ ] I have tested these changes locally.
 - [ ] The eval suite shows no regression against the baseline (once the suite exists).
-- [ ] New decisions are recorded as ADRs, and `docs/DESIGN.md` is updated if needed.
-- [ ] The change follows the readability rules in `docs/DESIGN.md`.
+- [ ] New decisions are recorded as ADRs, and the design (`docs/design/` and its index, `docs/DESIGN.md`) is updated if needed.
+- [ ] The change follows the readability rules in `docs/design/principles.md`.
 - [ ] Everything is written in English, and nothing from `.keyturn/local/` is included.
