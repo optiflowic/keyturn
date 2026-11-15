@@ -232,6 +232,111 @@ class UsageTest(unittest.TestCase):
         self.assertIn("no newer value yet", self.run_script("check", now=NOW + 60).stdout)
         self.assertEqual(self.run_script("hook", stdin="{}", now=NOW + 60).stdout, "")
 
+    # release (a person lifts a stop until the window resets)
+
+    def tool_call(self, **tool_input) -> str:
+        return json.dumps({"tool_name": "Bash" if "command" in tool_input else "Write", "tool_input": tool_input})
+
+    def test_release_lifts_the_soft_stop_until_the_window_resets(self):
+        self.record(status(five_hour=85.0))
+        self.assertEqual(self.run_script("check").returncode, 1)
+        result = self.run_script("release")
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("5-hour window at 85%, soft stop lifted until", result.stdout)
+        check = self.run_script("check")
+        self.assertEqual(check.returncode, 0)
+        self.assertIn("released by a person until", check.stdout)
+
+    def test_a_soft_release_keeps_the_hard_stop(self):
+        self.record(status(five_hour=85.0))
+        self.run_script("release")
+        self.record(status(five_hour=95.0))
+        self.assertIn("deny", self.run_script("hook", stdin="{}").stdout)
+
+    def test_release_lifts_the_hard_stop_too(self):
+        self.record(status(five_hour=95.0))
+        self.assertIn("deny", self.run_script("hook", stdin="{}").stdout)
+        self.assertIn("hard stop and soft stop lifted", self.run_script("release").stdout)
+        self.assertEqual(self.run_script("hook", stdin="{}").stdout, "")
+        self.assertEqual(self.run_script("check").returncode, 0)
+
+    def test_the_next_window_stops_again(self):
+        self.record(status(five_hour=95.0, resets_in=HOUR))
+        self.run_script("release")
+        later = NOW + 2 * HOUR
+        self.record(status(five_hour=95.0, resets_in=6 * HOUR), now=later)  # the next window, with a new reset time
+        self.assertIn("deny", self.run_script("hook", stdin="{}", now=later).stdout)
+        self.assertEqual(self.run_script("check", now=later).returncode, 1)
+
+    def test_release_with_nothing_to_release(self):
+        self.record(status(five_hour=42.0))
+        result = self.run_script("release")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("nothing to release", result.stdout)
+        self.assertFalse((Path(self.folder.name) / "usage-release.json").exists())
+
+    def test_release_needs_a_known_value(self):
+        self.record(status(five_hour=85.0, seven_day=None))
+        result = self.run_script("release")
+        self.assertIn("not released: 7-day window", result.stdout)
+        self.assertEqual(self.run_script("check").returncode, 1)  # the unknown window still stops
+
+    def test_a_broken_release_file_releases_nothing(self):
+        self.record(status(five_hour=95.0))
+        (Path(self.folder.name) / "usage-release.json").write_text("{not json")
+        self.assertIn("deny", self.run_script("hook", stdin="{}").stdout)
+        self.assertEqual(self.run_script("check").returncode, 1)
+
+    def test_hook_denies_an_agent_that_tries_to_release(self):
+        release_path = str(Path(self.folder.name) / "usage-release.json")
+        for call in (self.tool_call(command="python3 adapters/claude/scripts/usage.py release"),
+                     self.tool_call(command="python3 usage.py --max-age-minutes 5 release --soft 99"),
+                     self.tool_call(command=f"echo '{{}}' > {release_path}"),
+                     self.tool_call(file_path=release_path, content="{}")):
+            with self.subTest(call=call):
+                result = self.run_script("hook", stdin=call)
+                decision = json.loads(result.stdout)["hookSpecificOutput"]
+                self.assertEqual(decision["permissionDecision"], "deny")
+                self.assertIn("only a person can release", decision["permissionDecisionReason"])
+
+    def test_hook_allows_other_calls_that_name_the_script(self):
+        for call in (self.tool_call(command="python3 adapters/claude/scripts/usage.py check"),
+                     self.tool_call(file_path="/tmp/README.md", content="run `usage.py release` yourself")):
+            with self.subTest(call=call):
+                self.assertEqual(self.run_script("hook", stdin=call).stdout, "")
+
+    # plans without a 5-hour window
+
+    def test_a_plan_without_a_five_hour_window_stops_only_on_the_seven_day_window(self):
+        self.record(status(five_hour=None, seven_day=10.0))
+        self.assertEqual(self.run_script("check").returncode, 1)  # not said: it may not have arrived yet
+        plan = {"KEYTURN_PLAN_WINDOWS": "seven_day"}
+        result = self.run_script("check", extra_env=plan)
+        self.assertEqual((result.returncode, result.stdout.strip()), (0, "ok: 7-day window at 10%"))
+        self.record(status(five_hour=None, seven_day=85.0))
+        self.assertEqual(self.run_script("check", extra_env=plan).returncode, 1)
+
+    def test_a_window_the_plan_has_still_stops_until_it_arrives(self):
+        self.record(status(five_hour=42.0, seven_day=None))
+        result = self.run_script("check", extra_env={"KEYTURN_PLAN_WINDOWS": "seven_day"})
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("7-day window: not in the last recording", result.stdout)
+
+    def test_release_covers_a_recorded_window_the_plan_leaves_out(self):
+        self.record(status(five_hour=95.0, seven_day=10.0))
+        plan = {"KEYTURN_PLAN_WINDOWS": "seven_day"}
+        self.assertIn("deny", self.run_script("hook", stdin="{}").stdout)  # a known value still stops the hook
+        self.assertEqual(self.run_script("release", extra_env=plan).returncode, 0)
+        self.assertEqual(self.run_script("hook", stdin="{}").stdout, "")
+
+    def test_plan_windows_must_name_known_windows(self):
+        self.record(status())
+        for value in ("", "five-hour", "seven_day,weekly", " , "):
+            with self.subTest(value=value):
+                result = self.run_script("check", extra_env={"KEYTURN_PLAN_WINDOWS": value})
+                self.assertEqual(result.returncode, 1)
+                self.assertIn("KEYTURN_PLAN_WINDOWS must name", result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

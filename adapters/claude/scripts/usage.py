@@ -12,11 +12,19 @@ This script records those values and answers two questions from them:
                missing, out of date, or past its reset, means no.
   hook         As a PreToolUse hook: block the tool call when a window is at
                or above --hard (default 90). A missing value does not block;
-               `check` stops at the next step boundary instead.
+               `check` stops at the next step boundary instead. Also block a
+               tool call that tries to release a stop: only a person may.
+  release      Run by a person: lift the stop of each window that is at or
+               above --soft now, until that window resets. A window at or
+               above --hard has its hard stop lifted too.
 
 The usage is the account's, not a project's, so it is kept in one file per user:
-~/.keyturn/usage.json, or the absolute path in KEYTURN_USAGE_FILE. The default
-limits can be set with KEYTURN_SOFT_LIMIT and KEYTURN_HARD_LIMIT.
+~/.keyturn/usage.json, or the absolute path in KEYTURN_USAGE_FILE; releases are
+kept next to it, in usage-release.json. The default limits can be set with
+KEYTURN_SOFT_LIMIT and KEYTURN_HARD_LIMIT. KEYTURN_PLAN_WINDOWS names the windows
+the plan has (default: five_hour,seven_day); a window it leaves out never stops
+`check`. A window is left out only when a person says so there, never because
+Claude Code does not send it: a missing value may only mean it has not arrived.
 """
 
 from __future__ import annotations
@@ -25,6 +33,7 @@ import argparse
 import json
 import math
 import os
+import re
 import sys
 import tempfile
 import time
@@ -37,6 +46,10 @@ DEFAULT_HARD = "90"
 # The status line runs on every assistant message, so a recording older than this
 # means nothing has updated it (for example, a headless run) and it may be too low.
 DEFAULT_MAX_AGE_MINUTES = "15"
+
+
+# A Bash command that runs this script's release command. The hook denies it: an agent must not lift its own stop.
+RELEASE_COMMAND = re.compile(r"usage\.py\b.*\brelease\b", re.DOTALL)
 
 
 class ConfigError(Exception):
@@ -55,6 +68,23 @@ def usage_file() -> Path:
         return Path.home() / ".keyturn" / "usage.json"
     except RuntimeError as error:
         raise ConfigError(f"cannot find the home folder ({error}); set KEYTURN_USAGE_FILE") from None
+
+
+def release_file() -> Path:
+    usage = usage_file()
+    return usage.with_name(usage.stem + "-release" + usage.suffix)
+
+
+def plan_windows() -> list:
+    configured = os.environ.get("KEYTURN_PLAN_WINDOWS")
+    if configured is None:
+        return list(WINDOWS)
+    names = [name.strip() for name in configured.split(",") if name.strip()]
+    unknown = [name for name in names if name not in WINDOWS]
+    if not names or unknown:
+        # Fail closed: a typo must not turn a window's stop off.
+        raise ConfigError(f"KEYTURN_PLAN_WINDOWS must name one or more of {', '.join(WINDOWS)}: {configured}")
+    return [name for name in WINDOWS if name in names]
 
 
 def utc(epoch: float) -> str:
@@ -110,18 +140,21 @@ def merge(new_windows: dict, record: dict | None, now: float) -> dict:
     return kept
 
 
-def write_record(windows: dict, now: float) -> None:
+def write_json(path: Path, content: dict) -> None:
     """Write atomically, through a temporary file of its own, so a check never reads half a file."""
-    path = usage_file()
     path.parent.mkdir(parents=True, exist_ok=True)
     descriptor, temporary = tempfile.mkstemp(dir=path.parent, prefix=path.name + ".", suffix=".tmp")
     try:
         with os.fdopen(descriptor, "w", encoding="utf-8") as file:
-            file.write(json.dumps({"written_at": now, "windows": windows}, indent=2) + "\n")
+            file.write(json.dumps(content, indent=2) + "\n")
         os.replace(temporary, path)
     except BaseException:
         Path(temporary).unlink(missing_ok=True)
         raise
+
+
+def write_record(windows: dict, now: float) -> None:
+    write_json(usage_file(), {"written_at": now, "windows": windows})
 
 
 def status_text(windows: dict) -> str:
@@ -157,6 +190,23 @@ def read_record() -> dict | None:
     return record if isinstance(record, dict) and isinstance(record.get("windows"), dict) else None
 
 
+def read_releases() -> dict:
+    """A release that cannot be read counts as none: the stop stays."""
+    try:
+        releases = json.loads(release_file().read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError):
+        return {}
+    return releases if isinstance(releases, dict) else {}
+
+
+def is_released(releases: dict, name: str, state: dict, stop: str) -> bool:
+    """A release holds only for the window it was made for: a new window (a new reset time) stops again."""
+    release = releases.get(name)
+    if not isinstance(release, dict) or "used" not in state or release.get("resets_at") != state["resets_at"]:
+        return False
+    return release.get("stop") == "hard" or (stop == "soft" and release.get("stop") == "soft")
+
+
 def window_states(record: dict | None, now: float, max_age_minutes: float) -> dict:
     """For each window: its used percentage and reset time, or why it is unknown."""
     states = {}
@@ -178,20 +228,46 @@ def window_states(record: dict | None, now: float, max_age_minutes: float) -> di
 
 
 def cmd_check(soft: float, now: float, max_age_minutes: float) -> int:
+    windows = plan_windows()
     states = window_states(read_record(), now, max_age_minutes)
-    stops = []
-    for name, label in WINDOWS.items():
-        state = states[name]
+    releases = read_releases()
+    stops, notes = [], []
+    for name in windows:
+        state, label = states[name], WINDOWS[name]
         if "unknown" in state:
             stops.append(f"stop: {state['unknown']}; treat it as unknown")
+        elif state["used"] >= soft and is_released(releases, name, state, "soft"):
+            notes.append(f"{label} window at {state['used']:.0f}%, released by a person until {utc(state['resets_at'])}")
         elif state["used"] >= soft:
             stops.append(f"stop: {label} window at {state['used']:.0f}% (limit {soft:g}%), "
                          f"can continue after {utc(state['resets_at'])}")
     if stops:
         print("\n".join(stops))
         return 1
-    print("ok: " + ", ".join(f"{WINDOWS[name]} window at {states[name]['used']:.0f}%" for name in WINDOWS))
+    print("ok: " + ", ".join(f"{WINDOWS[name]} window at {states[name]['used']:.0f}%" for name in windows))
+    for note in notes:
+        print(f"note: {note}")
     return 0
+
+
+def tries_to_release(tool_call: object) -> bool:
+    """Whether a tool call runs the release command or touches the release file.
+
+    This catches the plain ways an agent would try; it is a guardrail, not a sandbox.
+    """
+    if not isinstance(tool_call, dict) or not isinstance(tool_call.get("tool_input"), dict):
+        return False
+    tool_input = tool_call["tool_input"]
+    command = tool_input.get("command")
+    if isinstance(command, str) and (RELEASE_COMMAND.search(command) or release_file().name in command):
+        return True
+    paths = [value for key, value in tool_input.items() if key.endswith("path") and isinstance(value, str)]
+    return any(Path(path).name == release_file().name for path in paths)
+
+
+def deny(reason: str) -> None:
+    print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny",
+                                             "permissionDecisionReason": reason}}))
 
 
 def cmd_hook(hard: float, now: float) -> int:
@@ -199,21 +275,52 @@ def cmd_hook(hard: float, now: float) -> int:
 
     An old value still counts here: usage only grows until the window resets.
     """
+    try:
+        tool_call = json.load(sys.stdin)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        tool_call = None
+    if tries_to_release(tool_call):
+        deny("keyturn: only a person can release a usage stop, by running `usage.py release` themselves. "
+             "Do not try it through a tool: stop and ask the person.")
+        return 0
     states = window_states(read_record(), now, max_age_minutes=float("inf"))
+    releases = read_releases()
     reasons = [f"{label} window at {states[name]['used']:.0f}% (limit {hard:g}%), resets at {utc(states[name]['resets_at'])}"
-               for name, label in WINDOWS.items() if "used" in states[name] and states[name]["used"] >= hard]
+               for name, label in WINDOWS.items()
+               if "used" in states[name] and states[name]["used"] >= hard and not is_released(releases, name, states[name], "hard")]
     if reasons:
-        decision = {
-            "hookSpecificOutput": {
-                "hookEventName": "PreToolUse",
-                "permissionDecision": "deny",
-                # Every tool call is denied, so the agent cannot save anything now: resume uses the
-                # state saved at the last step boundary.
-                "permissionDecisionReason": "keyturn hard stop: " + "; ".join(reasons)
-                + ". Stop now and start no new work until the window resets; resume continues from the state saved at the last step.",
-            }
-        }
-        print(json.dumps(decision))
+        # Every tool call is denied, so the agent cannot save anything now: resume uses the
+        # state saved at the last step boundary.
+        deny("keyturn hard stop: " + "; ".join(reasons)
+             + ". Stop now and start no new work until the window resets; resume continues from the state saved at the last step.")
+    return 0
+
+
+def cmd_release(soft: float, hard: float, now: float, max_age_minutes: float) -> int:
+    """Lift the stop of each window that has one now, until that window resets."""
+    states = window_states(read_record(), now, max_age_minutes)
+    releases = {name: release for name, release in read_releases().items()
+                if name in WINDOWS and isinstance(release, dict) and is_number(release.get("resets_at")) and release["resets_at"] > now}
+    released, lines = [], []
+    windows = plan_windows()
+    for name, label in WINDOWS.items():
+        state = states[name]
+        if "unknown" in state and name not in windows:
+            continue  # the plan does not have it, and the hook stops only on a known value
+        if "unknown" in state:
+            lines.append(f"not released: {state['unknown']}; a window can be released only while its value is known")
+        elif state["used"] >= soft:
+            stop = "hard" if state["used"] >= hard else "soft"
+            releases[name] = {"resets_at": state["resets_at"], "stop": stop, "released_at": now}
+            released.append(name)
+            lines.append(f"released: {label} window at {state['used']:.0f}%, {stop} stop"
+                         f"{' and soft stop' if stop == 'hard' else ''} lifted until {utc(state['resets_at'])}")
+    if not released:
+        lines.append(f"nothing to release: no window is at or above {soft:g}%")
+        print("\n".join(lines))
+        return 1
+    write_json(release_file(), releases)
+    print("\n".join(lines))
     return 0
 
 
@@ -251,6 +358,9 @@ def main() -> int:
     check.add_argument("--soft", type=percentage, default=os.environ.get("KEYTURN_SOFT_LIMIT") or DEFAULT_SOFT)
     hook = commands.add_parser("hook", help="PreToolUse hook: deny tool calls at the hard limit")
     hook.add_argument("--hard", type=percentage, default=os.environ.get("KEYTURN_HARD_LIMIT") or DEFAULT_HARD)
+    release = commands.add_parser("release", help="run by a person: lift the current stops until each window resets")
+    release.add_argument("--soft", type=percentage, default=os.environ.get("KEYTURN_SOFT_LIMIT") or DEFAULT_SOFT)
+    release.add_argument("--hard", type=percentage, default=os.environ.get("KEYTURN_HARD_LIMIT") or DEFAULT_HARD)
     args = parser.parse_args()
 
     now = time.time() if args.now is None else args.now
@@ -259,17 +369,19 @@ def main() -> int:
             return cmd_statusline(now)
         if args.command == "check":
             return cmd_check(args.soft, now, args.max_age_minutes)
+        if args.command == "release":
+            return cmd_release(args.soft, args.hard, now, args.max_age_minutes)
         return cmd_hook(args.hard, now)
     except ConfigError as error:
         # Set up wrongly: fail closed. Exit 2 makes Claude Code block the tool call and show the message.
         print(f"keyturn usage: {error}", file=sys.stderr)
-        if args.command == "check":
+        if args.command in ("check", "release"):
             print(f"stop: {error}")
             return 1
         return 2
     except Exception as error:  # an unexpected error must never look like "ok"
         print(f"keyturn usage: unexpected error: {error!r}", file=sys.stderr)
-        if args.command == "check":
+        if args.command in ("check", "release"):
             print(f"stop: cannot read the usage ({error!r}); treat it as unknown")
             return 1
         return 1  # hook: a non-blocking error, like missing data; check stops at the next step
