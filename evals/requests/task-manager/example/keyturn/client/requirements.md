@@ -12,7 +12,7 @@ You will know it works by following the acceptance guide we send with each deliv
 ## What you need to do
 
 > [!IMPORTANT]
-> - Read R-1 to R-9 and AC-1 to AC-8, check the priority of each requirement, and approve them, or tell us what to change.
+> - Read R-1 to R-9 and AC-1 to AC-9, check the priority of each requirement, and approve them, or tell us what to change.
 
 ## Background
 
@@ -124,6 +124,12 @@ A signed-in person can choose to hide the tasks that are done, and show them aga
 - When: you mark a task as done and choose to hide finished tasks, then choose to show them again
 - Expected result: the finished task disappears from the list, and comes back when you show finished tasks again
 
+### AC-9: A username with `@` is refused
+
+- Covers: R-1
+- When: you try to sign up with the username `me@example.com` and a password of 12 or more characters
+- Expected result: no account is created, and the sign-up page says a username cannot contain `@`
+
 ## Misuse
 
 - Another signed-in person reads, changes, or deletes your tasks, for example by changing a link: prevented by R-7
@@ -146,4 +152,4 @@ A signed-in person can choose to hide the tasks that are done, and show them aga
 | Version | Date | Change |
 |---|---|---|
 | 1 | 2026-11-08 | First version |
-| 2 | 2026-11-08 | R-1, R-2, AC-1: sign up and sign in with a username instead of an email address, so that the app keeps no email address; a username cannot contain `@`, so that it is never an email address; Misuse and Out of scope updated to match. The PM proposed it. |
+| 2 | 2026-11-08 | R-1, R-2, AC-1, AC-9: sign up and sign in with a username instead of an email address, so that the app keeps no email address; a username cannot contain `@`, so that it is never an email address (AC-9 added); Misuse and Out of scope updated to match. The PM proposed it. |

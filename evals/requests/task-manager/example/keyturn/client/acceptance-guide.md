@@ -75,16 +75,17 @@ Steps:
 
 Expected result: the task appears in your list with the title `<b>Buy milk</b>`, including `<b>` and `</b>`, not in bold, and with tomorrow's date.
 
-### Check 5: A short password is refused
+### Check 5: A short password and a username with `@` are refused
 
-- Covers: AC-2 (R-1)
+- Covers: AC-2, AC-9 (R-1)
 - Result: <pass | fail: what happened | not checked>
 
 Steps:
 
 1. Sign out, and sign up with your fourth username and the 11-character password `abcdefghijk`.
+2. Sign up with the username `me@example.com` and a password of 12 or more characters.
 
-Expected result: no account is created, and the page says the password must be at least 12 characters long.
+Expected result: neither step creates an account. In step 1 the page says the password must be at least 12 characters long; in step 2 it says a username cannot contain `@`.
 
 ## Optional
 
