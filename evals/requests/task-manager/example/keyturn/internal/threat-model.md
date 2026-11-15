@@ -26,7 +26,7 @@ The most serious threat is one user reaching another user's tasks (T-1).
 
 ## Threats
 
-Learning whether an account exists was considered at every entry point that can reveal it. None of them is a threat, so none has a T-number: usernames are public on purpose (R-1, and the "Misuse" section of the requirements), and the app keeps no email address, so no email address can be tested for an account.
+Learning whether an account exists was considered at every entry point that can reveal it. None of them is a threat, so none has a T-number: usernames are public on purpose (R-1, and the "Misuse" section of the requirements), and the app keeps no email address. Sign-up refuses a username that contains `@` (R-1), so no username is an email address, and no email address can be tested for an account.
 
 - Sign-up (`POST /api/signup`): says that a username is taken. Public by requirement (R-1).
 - Sign-in (`POST /api/signin`): its error message and its response time can differ for a username with no account. Public by requirement (R-1).

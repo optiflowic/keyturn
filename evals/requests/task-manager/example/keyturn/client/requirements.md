@@ -24,7 +24,7 @@ You want a simple to-do list for yourself and a few friends. You will run it on 
 
 Priority: Must
 
-A person creates an account with a username they choose and a password. The password must be at least 12 characters long. One username can have only one account: if a username is taken, the sign-up page says so, and the person chooses another. Usernames are not secret: anyone can find out whether a username is taken. The app asks for no email address.
+A person creates an account with a username they choose and a password. The password must be at least 12 characters long. One username can have only one account: if a username is taken, the sign-up page says so, and the person chooses another. A username cannot contain `@`, so that it is never an email address: if it does, the sign-up page says so. Usernames are not secret: anyone can find out whether a username is taken. The app asks for no email address.
 
 ### R-2: Sign in and sign out
 
@@ -131,6 +131,7 @@ A signed-in person can choose to hide the tasks that are done, and show them aga
 - Someone guesses a password by trying many passwords: prevented by R-1 (long passwords) and R-8
 - Someone puts code in a task title so that it runs in another person's browser: prevented by R-3 (titles are shown as plain text) and R-7 (other people never see your titles)
 - Someone finds out whether a username has an account, from the sign-up page, the sign-in page, or the block after wrong passwords: not a problem, because usernames are public on purpose (R-1)
+- Someone finds out whether an email address has an account, by trying it as a username: prevented by R-1 (a username cannot contain `@`, so no account has an email address as its username)
 
 ## Out of scope
 
@@ -145,4 +146,4 @@ A signed-in person can choose to hide the tasks that are done, and show them aga
 | Version | Date | Change |
 |---|---|---|
 | 1 | 2026-11-08 | First version |
-| 2 | 2026-11-08 | R-1, R-2, AC-1: sign up and sign in with a username instead of an email address, so that the app keeps no email address; Misuse and Out of scope updated to match. The PM proposed it. |
+| 2 | 2026-11-08 | R-1, R-2, AC-1: sign up and sign in with a username instead of an email address, so that the app keeps no email address; a username cannot contain `@`, so that it is never an email address; Misuse and Out of scope updated to match. The PM proposed it. |

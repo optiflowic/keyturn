@@ -25,7 +25,7 @@ Routes requests, serves the built web client, and applies the session middleware
 - Serves: R-1, R-2, R-8
 - Location: `api/internal/account/`
 
-Sign-up (username uniqueness, password length of at least 12), Argon2id hashing, sign-in with the failed-attempt counter and the 15-minute block, and server-side sessions (7 days, see [ADR 0003](adr/0003-password-sign-in-with-server-sessions.md)).
+Sign-up (username uniqueness, no `@` in a username, password length of at least 12), Argon2id hashing, sign-in with the failed-attempt counter and the 15-minute block, and server-side sessions (7 days, see [ADR 0003](adr/0003-password-sign-in-with-server-sessions.md)).
 
 ### Tasks
 
@@ -57,7 +57,7 @@ Sign-up, sign-in, and task list pages. Task titles are rendered as React text, n
 | Field | Type | Notes |
 |---|---|---|
 | id | integer | primary key |
-| username | text | unique, compared in lower case |
+| username | text | unique, compared in lower case, never contains `@` |
 | password_hash | text | Argon2id, with its parameters and salt |
 | failed_signins | integer | reset to 0 after a successful sign-in |
 | blocked_until | timestamp | null unless blocked (R-8) |
