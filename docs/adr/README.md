@@ -34,10 +34,13 @@ See "Architecture decision records" in [`docs/design/documents.md`](../design/do
 | [0016](0016-account-existence-is-data.md) | Learning whether an account exists counts as reading data | accepted |
 | [0017](0017-qa-tests-in-their-own-folder.md) | QA's tests live in their own folder, outside the areas the developer may change | accepted |
 | [0018](0018-direct-dependencies-in-the-design.md) | The design lists direct dependencies; the lock file covers the rest | accepted |
-| [0019](0019-pre-pull-request-review.md) | A fresh subagent reviews the diff once before a pull request is opened | accepted; "the review that needs judgment stays with CodeRabbit and the maintainer" superseded by [0022](0022-second-review-stage-for-skills-gates-adapters.md) for `skills/`, `gates/`, and `adapters/` |
+| [0019](0019-pre-pull-request-review.md) | A fresh subagent reviews the diff once before a pull request is opened | accepted; "the review that needs judgment stays with CodeRabbit and the maintainer" superseded by [0022](0022-second-review-stage-for-skills-gates-adapters.md) for `skills/`, `gates/`, and `adapters/`; fixing every right finding superseded by [0026](0026-review-points-until-the-mvp.md) until the MVP |
 | [0020](0020-tool-specific-files-in-adapters.md) | Everything one tool uses lives in its adapter folder; files the tool needs at the plugin root stay thin | accepted |
 | [0021](0021-design-split-into-section-files.md) | The design is split into one file per section; `docs/DESIGN.md` stays as an index that keeps every heading | accepted |
-| [0022](0022-second-review-stage-for-skills-gates-adapters.md) | A second review stage, on a higher-tier model, before pull requests that change skills, gates, or adapters | accepted |
+| [0022](0022-second-review-stage-for-skills-gates-adapters.md) | A second review stage, on a higher-tier model, before pull requests that change skills, gates, or adapters | accepted; fixing every right finding superseded by [0026](0026-review-points-until-the-mvp.md) until the MVP |
 | [0023](0023-releasing-usage-stops.md) | A person releases a usage stop until the window resets | accepted |
 | [0024](0024-windows-a-plan-has-are-a-setting.md) | The windows a plan has are a setting the person makes, never inferred from a missing value | accepted |
+| [0025](0025-mvp-first.md) | Build a minimum viable keyturn first, and move the rest to enhancements | accepted |
+| [0026](0026-review-points-until-the-mvp.md) | Until the MVP, only Critical and Major review points and points that block the flow are fixed | accepted |
+| [0027](0027-when-an-agent-may-add-no-review.md) | An agent may add `no-review` to a pull request that meets three fixed conditions | accepted |
 | [0028](0028-gate-interface.md) | The gate is a Python CLI behind `gates/gate.sh`, run on a Git range, with JSON stack profiles | accepted |

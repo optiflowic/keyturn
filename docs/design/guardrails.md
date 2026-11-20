@@ -30,6 +30,8 @@ AI agents sometimes suggest packages that do not exist or that imitate popular o
 
 These are safety guardrails that must always be on, so unlike quality gates they **are** enforced with each tool's own mechanisms (permission rules, sandbox settings, and hooks). The adapters ship recommended settings for each tool.
 
+During the MVP ([Phases](phases.md#mvp), [ADR 0025](../adr/0025-mvp-first.md)), agents run without a sandbox: the adapter ships only permission rules that block direct pushes to the default branch and destructive commands, and network access and credentials are limited only by how the person runs it. Every delivery report made during that time says so under "What was not verified".
+
 ## 5. Budgets and escalation
 
 - Every task has limits: rework count, token budget, time, and number of changed files.

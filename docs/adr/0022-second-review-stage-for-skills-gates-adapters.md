@@ -1,6 +1,6 @@
 # 0022. A second review stage, on a higher-tier model, before pull requests that change skills, gates, or adapters
 
-- Status: accepted
+- Status: accepted; its rule that the author fixes the findings that are right superseded by [0026](0026-review-points-until-the-mvp.md) until the MVP is done
 - Date: 2026-11-15
 - Supersedes: [0019](0019-pre-pull-request-review.md), only its sentence that "the review that needs judgment stays with CodeRabbit and the maintainer" (in its first reason), for pull requests that change `skills/`, `gates/`, or `adapters/`. Its sentence that deep analysis, such as the threats in a worked example, is left to CodeRabbit still stands.
 
