@@ -230,7 +230,15 @@ In [`design/architecture.md`](design/architecture.md#gates).
 
 ## Phases
 
-[`design/phases.md`](design/phases.md): the order in which keyturn is built, and when each phase is done.
+[`design/phases.md`](design/phases.md): the order in which keyturn is built, the MVP that comes first, and when each phase is done.
+
+### MVP
+
+In [`design/phases.md`](design/phases.md#mvp).
+
+### Numbered phases
+
+In [`design/phases.md`](design/phases.md#numbered-phases).
 
 ## Future Vision (not in scope yet)
 
