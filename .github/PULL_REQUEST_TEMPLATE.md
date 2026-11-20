@@ -20,7 +20,7 @@
 
 ## Review Skipped
 
-<!-- If an agent added the `no-review` label, say that CodeRabbit's review was skipped and how each condition in ADR 0027 is met: 1. only documents, templates, worked examples, and issue forms changed; 2. no rule or decision changed; 3. the review before the pull request left no finding unfixed. If the maintainer asked for the label, say so. -->
+<!-- If an agent added the `no-review` label, say that CodeRabbit's review was skipped and how each condition in ADR 0027 is met: 1. only documents that no skill reads changed (`docs/`, the README, `.github/` forms and template; never `templates/` or `evals/`); 2. no rule or decision changed; 3. the review before the pull request left no finding unfixed. If the maintainer asked for the label, say so. -->
 <!-- Write "None" if the pull request does not have the label. -->
 
 ## Related Design and ADRs
