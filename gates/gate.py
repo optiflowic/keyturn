@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -51,6 +52,10 @@ PROFILE_FIELDS = {"name", "tools", "setup", "checks", "count_tests", "source_fil
 NAME_RE = re.compile(r"[a-z0-9][a-z0-9-]*")
 ADR_REF_RE = re.compile(r"\bADR-(\d{4})\b")
 EXIT_PASS, EXIT_FAIL, EXIT_SETUP = 0, 1, 2
+
+# Every command the gate runs gets the caller's environment without Git's variables: GIT_DIR, GIT_WORK_TREE, and the like
+# would point git, and the profile commands, at another repository than the worktree they run in.
+ENV = {name: value for name, value in os.environ.items() if not name.startswith("GIT_")}
 
 
 class SetupError(Exception):
@@ -87,14 +92,18 @@ class Part:
 
 def git(root: Path, *args: str, input_text: str | None = None) -> str:
     """Run git in the repository and return stdout. A failure is a setup error, never an empty result."""
-    result = subprocess.run(["git", "-C", str(root), *args], capture_output=True, text=True, input=input_text)
+    # Bytes, decoded without newline translation: text mode would turn a lone "\r" in a source line into a line break,
+    # and a line after it could then read as a patch header.
+    result = subprocess.run(["git", "-C", str(root), *args], capture_output=True, env=ENV,
+                            input=input_text.encode("utf-8") if input_text is not None else None)
     if result.returncode != 0:
-        raise SetupError([f"git {' '.join(args)}: {result.stderr.strip() or f'exit {result.returncode}'}"])
-    return result.stdout
+        error = result.stderr.decode("utf-8", errors="replace").strip()
+        raise SetupError([f"git {' '.join(args)}: {error or f'exit {result.returncode}'}"])
+    return result.stdout.decode("utf-8", errors="surrogateescape")
 
 
 def repo_root() -> Path:
-    result = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True)
+    result = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True, env=ENV)
     if result.returncode != 0:
         raise SetupError(["not inside a Git repository: run the gate from the project's repository"])
     return Path(result.stdout.strip())
@@ -102,7 +111,7 @@ def repo_root() -> Path:
 
 def commit_of(root: Path, rev: str) -> str:
     result = subprocess.run(["git", "-C", str(root), "rev-parse", "--verify", "--quiet", f"{rev}^{{commit}}"],
-                            capture_output=True, text=True)
+                            capture_output=True, text=True, env=ENV)
     if result.returncode != 0:
         raise SetupError([f"{rev}: not a commit in this repository"])
     return result.stdout.strip()
@@ -110,15 +119,15 @@ def commit_of(root: Path, rev: str) -> str:
 
 def file_at(root: Path, commit: str, path: str) -> str | None:
     """A file's text at a commit, or None if it is not there."""
-    result = subprocess.run(["git", "-C", str(root), "show", f"{commit}:{path}"], capture_output=True)
+    result = subprocess.run(["git", "-C", str(root), "show", f"{commit}:{path}"], capture_output=True, env=ENV)
     if result.returncode != 0:
         return None
     return result.stdout.decode("utf-8", errors="replace")
 
 
-def changed_paths(root: Path, base: str, head: str) -> list[str]:
-    """Every path the range adds, changes, deletes, or renames (a rename gives both its old and new path)."""
-    fields = git(root, "diff", "--name-status", "-z", "-M", "--no-ext-diff", base, head).split("\0")
+def name_status(root: Path, old: str, new: str) -> list[str]:
+    """Every path one diff adds, changes, deletes, or renames (a rename gives both its old and new path)."""
+    fields = git(root, "diff", "--name-status", "-z", "-M", "--no-ext-diff", old, new).split("\0")
     paths: list[str] = []
     index = 0
     while index < len(fields) and fields[index]:
@@ -127,6 +136,19 @@ def changed_paths(root: Path, base: str, head: str) -> list[str]:
         paths.extend(fields[index + 1:index + 1 + count])
         index += 1 + count
     return paths
+
+
+def changed_paths(root: Path, base: str, head: str) -> list[str]:
+    """Every path any commit in the range changes, so that a change a later commit undoes is still found.
+
+    A merge is compared with each of its parents.
+    """
+    paths = set(name_status(root, base, head))
+    for line in git(root, "rev-list", "--parents", f"{base}..{head}").splitlines():
+        commit, *parents = line.split()
+        for parent in parents:
+            paths.update(name_status(root, parent, commit))
+    return sorted(paths)
 
 
 def unquote_git_path(text: str) -> str:
@@ -208,7 +230,7 @@ def matches(path: str, pattern: str) -> bool:
 
 def load_config(root: Path) -> list[dict]:
     """Check the project configuration with project-config (ADR 0014), then return its parts."""
-    result = subprocess.run([sys.executable, str(PROJECT_CONFIG), "check"], cwd=root, capture_output=True, text=True)
+    result = subprocess.run([sys.executable, str(PROJECT_CONFIG), "check"], cwd=root, capture_output=True, text=True, env=ENV)
     if result.returncode != 0:
         problems = [line.removeprefix("error: ") for line in result.stderr.splitlines() if line.strip()]
         raise SetupError(problems or [f"{CONFIG_PATH}: the check failed"])
@@ -381,7 +403,7 @@ def check_suppressions(root: Path, base: str, head: str, parts: list[Part]) -> l
 def run(command: list[str], cwd: Path, timeout: float) -> tuple[int, str]:
     """Run a profile's command; return its exit code and the end of its output."""
     try:
-        result = subprocess.run(command, cwd=cwd, capture_output=True, text=True, timeout=timeout)
+        result = subprocess.run(command, cwd=cwd, capture_output=True, text=True, timeout=timeout, env=ENV)
     except FileNotFoundError:
         return 127, f"{command[0]}: command not found"
     except subprocess.TimeoutExpired:
@@ -414,7 +436,7 @@ class Trees:
 
     def remove(self) -> None:
         for path in self.paths.values():
-            subprocess.run(["git", "-C", str(self.root), "worktree", "remove", "--force", str(path)], capture_output=True)
+            subprocess.run(["git", "-C", str(self.root), "worktree", "remove", "--force", str(path)], capture_output=True, env=ENV)
 
     def prepare(self, name: str, part: Part) -> str:
         """Run the profile's setup in the part's folder once; return "" when it worked, or why it did not."""
@@ -422,7 +444,10 @@ class Trees:
         if key not in self.prepared:
             folder = self.paths[name] / part.path
             problem = ""
-            if folder.is_dir():
+            tree = self.paths[name].resolve()
+            if folder.exists() and tree != folder.resolve() and tree not in folder.resolve().parents:
+                problem = f"{part.path} leads outside the repository (a symbolic link?); only the committed folder is checked"
+            elif folder.is_dir():
                 for command in part.profile["setup"]:
                     code, output = run(command, folder, self.timeout)
                     if code != 0:
@@ -469,7 +494,7 @@ def check_profile(trees: Trees, parts: list[Part]) -> list[Result]:
 def gate(base_rev: str, head_rev: str, profiles_dir: Path, timeout: float) -> tuple[str, str, list[Result]]:
     root = repo_root()
     base, head = commit_of(root, base_rev), commit_of(root, head_rev)
-    if subprocess.run(["git", "-C", str(root), "merge-base", "--is-ancestor", base, head]).returncode != 0:
+    if subprocess.run(["git", "-C", str(root), "merge-base", "--is-ancestor", base, head], env=ENV).returncode != 0:
         raise SetupError([f"{base_rev} is not an ancestor of {head_rev}: name the commit the change started from"])
     with tempfile.TemporaryDirectory(prefix="keyturn-gate-") as temp:
         trees = Trees(root, base, head, Path(temp), timeout)

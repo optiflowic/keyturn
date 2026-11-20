@@ -180,6 +180,36 @@ class GateTest(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("template placeholder", result.stderr)
 
+    def test_a_change_to_a_protected_path_that_a_later_commit_undoes_still_fails(self):
+        self.put("app/qa/test_qa.txt", "changed")
+        self.commit("change QA's test")
+        self.put("app/qa/test_qa.txt", "")
+        self.commit("change it back")
+        self.assert_fails(self.gate(), "FAIL protected-paths: app/qa/test_qa.txt (matches app/qa/**)")
+
+    def test_a_part_folder_that_links_outside_the_repository_fails(self):
+        outside = Path(self.tmp.name) / "outside"
+        outside.mkdir()
+        (outside / "test_a.txt").write_text("", encoding="utf-8")
+        self.git("rm", "-q", "-r", "app")
+        (self.root / "app").symlink_to(outside)
+        self.commit("replace the part with a link")
+        result = self.gate()
+        self.assert_fails(result, "FAIL test-count [app]:")
+        self.assertIn("leads outside the repository", result.stdout)
+
+    def test_git_s_variables_of_the_caller_do_not_reach_the_checks(self):
+        self.git("rm", "-q", "app/src/test_one.txt")
+        self.commit("delete a test")
+        other = Path(self.tmp.name) / "other"
+        other.mkdir()
+        subprocess.run(["git", "init", "-q"], cwd=other, env=self.env, check=True)
+        env = dict(self.env, GIT_DIR=str(other / ".git"), GIT_WORK_TREE=str(other))
+        result = subprocess.run([sys.executable, str(GATE), "--base", self.base, "--profiles", str(self.profiles)],
+                                cwd=self.root, env=env, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("FAIL test-count [app]: 2 tests at the base, 1 at the head", result.stdout)
+
     # Suppressions
 
     def test_an_added_line_that_starts_with_two_pluses_does_not_hide_the_next_lines(self):
@@ -235,6 +265,11 @@ class GateTest(unittest.TestCase):
         self.put("tools/gen.py", "import os  # noqa\n")
         self.commit("suppress outside the parts")
         self.assert_fails(self.gate(), "FAIL suppressions [app]: tools/gen.py:1:")
+
+    def test_a_carriage_return_does_not_make_a_line_look_like_a_patch_header(self):
+        self.put("app/src/main.py", 'print("hello")\npayload = """\rdiff --git a/x b/x\n"""\nimport os  # noqa\n')
+        self.commit("hide a suppression after a carriage return")
+        self.assert_fails(self.gate(), "FAIL suppressions [app]: app/src/main.py:4:")
 
     def test_a_suppression_in_a_file_the_profile_does_not_cover_is_not_counted(self):
         self.put("app/src/notes.md", "# noqa is just text here\n")
