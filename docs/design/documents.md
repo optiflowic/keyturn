@@ -52,7 +52,7 @@ Separate the two tiers so the client knows which folder is theirs.
 
 ```
 keyturn/
-  config.json # project configuration (language settings)
+  config.json # project configuration (language settings, and the stack profile of each part)
   client/     # client-facing documents
   internal/   # agent-to-agent documents
     adr/      # architecture decision records

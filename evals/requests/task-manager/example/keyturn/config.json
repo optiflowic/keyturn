@@ -1,4 +1,14 @@
 {
   "client_language": "ja",
-  "english_only": true
+  "english_only": true,
+  "parts": [
+    {
+      "path": "api",
+      "profile": "go"
+    },
+    {
+      "path": "web",
+      "profile": "react-spa"
+    }
+  ]
 }
