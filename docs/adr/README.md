@@ -40,3 +40,4 @@ See "Architecture decision records" in [`docs/design/documents.md`](../design/do
 | [0022](0022-second-review-stage-for-skills-gates-adapters.md) | A second review stage, on a higher-tier model, before pull requests that change skills, gates, or adapters | accepted |
 | [0023](0023-releasing-usage-stops.md) | A person releases a usage stop until the window resets | accepted |
 | [0024](0024-windows-a-plan-has-are-a-setting.md) | The windows a plan has are a setting the person makes, never inferred from a missing value | accepted |
+| [0028](0028-gate-interface.md) | The gate is a Python CLI behind `gates/gate.sh`, run on a Git range, with JSON stack profiles | accepted |

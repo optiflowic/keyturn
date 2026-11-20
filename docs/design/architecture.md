@@ -20,3 +20,4 @@
 - `gate.sh` is a plain CLI that does not depend on Claude Code or Codex.
 - It reads the stack profile to decide which checks to run.
 - It checks whether external tools are installed and explains how to install them if not.
+- How it is called, what it returns, which checks it runs, and the profile format are in [ADR 0028](../adr/0028-gate-interface.md): it runs on a Git range (`--base`, `--head`), prints one line per check, and exits 0 when every check passed, 1 when one failed, and 2 when it could not run.

@@ -17,7 +17,7 @@ skills/                   # role procedures (shared across tools)
   deliver/SKILL.md        # full pipeline
   resume/SKILL.md         # resume a stopped task from its state file
 gates/
-  gate.sh                 # runs checks defined by the stack profile
+  gate.sh                 # runs checks defined by the stack profile (the logic is in gate.py, tested by test_gate.py)
                           # plus guardrail checks (protected paths, suppressions, scope)
 profiles/                 # stack profiles (one frontend + one backend first)
 templates/

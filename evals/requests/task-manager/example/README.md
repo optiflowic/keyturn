@@ -13,7 +13,7 @@ Every keyturn template, filled in by hand for [the task manager request](../requ
 
 | Document | Template | Filled in by |
 |---|---|---|
-| [`keyturn/config.json`](keyturn/config.json) | written by `project-config` (no template) | PM, with the client |
+| [`keyturn/config.json`](keyturn/config.json) | written by `project-config` (no template); `parts`, the stack profile of `api/` and `web/`, added with the design (ADR 0028 in keyturn's `docs/adr/`) | PM, with the client; the architect for `parts` |
 | [`keyturn/client/requirements.md`](keyturn/client/requirements.md) | `templates/client/requirements.md` | PM |
 | [`keyturn/client/approvals.md`](keyturn/client/approvals.md) | `templates/client/approvals.md` | PM |
 | [`keyturn/client/decision-card-1.md`](keyturn/client/decision-card-1.md) | `templates/client/decision-card.md` | Architect |

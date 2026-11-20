@@ -12,7 +12,7 @@ Each profile defines:
 - Where QA's tests live, as a folder of their own (see [ADR 0017](../adr/0017-qa-tests-in-their-own-folder.md))
 - What cannot be checked mechanically for this stack (this goes into the delivery report as a known gap)
 
-Profiles live in `profiles/<stack>/`. Add one profile at a time, and only after the previous ones work well. Some stacks have much weaker mechanical security checks than others (e.g., Neovim plugins); the profile must say so honestly rather than pretend coverage exists.
+Profiles live in `profiles/<stack>/`, each as a `profile.json` that the gate reads ([ADR 0028](../adr/0028-gate-interface.md)). A project names the profile of each of its folders in `keyturn/config.json` (`parts`). Add one profile at a time, and only after the previous ones work well. Some stacks have much weaker mechanical security checks than others (e.g., Neovim plugins); the profile must say so honestly rather than pretend coverage exists.
 
 ## Planned profiles
 
