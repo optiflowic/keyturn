@@ -151,6 +151,20 @@ class GateTest(unittest.TestCase):
         self.commit("odd name")
         self.assert_fails(self.gate(), "FAIL protected-paths: app/qa/a")
 
+    def test_a_qa_folder_written_without_a_wildcard_protects_everything_under_it(self):
+        self.put("keyturn/internal/design.md", DESIGN.replace("`app/qa/**`", "`app/qa/`"))
+        self.base = self.commit("design names the folder only")
+        self.put("app/qa/test_qa.txt", "changed")
+        self.commit("change QA's test")
+        self.assert_fails(self.gate(), "FAIL protected-paths: app/qa/test_qa.txt (matches app/qa/**)")
+
+    def test_a_template_placeholder_in_qa_s_tests_stops_the_gate(self):
+        self.put("keyturn/internal/design.md", DESIGN.replace("`app/qa/**`", "`<folder>/**`"))
+        self.base = self.commit("unfilled design")
+        result = self.gate()
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("template placeholder", result.stderr)
+
     # Suppressions
 
     def test_an_added_line_that_starts_with_two_pluses_does_not_hide_the_next_lines(self):
@@ -185,6 +199,18 @@ class GateTest(unittest.TestCase):
         self.assert_fails(result, "FAIL suppressions [app]: app/src/main.py:2:")
         self.assertIn("names ADR-0001, not accepted at the base", result.stdout)
         self.assertIn("keyturn/internal/adr/0001-allow-one-noqa.md", result.stdout)  # and the ADR is a protected path
+
+    def test_marking_a_file_as_binary_does_not_hide_a_suppression(self):
+        self.put(".gitattributes", "*.py -diff\n")
+        self.base = self.commit("attributes")
+        self.put("app/src/main.py", "print('hello')\nimport os  # noqa\n")
+        self.commit("suppress")
+        self.assert_fails(self.gate(), "FAIL suppressions [app]: app/src/main.py:2:")
+
+    def test_a_suppression_outside_every_part_is_found(self):
+        self.put("tools/gen.py", "import os  # noqa\n")
+        self.commit("suppress outside the parts")
+        self.assert_fails(self.gate(), "FAIL suppressions [app]: tools/gen.py:1:")
 
     def test_a_suppression_in_a_file_the_profile_does_not_cover_is_not_counted(self):
         self.put("app/src/notes.md", "# noqa is just text here\n")

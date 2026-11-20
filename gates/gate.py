@@ -148,7 +148,8 @@ def unquote_git_path(text: str) -> str:
 
 def added_lines(root: Path, base: str, head: str) -> list[tuple[str, int, str]]:
     """Every line the range adds, as (path at the head, line number, text)."""
-    patch = git(root, "-c", "core.quotePath=false", "diff", "--no-color", "--no-ext-diff", "-M", "--unified=0",
+    # --text and --no-textconv: a .gitattributes entry (`-diff`, `binary`, a textconv driver) or a NUL byte must not hide lines.
+    patch = git(root, "-c", "core.quotePath=false", "diff", "--no-color", "--no-ext-diff", "--text", "--no-textconv", "-M", "--unified=0",
                 "--src-prefix=a/", "--dst-prefix=b/", base, head)
     lines: list[tuple[str, int, str]] = []
     path: str | None = None
@@ -287,7 +288,15 @@ def qa_folders(root: Path, base: str) -> list[str]:
     folders = [match.group(1) for match in re.finditer(r"^\|\s*`([^`]+)`", section.group(1), re.M)]
     if not folders:
         raise SetupError([f"{DESIGN_PATH}: \"QA's tests\" names no folder (a table row starting with a `path`)"])
-    return folders
+    placeholders = [folder for folder in folders if "<" in folder or ">" in folder]
+    if placeholders:
+        raise SetupError([f"{DESIGN_PATH}: \"QA's tests\" still has a template placeholder: {folder}" for folder in placeholders])
+    patterns = []
+    for folder in folders:
+        folder = folder.rstrip("/")
+        # A folder written without a wildcard (`app/qa` or `app/qa/`) protects everything under it.
+        patterns += [folder] if any(char in folder for char in "*?") else [folder, f"{folder}/**"]
+    return patterns
 
 
 def check_tools(parts: list[Part]) -> None:
@@ -343,7 +352,9 @@ def check_suppressions(root: Path, base: str, head: str, parts: list[Part]) -> l
         hits = []
         for path, number, text in added:
             name = PurePosixPath(path).name
-            if not part.contains(path) or not any(matches(name, glob) for glob in part.profile["source_files"]):
+            # A file outside every part is checked by every profile: nothing else builds or lints it.
+            inside = part.contains(path) or not any(other.contains(path) for other in parts)
+            if not inside or not any(matches(name, glob) for glob in part.profile["source_files"]):
                 continue
             if any(pattern.search(text) for pattern in patterns):
                 named = ADR_REF_RE.findall(text)
