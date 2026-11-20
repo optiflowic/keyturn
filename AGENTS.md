@@ -15,6 +15,7 @@ This is the only committed instructions file. If your tool reads a different fil
 - Build the MVP first: the issues in the "MVP" milestone, in the order the maintainer gives ([ADR 0025](docs/adr/0025-mvp-first.md), "MVP" in `docs/design/phases.md`). Issues labeled `enhancement` wait until the MVP is done, unless the maintainer says otherwise.
 - If the design or the maintainer's local plan lists an unresolved question about the work you are about to start, ask the human before starting.
 - Record decisions as ADRs in `docs/adr/`. Check existing ADRs before making a decision.
+- If an edit stops because Claude Code's auto mode gets no verdict on it (for example, "the server-side auto mode classifier gave no verdict"), do not retry it, and do not make it another way (a shell command, another tool, another file). Stop, and ask the person to approve that edit. The plugin's usage hook is not the cause: it prints nothing when it does not deny (#121).
 
 ## Where things live
 
