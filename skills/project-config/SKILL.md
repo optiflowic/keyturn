@@ -19,8 +19,9 @@ Create and check the project configuration, `keyturn/config.json`, so that every
 |---|---|---|
 | `client_language` | a language code, such as `ja`, `de`, `pt-BR` | The language the client reads and writes. |
 | `english_only` | `true` or `false` | `true`: everything committed or posted is in English, and the client reads it through `localize`. `false`: client-facing documents are written in `client_language`. |
+| `parts` (optional) | a list of `{"path": "<folder>", "profile": "<stack profile>"}`, such as `[{"path": "api", "profile": "go"}]` | Which stack profile the gate uses for each folder of the project (ADR 0028 in keyturn's `docs/adr/`). A folder belongs to one part only; `"."` is the whole repository. The architect chooses the stack; the gate stops until this is set. |
 
-There are no other settings yet. A setting is added, with the script and its tests, by the skill that first needs it.
+There are no other settings yet. A setting is added, with the script and its tests, by the skill that first needs it. `init` writes only the two required settings; `parts` is added by editing the file (step 3).
 
 ## Inputs
 
@@ -40,7 +41,7 @@ The helper script `scripts/project_config.py` (in this skill's folder) does all 
    - `ok`: the configuration can be used. Read a setting with `project_config.py get <setting>`, which checks the file again first.
    - Problems (exit code 1): stop, show the client or the role that asked every line the script printed, and fix the cause before going on. A missing file is created with step 2; any other problem is fixed in step 3.
 2. **Create it when the project is set up.** Ask the client which language they read and write, and whether everything published must be in English. Then run `project_config.py init --client-language <code> --english-only` (or `--no-english-only`). The script refuses to overwrite an existing file. Run `check`, and commit the file.
-3. **Change it only when the client asks.** Edit `keyturn/config.json` (keep it a JSON object with exactly the settings above), run `check` until it prints `ok`, and commit it. A change of `client_language` or `english_only` changes the language of client-facing documents from then on; tell the client which documents will be written in the new language.
+3. **Change it only when the client asks.** Edit `keyturn/config.json` (keep it a JSON object with only the settings above), run `check` until it prints `ok`, and commit it. A change of `client_language` or `english_only` changes the language of client-facing documents from then on; tell the client which documents will be written in the new language.
 
 ## Notes
 

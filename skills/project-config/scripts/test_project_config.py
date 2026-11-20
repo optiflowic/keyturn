@@ -46,6 +46,43 @@ class ProjectConfigTest(unittest.TestCase):
         self.write(b'{"client_language": "pt-BR", "english_only": true}')
         self.assertEqual(self.run_script("check").stdout, "ok\n")
 
+    # Parts (ADR 0028)
+
+    def test_parts_are_optional_and_checked_when_set(self):
+        self.write(b'{"client_language": "ja", "english_only": false, "parts": [{"path": "api", "profile": "go"}, {"path": "web", "profile": "react-spa"}]}')
+        self.assertEqual(self.run_script("check").stdout, "ok\n")
+        self.assertEqual(self.run_script("get", "parts").stdout,
+                         '[{"path": "api", "profile": "go"}, {"path": "web", "profile": "react-spa"}]\n')
+
+    def test_get_of_an_unset_optional_setting_fails(self):
+        self.write(VALID)
+        result = self.run_script("get", "parts")
+        self.assertEqual((result.returncode, result.stderr), (1, "error: parts: not set\n"))
+
+    def test_the_whole_repository_can_be_one_part(self):
+        self.write(b'{"client_language": "ja", "english_only": false, "parts": [{"path": ".", "profile": "go"}]}')
+        self.assertEqual(self.run_script("check").stdout, "ok\n")
+
+    def test_parts_must_be_a_non_empty_list_of_path_and_profile(self):
+        shape = 'parts: must be a non-empty list of {"path": "<folder>", "profile": "<stack profile>"}'
+        self.write(b'{"client_language": "ja", "english_only": false, "parts": []}')
+        self.assert_problems(shape)
+        self.write(b'{"client_language": "ja", "english_only": false, "parts": [{"path": "api"}]}')
+        self.assert_problems(f"{shape} (part 1)")
+
+    def test_part_paths_and_profiles_are_checked(self):
+        self.write(b'{"client_language": "ja", "english_only": false, "parts": ['
+                   b'{"path": "../api", "profile": "go"}, {"path": "web/", "profile": "React"}]}')
+        self.assert_problems(
+            'parts: part 1: path: not a folder inside the repository: "../api" (use e.g. "api", or "." for the whole repository)',
+            'parts: part 2: path: not a folder inside the repository: "web/" (use e.g. "api", or "." for the whole repository)',
+            'parts: part 2: profile: not a profile name: "React" (use e.g. "go", "react-spa")')
+
+    def test_a_folder_belongs_to_one_part_only(self):
+        self.write(b'{"client_language": "ja", "english_only": false, "parts": ['
+                   b'{"path": "api", "profile": "go"}, {"path": "api/web", "profile": "react-spa"}]}')
+        self.assert_problems('parts: "api" and "api/web": a folder belongs to one part only')
+
     def test_get_prints_one_setting(self):
         self.write(VALID)
         self.assertEqual(self.run_script("get", "client_language").stdout, "ja\n")

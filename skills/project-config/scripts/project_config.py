@@ -26,7 +26,10 @@ CONFIG_PATH = Path("keyturn") / "config.json"
 LANG_RE = re.compile(r"[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*")
 
 # Every setting, in the order problems are reported. Add a setting here, and to the tests, in the pull request that uses it.
-SETTINGS = ("client_language", "english_only")
+SETTINGS = ("client_language", "english_only", "parts")
+# Settings a configuration may leave out. Only what reads them needs them: the gate stops without "parts" (ADR 0028).
+OPTIONAL = ("parts",)
+PROFILE_RE = re.compile(r"[a-z0-9][a-z0-9-]*")
 
 
 class ConfigError(Exception):
@@ -52,7 +55,43 @@ def setting_problems(name: str, value: object) -> list[str]:
     elif name == "english_only":
         if not isinstance(value, bool):
             return [f"english_only: must be true or false, not {json.dumps(value)}"]
+    elif name == "parts":
+        return parts_problems(value)
     return []
+
+
+def parts_problems(value: object) -> list[str]:
+    """Problems with "parts": a non-empty list of {"path", "profile"}, with folders that neither repeat nor nest."""
+    shape = 'parts: must be a non-empty list of {"path": "<folder>", "profile": "<stack profile>"}'
+    if not isinstance(value, list) or not value:
+        return [shape]
+    problems = []
+    paths = []
+    for index, part in enumerate(value, 1):
+        if not isinstance(part, dict) or set(part) != {"path", "profile"}:
+            problems.append(f"{shape} (part {index})")
+            continue
+        path, profile = part["path"], part["profile"]
+        if not isinstance(path, str) or not path_is_relative(path):
+            problems.append(f"parts: part {index}: path: not a folder inside the repository: {json.dumps(path)} (use e.g. \"api\", or \".\" for the whole repository)")
+        else:
+            paths.append(path)
+        if not isinstance(profile, str) or not PROFILE_RE.fullmatch(profile):
+            problems.append(f"parts: part {index}: profile: not a profile name: {json.dumps(profile)} (use e.g. \"go\", \"react-spa\")")
+    for first in range(len(paths)):
+        for second in range(first + 1, len(paths)):
+            a, b = paths[first], paths[second]
+            if a == b or a == "." or b == "." or a.startswith(b + "/") or b.startswith(a + "/"):
+                problems.append(f"parts: {json.dumps(a)} and {json.dumps(b)}: a folder belongs to one part only")
+    return problems
+
+
+def path_is_relative(path: str) -> bool:
+    """A POSIX folder path inside the repository, written one way only: no "..", no "./", no trailing or doubled "/"."""
+    if path == ".":
+        return True
+    names = path.split("/")
+    return bool(path) and not path.startswith("/") and all(name not in ("", ".", "..") for name in names) and "\\" not in path
 
 
 class Pairs(dict):
@@ -75,7 +114,7 @@ def validate(data: object) -> list[str]:
     problems = [f"{name}: set more than once" for name in sorted({n for n in names if names.count(n) > 1})]
     for name in SETTINGS:
         values = [value for key, value in pairs if key == name]
-        if not values:
+        if not values and name not in OPTIONAL:
             problems.append(f"{name}: missing")
         for value in values:  # every occurrence, so an invalid first value is not hidden by a valid later one
             for problem in setting_problems(name, value):
@@ -111,7 +150,7 @@ def load(root: Path) -> dict:
 
 def render(data: dict) -> str:
     """The canonical text of a configuration: settings in order, two-space indent, final newline."""
-    return json.dumps({name: data[name] for name in SETTINGS}, indent=2, ensure_ascii=False) + "\n"
+    return json.dumps({name: data[name] for name in SETTINGS if name in data}, indent=2, ensure_ascii=False) + "\n"
 
 
 def cmd_check(root: Path) -> None:
@@ -122,7 +161,11 @@ def cmd_check(root: Path) -> None:
 def cmd_get(root: Path, name: str) -> None:
     if name not in SETTINGS:
         raise ConfigError([f"{name}: unknown setting (known: {', '.join(SETTINGS)})"])
-    print(json.dumps(load(root)[name], ensure_ascii=False).strip('"'))
+    data = load(root)
+    if name not in data:
+        raise ConfigError([f"{name}: not set"])
+    value = data[name]
+    print(value if isinstance(value, str) else json.dumps(value, ensure_ascii=False))
 
 
 def cmd_init(root: Path, client_language: str, english_only: bool) -> None:
