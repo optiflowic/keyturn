@@ -32,7 +32,7 @@ Option 2 in each question, and the last option in the third.
 
 **Inputs.**
 - `keyturn/config.json`, checked with `project_config.py check`. Its optional setting `parts` lists each part of the project as `{"path": "<folder>", "profile": "<name>"}`; a folder belongs to one part only, and `"."` stands for the whole repository. The gate stops without it.
-- `keyturn/internal/design.md` at the head: the paths in the first column of its "QA's tests" table ([ADR 0017](0017-qa-tests-in-their-own-folder.md)). The gate stops without them.
+- `keyturn/internal/design.md` at the base: the paths in the first column of its "QA's tests" table ([ADR 0017](0017-qa-tests-in-their-own-folder.md)), read at the base so that a change in the range cannot narrow them. The gate stops without them.
 - Each part's profile, `profiles/<name>/profile.json`, a JSON object with exactly these fields:
   - `name`: the profile's folder name;
   - `tools`: `[{"command", "install"}]`, the commands that must be on `PATH`, and how to install each;
@@ -43,7 +43,7 @@ Option 2 in each question, and the last option in the third.
   - `protected`: path patterns of the linter configs and other files no developer change may touch, matched anywhere in the repository (each is read as `**/<pattern>`), since `conventions` puts a config above the part's folder when that folder is one the developer may change.
 
 **Checks, in order.**
-1. `protected-paths`: no path that the range adds, changes, deletes, or renames (both names of a rename) matches a protected pattern. The patterns are fixed ones (`keyturn/config.json`, `keyturn/internal/conventions.md`, `keyturn/internal/adr/**`, `.github/workflows/**`), QA's folders from the design, and each profile's `protected`. In patterns, `**` matches across folders, and `*` and `?` within one name.
+1. `protected-paths`: no path that the range adds, changes, deletes, or renames (both names of a rename) matches a protected pattern. The patterns are fixed ones (`keyturn/config.json`, `keyturn/internal/design.md`, `keyturn/internal/conventions.md`, `keyturn/internal/adr/**`, `.github/workflows/**`), QA's folders from the design, and each profile's `protected`. In patterns, `**` matches across folders, and `*` and `?` within one name.
 2. `suppressions`, per part: no added line in the part's source files matches a suppression pattern, unless the same line names `ADR-NNNN` and the project's `keyturn/internal/adr/NNNN-*.md` was accepted at the base. An ADR added in the range approves nothing, and is itself a protected path.
 3. `test-count`, per part: the number of tests at the head is not lower than at the base. The base is counted in a temporary worktree; a part's folder that is not there counts 0, and a count that fails is a failure.
 4. Each profile check, per part, in the working tree at the head.

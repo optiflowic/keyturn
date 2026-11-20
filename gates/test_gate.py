@@ -137,7 +137,32 @@ class GateTest(unittest.TestCase):
         self.commit("add CI")
         self.assert_fails(self.gate(), "FAIL protected-paths: .github/workflows/ci.yml (matches .github/workflows/**)")
 
+    def test_narrowing_qa_s_tests_in_the_design_does_not_unprotect_them(self):
+        self.put("keyturn/internal/design.md", DESIGN.replace("`app/qa/**`", "`app/other/**`"))
+        self.put("app/qa/test_qa.txt", "changed")
+        self.commit("narrow the design, then change QA's test")
+        result = self.gate()
+        self.assert_fails(result, "FAIL protected-paths:")
+        self.assertIn("app/qa/test_qa.txt (matches app/qa/**)", result.stdout)
+        self.assertIn("keyturn/internal/design.md (matches keyturn/internal/design.md)", result.stdout)
+
+    def test_a_path_with_a_newline_is_still_protected(self):
+        self.put("app/qa/a\nb.txt", "")
+        self.commit("odd name")
+        self.assert_fails(self.gate(), "FAIL protected-paths: app/qa/a")
+
     # Suppressions
+
+    def test_an_added_line_that_starts_with_two_pluses_does_not_hide_the_next_lines(self):
+        self.put("app/src/main.py", "print('hello')\n++ x\nimport os  # noqa\n")
+        self.commit("suppress after a ++ line")
+        self.assert_fails(self.gate(), "FAIL suppressions [app]: app/src/main.py:3:")
+
+    def test_a_suppression_in_a_file_with_a_space_in_its_name_is_found(self):
+        self.put("app/src/two words.py", "import os  # noqa\n")
+        self.commit("suppress in a file with a space")
+        self.assert_fails(self.gate(), "FAIL suppressions [app]: app/src/two words.py:1:")
+
 
     def test_a_new_suppression_fails(self):
         self.put("app/src/main.py", "print('hello')\nimport os  # noqa: F401\n")
@@ -212,7 +237,7 @@ class GateTest(unittest.TestCase):
 
     def test_a_design_without_qa_s_tests_stops_the_gate(self):
         self.put("keyturn/internal/design.md", "# Design\n")
-        self.commit("no QA section")
+        self.base = self.commit("no QA section")
         result = self.gate()
         self.assertEqual(result.returncode, 2)
         self.assertIn("no \"QA's tests\" section", result.stderr)

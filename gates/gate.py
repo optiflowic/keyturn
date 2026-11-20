@@ -36,6 +36,7 @@ ADR_DIR = "keyturn/internal/adr"
 # and each profile adds its linter configs, wherever in the repository they are. The handoff notes are the developer's, so `keyturn/internal/` is not listed whole.
 FIXED_PROTECTED = (
     CONFIG_PATH,
+    DESIGN_PATH,
     "keyturn/internal/conventions.md",
     f"{ADR_DIR}/**",
     ".github/workflows/**",
@@ -152,14 +153,19 @@ def added_lines(root: Path, base: str, head: str) -> list[tuple[str, int, str]]:
     lines: list[tuple[str, int, str]] = []
     path: str | None = None
     number = 0
-    for row in patch.splitlines():
-        if row.startswith("+++ "):
-            target = unquote_git_path(row[4:])
+    in_header = False  # between "diff --git" and the file's first "@@": only there is "+++ " a header, not an added "++ " line
+    for row in patch.split("\n"):
+        if row.startswith("diff --git "):
+            in_header, path = True, None
+        elif in_header and row.startswith("+++ "):
+            # Git ends the name with a tab when it contains a space.
+            target = unquote_git_path(row[4:].removesuffix("\t"))
             path = target[2:] if target.startswith("b/") else None  # "/dev/null" for a deleted file
         elif row.startswith("@@"):
+            in_header = False
             match = re.match(r"@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@", row)
             number = int(match.group(1)) if match else 0
-        elif row.startswith("+") and path is not None:
+        elif not in_header and row.startswith("+") and path is not None:
             lines.append((path, number, row[1:]))
             number += 1
     return lines
@@ -187,7 +193,7 @@ def pattern_regex(pattern: str) -> re.Pattern:
         else:
             out += re.escape(pattern[index])
             index += 1
-    return re.compile(out)
+    return re.compile(out, re.DOTALL)  # a path may hold a newline, and `.*` must match it too
 
 
 def matches(path: str, pattern: str) -> bool:
@@ -270,11 +276,11 @@ def load_parts(root: Path, profiles_dir: Path) -> list[Part]:
     return parts
 
 
-def qa_folders(root: Path, head: str) -> list[str]:
-    """The path patterns under "QA's tests" in the design at the head (ADR 0017)."""
-    text = file_at(root, head, DESIGN_PATH)
+def qa_folders(root: Path, base: str) -> list[str]:
+    """The path patterns under "QA's tests" in the design at the base (ADR 0017), so that a change in the range cannot narrow them."""
+    text = file_at(root, base, DESIGN_PATH)
     if text is None:
-        raise SetupError([f"{DESIGN_PATH}: missing at the head; the gate needs its \"QA's tests\" section"])
+        raise SetupError([f"{DESIGN_PATH}: missing at the base; the gate needs its \"QA's tests\" section"])
     section = re.search(r"^## QA's tests\s*$(.*?)(?=^## |\Z)", text, re.M | re.S)
     if section is None:
         raise SetupError([f"{DESIGN_PATH}: no \"QA's tests\" section"])
@@ -410,7 +416,7 @@ def gate(base_rev: str, head_rev: str, profiles_dir: Path, timeout: float) -> tu
         raise SetupError([f"{base_rev} is not an ancestor of {head_rev}: name the commit the change started from"])
     check_checkout(root, head)
     parts = load_parts(root, profiles_dir)
-    qa = qa_folders(root, head)
+    qa = qa_folders(root, base)
     check_tools(parts)
     results = [check_protected(changed_paths(root, base, head), protected_patterns(parts, qa))]
     results += check_suppressions(root, base, head, parts)
