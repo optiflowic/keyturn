@@ -1,6 +1,6 @@
 # 0019. A fresh subagent reviews the diff once before a pull request is opened
 
-- Status: accepted; superseded by [0022](0022-second-review-stage-for-skills-gates-adapters.md) only in its sentence that "the review that needs judgment stays with CodeRabbit and the maintainer" (the first reason), for pull requests that change `skills/`, `gates/`, or `adapters/`
+- Status: accepted; superseded by [0022](0022-second-review-stage-for-skills-gates-adapters.md) only in its sentence that "the review that needs judgment stays with CodeRabbit and the maintainer" (the first reason), for pull requests that change `skills/`, `gates/`, or `adapters/`; its rule that the author fixes the findings that are right superseded by [0026](0026-review-points-until-the-mvp.md) until the MVP is done
 - Date: 2026-11-14
 
 ## Context

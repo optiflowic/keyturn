@@ -23,3 +23,5 @@ Profiles live in `profiles/<stack>/`. Add one profile at a time, and only after 
 | Other | Neovim plugin (Lua), Rust CLI/TUI |
 
 Start with **one frontend profile and one backend profile**, enough to validate new-project mode end to end on a web application (see phase 6 in [Phases](phases.md)). Add the rest one at a time.
+
+The MVP's `go` and `react-spa` profiles ([Phases](phases.md#mvp)) define only building, running, testing, linting, counting the tests, and where QA's tests live. They have no security checks (SAST, dependency scanning, secret scanning) until phase 5, and each delivery report made with them lists that under "What was not verified", as a known gap of the profile.
