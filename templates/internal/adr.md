@@ -17,6 +17,7 @@ Template: architecture decision record (internal). Filled in by the role that ma
 - Supersedes: <[NNNN](NNNN-short-title.md)> <!-- Delete this line if it does not apply. -->
 - Serves: R-<n>
 - Needs client agreement: <yes | no>
+- Allows: <the suppression this decision allows, as written in the code, such as `//nolint:gosec`> <!-- Delete this line unless the decision allows a suppression comment. Repeat it for each one. The code names this ADR on the same line (ADR-NNNN), and the gate accepts the suppression only while this ADR is accepted. -->
 
 ## Context
 

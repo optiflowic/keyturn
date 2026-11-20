@@ -17,6 +17,7 @@ GATE = Path(__file__).with_name("gate.py")
 PROFILE = {
     "name": "fake",
     "tools": [{"command": "python3", "install": "install Python 3"}],
+    "setup": [],
     "checks": [{"name": "build", "run": [sys.executable, "-c",
                                          "import pathlib, sys; sys.exit(1 if pathlib.Path('BROKEN').exists() else 0)"]}],
     "count_tests": [sys.executable, "-c", "import pathlib; print(len(list(pathlib.Path('.').rglob('test_*.txt'))))"],
@@ -42,7 +43,7 @@ DESIGN = """# Design
 ## Requirements coverage
 """
 
-ADR = "# 0001. Allow one noqa\n\n- Status: accepted\n- Date: 2026-11-21\n"
+ADR = "# 0001. Allow one noqa\n\n- Status: accepted\n- Date: 2026-11-21\n- Allows: # noqa: F401\n"
 
 
 class GateTest(unittest.TestCase):
@@ -122,6 +123,20 @@ class GateTest(unittest.TestCase):
         self.commit("change QA's test")
         self.assert_fails(self.gate(), "FAIL protected-paths: app/qa/test_qa.txt (matches app/qa/**)")
 
+    def test_the_developer_s_handoff_notes_are_not_protected(self):
+        self.put("keyturn/internal/handoff.md", "# Handoff\n")
+        self.commit("handoff")
+        self.assertEqual(self.gate().returncode, 0)
+
+    def test_other_roles_documents_and_git_attributes_are_protected(self):
+        self.put("keyturn/client/requirements.md", "changed")
+        self.put("app/.gitignore", "BROKEN\n")
+        self.commit("change the requirements and an ignore file")
+        result = self.gate()
+        self.assert_fails(result, "FAIL protected-paths:")
+        self.assertIn("keyturn/client/requirements.md (matches keyturn/client/**)", result.stdout)
+        self.assertIn("app/.gitignore (matches **/.gitignore)", result.stdout)
+
     def test_a_linter_config_the_profile_names_is_protected(self):
         self.put("app/.lintrc", "relaxed")
         self.commit("add a linter config")
@@ -144,7 +159,7 @@ class GateTest(unittest.TestCase):
         result = self.gate()
         self.assert_fails(result, "FAIL protected-paths:")
         self.assertIn("app/qa/test_qa.txt (matches app/qa/**)", result.stdout)
-        self.assertIn("keyturn/internal/design.md (matches keyturn/internal/design.md)", result.stdout)
+        self.assertIn("keyturn/internal/design.md (matches keyturn/internal/**)", result.stdout)
 
     def test_a_path_with_a_newline_is_still_protected(self):
         self.put("app/qa/a\nb.txt", "")
@@ -190,6 +205,15 @@ class GateTest(unittest.TestCase):
         self.commit("suppress")
         result = self.gate()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_an_accepted_adr_that_does_not_allow_the_suppression_approves_nothing(self):
+        self.put("keyturn/internal/adr/0001-use-postgres.md", "# 0001. Use Postgres\n\n- Status: accepted\n")
+        self.base = self.commit("ADR")
+        self.put("app/src/main.py", "print('hello')\nimport os  # noqa  ADR-0001\n")
+        self.commit("suppress")
+        result = self.gate()
+        self.assert_fails(result, "FAIL suppressions [app]: app/src/main.py:2:")
+        self.assertIn('has no "- Allows:" line that this line contains', result.stdout)
 
     def test_an_adr_added_in_the_range_approves_nothing(self):
         self.put("keyturn/internal/adr/0001-allow-one-noqa.md", ADR)
@@ -248,11 +272,20 @@ class GateTest(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("no-such-tool-keyturn (profile fake) is not installed: see example.com", result.stderr)
 
-    def test_uncommitted_changes_stop_the_gate(self):
-        self.put("app/src/main.py", "print('edited')\n")
+    def test_files_that_are_not_committed_are_not_checked(self):
+        self.put(".git/info/exclude", "BROKEN\ntest_extra.txt\n")
+        self.put("app/BROKEN", "")  # would fail the build if the gate used the working tree
+        self.git("rm", "-q", "app/src/test_one.txt")
+        self.commit("delete a test")
+        self.put("app/src/test_extra.txt", "")  # an ignored stand-in does not make up the count
+        self.assert_fails(self.gate(), "FAIL test-count [app]: 2 tests at the base, 1 at the head")
+        self.assertIn("PASS build [app]: ok", self.gate().stdout)
+
+    def test_a_failing_setup_fails_the_checks_of_its_part(self):
+        self.write_profile(dict(PROFILE, setup=[[sys.executable, "-c", "import sys; sys.exit(3)"]]))
         result = self.gate()
-        self.assertEqual(result.returncode, 2)
-        self.assertIn("uncommitted changes", result.stderr)
+        self.assert_fails(result, "FAIL test-count [app]: at the base: setup failed (exit 3)")
+        self.assertIn("FAIL build [app]: not run: setup failed (exit 3)", result.stdout)
 
     def test_a_configuration_without_parts_stops_the_gate(self):
         self.put("keyturn/config.json", json.dumps({"client_language": "en", "english_only": True}))

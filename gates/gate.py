@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """keyturn's gate: run a project's stack-profile checks and the guardrail checks on a Git range. See ADR 0028.
 
-Usage (from inside the project's repository, with the head commit checked out and nothing uncommitted):
+Usage (from inside the project's repository; the base and the head are checked out in temporary worktrees, so only committed files count):
   gate.sh --base REV [--head REV] [--log FILE] [--profiles DIR] [--timeout-minutes N]
 
 Checks, in this order, each reported as one PASS or FAIL line:
   protected-paths  no change in the range to a protected path ("Guardrails" 1)
   suppressions     no new suppression comment, unless the same line names an accepted ADR that existed at the base
   test-count       no part has fewer tests at the head than at the base
-  <profile check>  each check its profile names (build, test, lint, ...), run in the part's folder
+  <profile check>  each check its profile names (build, test, lint, ...), run in the part's folder at the head,
+                   after the profile's setup commands (for example, installing dependencies)
 
 Exit codes: 0 every check passed; 1 at least one check failed; 2 the gate could not run (setup error).
 Needs Python 3.9 or later and Git. Uses only the standard library.
@@ -32,17 +33,21 @@ CONFIG_PATH = "keyturn/config.json"
 DESIGN_PATH = "keyturn/internal/design.md"
 ADR_DIR = "keyturn/internal/adr"
 
-# Paths no developer change may touch, whatever the profiles say ("Guardrails" 1). QA's folders come from the design,
-# and each profile adds its linter configs, wherever in the repository they are. The handoff notes are the developer's, so `keyturn/internal/` is not listed whole.
+# Paths no developer change may touch, whatever the profiles say ("Guardrails" 1): the configuration, every other role's
+# documents, the CI jobs, and the Git files that change what the checks see. QA's folders come from the design,
+# and each profile adds its linter configs, wherever in the repository they are.
 FIXED_PROTECTED = (
     CONFIG_PATH,
-    DESIGN_PATH,
-    "keyturn/internal/conventions.md",
-    f"{ADR_DIR}/**",
+    "keyturn/client/**",
+    "keyturn/internal/**",
     ".github/workflows/**",
+    "**/.gitattributes",
+    "**/.gitignore",
 )
+# The developer's own document, under a protected folder.
+NOT_PROTECTED = ("keyturn/internal/handoff.md",)
 
-PROFILE_FIELDS = {"name", "tools", "checks", "count_tests", "source_files", "suppressions", "protected"}
+PROFILE_FIELDS = {"name", "tools", "setup", "checks", "count_tests", "source_files", "suppressions", "protected"}
 NAME_RE = re.compile(r"[a-z0-9][a-z0-9-]*")
 ADR_REF_RE = re.compile(r"\bADR-(\d{4})\b")
 EXIT_PASS, EXIT_FAIL, EXIT_SETUP = 0, 1, 2
@@ -235,6 +240,8 @@ def profile_problems(name: str, profile: object) -> list[str]:
         problems.append(f"{where}: checks: must be a non-empty list of {{\"name\", \"run\"}}, run as a list of words")
     elif len({check["name"] for check in checks}) != len(checks):
         problems.append(f"{where}: checks: names must be unique")
+    if not isinstance(profile["setup"], list) or not all(is_command(command) for command in profile["setup"]):
+        problems.append(f"{where}: setup: must be a list of commands, each a non-empty list of words (it may be empty)")
     if not is_command(profile["count_tests"]):
         problems.append(f"{where}: count_tests: must be a command, as a non-empty list of words")
     for key in ("source_files", "suppressions", "protected"):
@@ -309,13 +316,6 @@ def check_tools(parts: list[Part]) -> None:
         raise SetupError(sorted(set(missing)))
 
 
-def check_checkout(root: Path, head: str) -> None:
-    if git(root, "rev-parse", "HEAD").strip() != head:
-        raise SetupError([f"the working tree is not at the head ({head[:12]}): check it out before running the gate"])
-    if git(root, "status", "--porcelain", "--untracked-files=normal").strip():
-        raise SetupError(["the working tree has uncommitted changes: commit or remove them, so the gate checks the head as committed"])
-
-
 # --- Checks --------------------------------------------------------------------------------------
 
 def protected_patterns(parts: list[Part], qa: list[str]) -> list[str]:
@@ -327,20 +327,27 @@ def protected_patterns(parts: list[Part], qa: list[str]) -> list[str]:
 
 
 def check_protected(paths: list[str], patterns: list[str]) -> Result:
-    hits = sorted({f"{path} (matches {pattern})" for path in paths for pattern in patterns if matches(path, pattern)})
+    hits = sorted({f"{path} (matches {pattern})" for path in paths if path not in NOT_PROTECTED
+                   for pattern in patterns if matches(path, pattern)})
     return Result("protected-paths", None, not hits, hits)
 
 
-def accepted_adrs(root: Path, base: str) -> set[str]:
-    """The numbers of the project's ADRs that were accepted at the base, so that none the range adds can approve anything."""
+def accepted_adrs(root: Path, base: str) -> dict[str, list[str]]:
+    """What each of the project's ADRs accepted at the base allows, by number, so that none the range adds can approve anything.
+
+    Only the lines before the first "## " heading count: "- Status: accepted", and one "- Allows: <text>" line per suppression it allows.
+    """
     listing = git(root, "ls-tree", "-z", "--name-only", f"{base}:{ADR_DIR}") if file_at(root, base, ADR_DIR) is not None else ""
-    numbers = set()
+    allows: dict[str, list[str]] = {}
     for name in filter(None, listing.split("\0")):
         match = re.fullmatch(r"(\d{4})-.*\.md", name)
         text = file_at(root, base, f"{ADR_DIR}/{name}") if match else None
-        if text and re.search(r"^- Status: accepted\b", text, re.M):
-            numbers.add(match.group(1))
-    return numbers
+        if not text:
+            continue
+        header = re.split(r"^## ", text, maxsplit=1, flags=re.M)[0]
+        if re.search(r"^- Status: accepted\s*$", header, re.M):
+            allows[match.group(1)] = [value.strip() for value in re.findall(r"^- Allows: (.+)$", header, re.M) if value.strip()]
+    return allows
 
 
 def check_suppressions(root: Path, base: str, head: str, parts: list[Part]) -> list[Result]:
@@ -358,8 +365,14 @@ def check_suppressions(root: Path, base: str, head: str, parts: list[Part]) -> l
                 continue
             if any(pattern.search(text) for pattern in patterns):
                 named = ADR_REF_RE.findall(text)
-                if not any(adr in approved for adr in named):
-                    reason = f"names ADR-{', ADR-'.join(named)}, not accepted at the base" if named else "names no accepted ADR"
+                # Approved only by an ADR that was accepted at the base and allows what this line writes.
+                if not any(allowed in text for adr in named for allowed in approved.get(adr, [])):
+                    if not named:
+                        reason = "names no accepted ADR"
+                    elif not any(adr in approved for adr in named):
+                        reason = f"names ADR-{', ADR-'.join(named)}, not accepted at the base"
+                    else:
+                        reason = f"ADR-{', ADR-'.join(named)} has no \"- Allows:\" line that this line contains"
                     hits.append(f"{path}:{number}: {text.strip()} ({reason})")
         results.append(Result("suppressions", part.path, not hits, hits))
     return results
@@ -384,37 +397,70 @@ def count_tests(part: Part, tree: Path, timeout: float) -> tuple[int | None, str
         return 0, "the folder is not there"
     code, output = run(part.profile["count_tests"], folder, timeout)
     last = output.splitlines()[-1].strip() if output else ""
-    if code != 0 or not last.isdigit():
+    if code != 0 or not re.fullmatch(r"[0-9]+", last):
         return None, f"count_tests failed (exit {code}): {output or 'no output'}"
     return int(last), ""
 
 
-def check_test_count(root: Path, base: str, parts: list[Part], timeout: float) -> list[Result]:
+class Trees:
+    """Fresh worktrees of the base and the head, so that only committed files are checked, and each part set up once in each."""
+
+    def __init__(self, root: Path, base: str, head: str, temp: Path, timeout: float):
+        self.root, self.timeout = root, timeout
+        self.paths = {"base": temp / "base", "head": temp / "head"}
+        for name, commit in (("base", base), ("head", head)):
+            git(root, "worktree", "add", "--detach", "--quiet", str(self.paths[name]), commit)
+        self.prepared: dict[tuple[str, str], str] = {}
+
+    def remove(self) -> None:
+        for path in self.paths.values():
+            subprocess.run(["git", "-C", str(self.root), "worktree", "remove", "--force", str(path)], capture_output=True)
+
+    def prepare(self, name: str, part: Part) -> str:
+        """Run the profile's setup in the part's folder once; return "" when it worked, or why it did not."""
+        key = (name, part.path)
+        if key not in self.prepared:
+            folder = self.paths[name] / part.path
+            problem = ""
+            if folder.is_dir():
+                for command in part.profile["setup"]:
+                    code, output = run(command, folder, self.timeout)
+                    if code != 0:
+                        problem = f"setup failed (exit {code}): {output or 'no output'}"
+                        break
+            self.prepared[key] = problem
+        return self.prepared[key]
+
+
+def count_in(trees: Trees, name: str, part: Part) -> tuple[int | None, str]:
+    problem = trees.prepare(name, part)
+    if problem:
+        return None, problem
+    return count_tests(part, trees.paths[name], trees.timeout)
+
+
+def check_test_count(trees: Trees, parts: list[Part]) -> list[Result]:
     results = []
-    with tempfile.TemporaryDirectory(prefix="keyturn-gate-") as temp:
-        tree = Path(temp) / "base"
-        git(root, "worktree", "add", "--detach", "--quiet", str(tree), base)
-        try:
-            for part in parts:
-                before, why_before = count_tests(part, tree, timeout)
-                after, why_after = count_tests(part, root, timeout)
-                if before is None or after is None:
-                    details = [f"at the base: {why_before}" if before is None else "", f"at the head: {why_after}" if after is None else ""]
-                    results.append(Result("test-count", part.path, False, [d for d in details if d]))
-                elif after < before:
-                    results.append(Result("test-count", part.path, False, [f"{before} tests at the base, {after} at the head"]))
-                else:
-                    results.append(Result("test-count", part.path, True, [f"{before} tests at the base, {after} at the head"]))
-        finally:
-            subprocess.run(["git", "-C", str(root), "worktree", "remove", "--force", str(tree)], capture_output=True)
+    for part in parts:
+        before, why_before = count_in(trees, "base", part)
+        after, why_after = count_in(trees, "head", part)
+        if before is None or after is None:
+            details = [f"at the base: {why_before}" if before is None else "", f"at the head: {why_after}" if after is None else ""]
+            results.append(Result("test-count", part.path, False, [d for d in details if d]))
+        else:
+            results.append(Result("test-count", part.path, after >= before, [f"{before} tests at the base, {after} at the head"]))
     return results
 
 
-def check_profile(root: Path, parts: list[Part], timeout: float) -> list[Result]:
+def check_profile(trees: Trees, parts: list[Part]) -> list[Result]:
     results = []
     for part in parts:
+        problem = trees.prepare("head", part)
         for check in part.profile["checks"]:
-            code, output = run(check["run"], root / part.path, timeout)
+            if problem:
+                results.append(Result(check["name"], part.path, False, [f"not run: {problem}"]))
+                continue
+            code, output = run(check["run"], trees.paths["head"] / part.path, trees.timeout)
             details = [] if code == 0 else [f"exit {code}: {output or 'no output'}"]
             results.append(Result(check["name"], part.path, code == 0, details))
     return results
@@ -425,14 +471,18 @@ def gate(base_rev: str, head_rev: str, profiles_dir: Path, timeout: float) -> tu
     base, head = commit_of(root, base_rev), commit_of(root, head_rev)
     if subprocess.run(["git", "-C", str(root), "merge-base", "--is-ancestor", base, head]).returncode != 0:
         raise SetupError([f"{base_rev} is not an ancestor of {head_rev}: name the commit the change started from"])
-    check_checkout(root, head)
-    parts = load_parts(root, profiles_dir)
-    qa = qa_folders(root, base)
-    check_tools(parts)
-    results = [check_protected(changed_paths(root, base, head), protected_patterns(parts, qa))]
-    results += check_suppressions(root, base, head, parts)
-    results += check_test_count(root, base, parts, timeout)
-    results += check_profile(root, parts, timeout)
+    with tempfile.TemporaryDirectory(prefix="keyturn-gate-") as temp:
+        trees = Trees(root, base, head, Path(temp), timeout)
+        try:
+            parts = load_parts(trees.paths["head"], profiles_dir)
+            qa = qa_folders(root, base)
+            check_tools(parts)
+            results = [check_protected(changed_paths(root, base, head), protected_patterns(parts, qa))]
+            results += check_suppressions(root, base, head, parts)
+            results += check_test_count(trees, parts)
+            results += check_profile(trees, parts)
+        finally:
+            trees.remove()
     return base, head, results
 
 
