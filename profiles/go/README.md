@@ -10,11 +10,14 @@ In the part's folder, at the head of the range, in this order:
 
 | Check | Command | Fails when |
 |---|---|---|
+| `module` | `go mod edit -json` | `go.mod` has an `ignore` directive, which would hide folders (QA's included) from every `./...` below |
 | `build` | `go build ./...` | a package does not compile |
 | `test` | `go test -count=1 ./...` | a test fails, or a test package does not compile; QA's tests run here too |
 | `format` | `gofmt -l .` | a Go file is not formatted as `gofmt` formats it (the files are listed) |
 | `vet` | `go vet ./...` | `go vet` reports a problem |
 | `lint` | `golangci-lint run ./...` | a linter the project's config turns on reports a problem |
+
+Every `go` and `golangci-lint` command runs with `GOWORK=off` and `GOFLAGS=-mod=readonly`. A `go.work` file anywhere above the part is not used, so it cannot swap a module for other code. A committed `vendor/` folder is not used either, and every module is checked against `go.sum`.
 
 No `setup` step: `go build` and `go test` download the modules that `go.mod` and `go.sum` name.
 
@@ -49,7 +52,7 @@ QA's tests live in `qa/` at the root of the part (for a part `api`, `api/qa/**`)
 
 ## Suppressions
 
-An added line in a `.go` file fails the `suppressions` check when it has `//nolint`, `//lint:ignore` or `//lint:file-ignore` (staticcheck), or `#nosec` (gosec), unless it names an accepted ADR that allows it (ADR 0028).
+An added line in a `.go` file fails the `suppressions` check when it has `//nolint`, `//lint:ignore` or `//lint:file-ignore` (staticcheck), `#nosec` (gosec), or a generated-file mark (`Code generated ... DO NOT EDIT`, which makes `golangci-lint` skip the whole file), unless it names an accepted ADR that allows it (ADR 0028). Generated code therefore needs an accepted ADR that allows its mark.
 
 ## What this profile does not check
 
@@ -59,6 +62,6 @@ Each delivery report made with this profile lists these under "What was not veri
 - **Tests**: subtests (`t.Run`) are not counted, so a dropped subtest is not found; skipped tests (`t.Skip`) and coverage are not checked.
 - **Code that runs during the tests**: `go test` runs the project's own code, including `init` functions and `TestMain` in the developer's packages. The gate does not stop code that changes how the tests run; the review and the security review read it.
 - **Builds outside the default**: files behind a build constraint (`//go:build`) that the default build leaves out are not built, tested, or linted.
-- **Code that `./...` does not reach**: a folder inside the part with its own `go.mod` (a nested module), and folders whose names start with `.` or `_` or are named `testdata`, are not built, tested, linted, or counted. A `go.work` file is not read either. The review reads any new `go.mod` or `go.work` in the change.
+- **Code that `./...` does not reach**: a folder inside the part with its own `go.mod` (a nested module), and folders whose names start with `.` or `_` or are named `testdata`, are not built, tested, linted, or counted. The review reads any new `go.mod` in the change.
 - **The toolchain the module asks for**: a `toolchain` line in `go.mod` can make `go` download and run another Go version, with the network the gate runs in.
 - **Structure and secure defaults**: this profile does not give a recommended project structure or secure defaults yet; the architect takes them from Go's own documentation and says so in the stack's ADR.

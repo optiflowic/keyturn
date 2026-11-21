@@ -7,18 +7,20 @@
   ],
   "setup": [],
   "checks": [
-    {"name": "build", "run": ["go", "build", "./..."]},
-    {"name": "test", "run": ["go", "test", "-count=1", "./..."]},
+    {"name": "module", "run": ["sh", "-c", "out=$(GOWORK=off go mod edit -json) || { printf '%s\\n' \"$out\"; exit 1; }; if printf '%s\\n' \"$out\" | grep -q '\"Ignore\"'; then echo 'go.mod has an ignore directive, which hides folders from ./...'; exit 1; fi"]},
+    {"name": "build", "run": ["env", "GOWORK=off", "GOFLAGS=-mod=readonly", "go", "build", "./..."]},
+    {"name": "test", "run": ["env", "GOWORK=off", "GOFLAGS=-mod=readonly", "go", "test", "-count=1", "./..."]},
     {"name": "format", "run": ["sh", "-c", "out=$(gofmt -l .) || exit 1; if [ -n \"$out\" ]; then echo 'not formatted with gofmt:'; echo \"$out\"; exit 1; fi"]},
-    {"name": "vet", "run": ["go", "vet", "./..."]},
-    {"name": "lint", "run": ["golangci-lint", "run", "./..."]}
+    {"name": "vet", "run": ["env", "GOWORK=off", "GOFLAGS=-mod=readonly", "go", "vet", "./..."]},
+    {"name": "lint", "run": ["env", "GOWORK=off", "GOFLAGS=-mod=readonly", "golangci-lint", "run", "./..."]}
   ],
-  "count_tests": ["sh", "-c", "out=$(go test -list . ./... 2>&1) || { printf '%s\\n' \"$out\"; exit 1; }; printf '%s\\n' \"$out\" | grep -cE '^(Test|Fuzz|Example)[^[:space:]]*$' || true"],
+  "count_tests": ["sh", "-c", "out=$(GOWORK=off GOFLAGS=-mod=readonly go test -list . ./... 2>&1) || { printf '%s\\n' \"$out\"; exit 1; }; printf '%s\\n' \"$out\" | grep -cE '^(Test|Fuzz|Example)[^[:space:]]*$' || true"],
   "source_files": ["*.go"],
   "suppressions": [
     "//\\s*nolint\\b",
     "//\\s*lint:(file-)?ignore\\b",
-    "#nosec\\b"
+    "#nosec\\b",
+    "Code generated .*DO NOT EDIT"
   ],
   "protected": [
     ".golangci.yml",
