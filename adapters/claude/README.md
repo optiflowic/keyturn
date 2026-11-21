@@ -2,6 +2,35 @@
 
 The parts of keyturn that only Claude Code uses. Everything shared (skills, templates) stays outside `adapters/`.
 
+## Subagents
+
+`deliver` runs every role in a context of its own ("Separate the 'what' from the 'who'" in [`docs/design/architecture.md`](../../docs/design/architecture.md#separate-the-what-from-the-who)). In Claude Code, each is a subagent defined in [`agents/`](agents/) and listed in [`plugin.json`](../../.claude-plugin/plugin.json). With the plugin enabled, they appear as `keyturn:<name>`:
+
+| Subagent | Runs | Model |
+|---|---|---|
+| `pm` | the `spec` skill | `opus` |
+| `architect` | the `design` skill | `opus` |
+| `standards` | the `conventions` skill | `sonnet` |
+| `developer` | the `implement` skill | `sonnet` |
+| `qa` | the `qa` skill | `sonnet` |
+| `security` | the `security-review` skill | `opus` |
+| `reviewer` | the `review` skill | `opus` |
+| `pm-delivery` | the last step of `deliver`: the acceptance guide and the delivery report | `opus` |
+
+Each one preloads its skill (as `keyturn:<skill>`; a bare name can load another skill or command of the same name) and gets only `Read`, `Grep`, `Glob`, `Edit`, `Write`, and `Bash`; `pm` and `architect` also get `Skill` (for the `localize` and `project-config` skills) and `Agent` (for the `localize` skill's translations). No web tool and no MCP tools (the shell can still reach the network). The subagent `pm` or `architect` starts for a translation is not one of these, so it may have every tool of the session until the translation subagent exists (#119). Why, and what that does not limit, is in [ADR 0035](../../docs/adr/0035-subagent-tools-and-models.md).
+
+- `deliver` does not name them: it starts each role in a context of its own, and Claude Code picks the subagent by its description, which names the step of `deliver` it is for. Start them as subagents, not as the main session with `claude --agent`: started that way, the skill is not preloaded.
+- To run a role on another model, pass the model when the subagent is started; the definitions set the defaults.
+- Claude Code ignores `hooks`, `mcpServers`, and `permissionMode` in a plugin's subagents. The plugin's hooks (the usage limits) and your permission rules still apply inside them.
+
+## Permission settings
+
+During the MVP, agents run without a sandbox ("4. The environment limits the damage" in [`docs/design/guardrails.md`](../../docs/design/guardrails.md#4-the-environment-limits-the-damage)). [`permission-settings.json`](permission-settings.json) holds the recommended rules: they deny `git push` as it is usually written, and the plain forms of commands that discard work for good (a recursive `rm`, `find ... -delete`, `git reset --hard`, `git clean` of more than a named path, `git checkout .`, `git restore .`, deleting branches and refs, `filter-branch` and `filter-repo`, dropping stashes), `sudo`, `gh repo delete`, and `gh pr merge` ([ADR 0036](../../docs/adr/0036-minimal-permission-rules.md)).
+
+- Add its `permissions.deny` list to `.claude/settings.local.json` in each project keyturn works on (not committed), or to your user settings (`~/.claude/settings.json`) to cover every project. If the file already has a `deny` list, add these to it. Deny rules apply in every permission mode, auto mode included, and inside subagents.
+- Push the task branch, open its pull request, and merge it from a terminal of your own: no step pushes during the MVP.
+- The rules match the command as written, and list the usual forms only. A command written another way (`/usr/bin/git push`, `git -C . push`, `rm -rv`, `git clean -f -d`, `bash -c '...'`), a script that does the same, or a deletion through the file tools is not stopped: they are a guardrail, not a sandbox. Protect the default branch on the Git host (branch protection) so that a push to it is refused for certain.
+
 ## Usage limits
 
 keyturn must not use up a subscription's usage windows ("Subscription usage limits" in [`docs/design/guardrails.md`](../../docs/design/guardrails.md#subscription-usage-limits)). Claude Code gives a status line command the plan's usage, as `rate_limits.five_hour` and `rate_limits.seven_day` (`used_percentage`, and `resets_at` in epoch seconds), on Pro and Max plans once the session has had an API response.
