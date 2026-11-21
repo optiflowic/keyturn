@@ -44,3 +44,4 @@ See "Architecture decision records" in [`docs/design/documents.md`](../design/do
 | [0026](0026-review-points-until-the-mvp.md) | Until the MVP, only Critical and Major review points and points that block the flow are fixed | accepted |
 | [0027](0027-when-an-agent-may-add-no-review.md) | An agent may add `no-review` to a pull request that meets three fixed conditions | accepted |
 | [0028](0028-gate-interface.md) | The gate is a Python CLI behind `gates/gate.sh`, run on a Git range, with JSON stack profiles | accepted |
+| [0029](0029-role-commits-passed-as-arguments.md) | `deliver` names each role's commits to the gate and the reviews as arguments; the task state file only records them | accepted |
