@@ -504,6 +504,18 @@ class UnmergedTest(unittest.TestCase):
         result = self.repo.run("unmerged", "main")
         self.assertEqual((result.returncode, result.stdout), (1, "task/delivery-1: running\n"))
 
+    def test_other_work_after_a_squash_merge_is_unmerged(self):
+        done = WORKED_EXAMPLE.read_text(encoding="utf-8")
+        self.repo.task_branch(self.repo.root, "delivery-1", done)
+        self.repo.git(self.repo.root, "merge", "-q", "--squash", "task/delivery-1")
+        self.repo.git(self.repo.root, "commit", "-q", "-m", "squash")
+        self.repo.git(self.repo.root, "switch", "-q", "task/delivery-1")
+        self.repo.commit(self.repo.root, "app/main.py", "print('later')\n")
+        self.repo.git(self.repo.root, "switch", "-q", "main")
+
+        result = self.repo.run("unmerged", "main")
+        self.assertEqual((result.returncode, result.stdout), (1, "task/delivery-1: done\n"))
+
     def test_default_that_is_not_a_commit(self):
         result = self.repo.run("unmerged", "origin/nothing")
         self.assertEqual(result.returncode, 2)

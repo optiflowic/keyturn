@@ -14,8 +14,9 @@ Usage:
                                          not on the default branch DEFAULT (for example origin/main), one line each:
                                          "<branch>: <Status of its state file | no state file>". A branch is merged
                                          when its head is an ancestor of DEFAULT (a merge or a fast-forward), or when
-                                         DEFAULT has the task's state file exactly as the branch's head has it (a
-                                         squash merge carries the branch's last state commit). Prints "no unmerged
+                                         DEFAULT has the task's state file exactly as the branch's head has it and
+                                         the head is the commit that last changed it (a squash merge carries the
+                                         branch's last state commit; a later commit is work not merged). Prints "no unmerged
                                          task branches" and exits 0 when there are none; exits 1 when it lists any,
                                          and 2 when DEFAULT is not a commit.
 
@@ -732,7 +733,11 @@ def is_merged(root: Path, branch: str, task: str, default: str) -> bool:
         return True
     path = f"{STATE_DIR}/{task}.md"
     on_branch, on_default = git(root, "rev-parse", "--verify", "-q", f"{branch}:{path}"), git(root, "rev-parse", "--verify", "-q", f"{default}:{path}")
-    return on_branch.returncode == 0 and on_default.returncode == 0 and on_branch.stdout == on_default.stdout
+    if on_branch.returncode != 0 or on_default.returncode != 0 or on_branch.stdout != on_default.stdout:
+        return False
+    # A commit after the last state commit is work the squash merge did not carry.
+    last_state, head = git(root, "log", "-1", "--format=%H", branch, "--", path), git(root, "rev-parse", "--verify", "-q", branch)
+    return last_state.returncode == 0 and head.returncode == 0 and last_state.stdout.strip() == head.stdout.strip()
 
 
 def cmd_unmerged(default: str) -> int:
