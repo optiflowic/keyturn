@@ -20,8 +20,8 @@
 
 Option 3.
 
-- `deliver` runs the gate with `--base $(git merge-base <default branch> HEAD)`, and gives `security-review` and `review` the same base. The test count is compared with that base too.
-- From the task's first commit on, every commit is listed under "Commits" in the task state file, and `deliver` names every one that is not the developer's to the gate, the reviews included. The roles named by step: `spec`, `design`, `conventions`, `qa`, `security-review`, `review`, `deliver`.
+- `deliver` runs the gate with `--base $(git merge-base <default branch> HEAD)`, and gives `security-review` and `review` the same base. The test count is compared with that base too. Since a ref can be moved by anyone who can write to the repository, `deliver` checks the merge base against the branch's history (the parent of the commit that added the task's state file) and stops when they differ.
+- From the task's first commit on, every commit is listed under "Commits" in the task state file, and `deliver` names every one that is not the developer's to the gate, the reviews included. It takes the `spec`, `design`, and `conventions` commits only from the state file as committed when the `conventions` step was recorded, which no later commit can change: those roles may write the very documents the developer is judged against, so a later line naming one of them is never trusted. The roles named by step: `spec`, `design`, `conventions`, `qa`, `security-review`, `review`, `deliver`.
 - The gate checks that each named commit changes only what its role may write, and stops (exit 2) otherwise:
   - `spec`: `keyturn/client/requirements.md`, `keyturn/client/approvals.md`, `.gitattributes` at the top, and `keyturn/config.json` (created by `project-config` when the task starts);
   - `design`: `keyturn/internal/design.md`, `keyturn/internal/threat-model.md`, `keyturn/internal/adr/**`, `keyturn/client/design-summary.md`, and `keyturn/client/decision-card-*.md`;

@@ -364,6 +364,23 @@ class GateTest(unittest.TestCase):
         self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
         self.assertIn("changes app/src/main.py, which a spec commit may not", result.stderr)
 
+    def test_another_named_commit_between_the_document_commits_is_not_the_developer_s(self):
+        roles = self.start_before_the_documents()
+        self.put("keyturn/internal/state/task.md", "# State\n")
+        state = self.commit("deliver's state, between conventions and a later conventions commit")
+        self.put(".lintrc", "stricter\n")
+        later = self.commit("conventions again")
+        result = self.gate(*self.others(roles), "--others", f"deliver:{state}", "--others", f"conventions:{later}")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_an_adr_the_developer_adds_after_the_documents_approves_nothing(self):
+        roles = self.start_before_the_documents()
+        self.put("keyturn/internal/adr/0002-allow-everything.md", ADR.replace("0001", "0002").replace("# noqa: F401", "# noqa"))
+        self.put("app/src/main.py", "import os  # noqa ADR-0002\n")
+        self.commit("developer approves their own suppression")
+        result = self.gate(*self.others(roles))
+        self.assert_fails(result, "FAIL suppressions [app]: app/src/main.py:1:")
+
     def test_a_developer_change_to_a_linter_config_still_fails(self):
         roles = self.start_before_the_documents()
         self.put(".lintrc", "loose\n")

@@ -172,7 +172,7 @@ Then discard them from both the index and the working tree: `git restore --sourc
 
 ### The commits
 
-**`<base>`**, the base of the gate and of the reviews, is where the task branch left the default branch: `git merge-base <default branch> HEAD`, with the default branch found as in step 1 (ADR 0032). Since the default branch is never merged into the task branch, it does not move during the task, and no commit on the branch can move it. Never take it from the state file.
+**`<base>`**, the base of the gate and of the reviews, is where the task branch left the default branch: `git merge-base <default branch> HEAD`, with the default branch found as in step 1 (ADR 0032). Since the default branch is never merged into the task branch, it does not move during the task, and no commit on the branch can move it. Never take it from the state file. A ref can still be moved by anyone who can write to the repository, so check it against the branch's history: it must be the first parent of the commit that added the state file (`git log --diff-filter=A --reverse --format=%H -- <the state file>`, the first line; then `git rev-parse <that commit>^`). If they differ, stop and ask the maintainer.
 
 **The lines.** Every state commit lists, under "Commits", the commits after the newest one already listed (or after `<base>`, for the first), up to the head it is made on, oldest first, as ``- `<short hash>`: <step>, round <n>``, where the round is 1 plus the number in `Rework` in the state file at that commit:
 
@@ -182,7 +182,7 @@ Then discard them from both the index and the working tree: `git restore --sourc
 
 `resume` lists the state commit it resumes from itself; do not list it again.
 
-**Other roles' commits**, which the gate, `security-review`, and `review` get: every commit in their range listed as `spec`, `design`, `conventions`, `qa`, `security-review`, `review`, or `deliver`, plus the commits this run of `deliver` made that no line lists yet. Never a commit the current step made. After a resume, the state file is all there is, and the gate checks that each one changes only what its role may write, and that the `spec`, `design`, and `conventions` commits all come before the developer's (ADR 0029, ADR 0032). The developer's commits are never on that list.
+**Other roles' commits**, which the gate, `security-review`, and `review` get: every commit in their range listed as `qa`, `security-review`, `review`, or `deliver`; the commits listed as `spec`, `design`, or `conventions` in the state file as it was committed when the `conventions` step was recorded (the oldest version of the state file in `<base>..HEAD` whose `conventions` row is `done`, read with `git show <commit>:<the state file>`), never from a later version, since the developer's commits come after it and a later line naming one of those roles could hide a change to the documents; and the commits this run of `deliver` made that no line lists yet, with the resume commit it continues from when `resume` made it in this session. A later line that names `spec`, `design`, or `conventions`: stop and ask the maintainer. Never a commit the current step made. After a resume, the state file is all there is, and the gate checks that each one changes only what its role may write, and that the `spec`, `design`, and `conventions` commits all come before the developer's (ADR 0029, ADR 0032). The developer's commits are never on that list.
 
 ## When inputs are missing
 
