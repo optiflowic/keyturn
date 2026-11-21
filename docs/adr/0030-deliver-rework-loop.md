@@ -23,8 +23,8 @@ Option 3.
 
 - After each `implement` step, `deliver` runs the gate on the developer's work. A failing gate (exit 1) sends the work back at once: `qa`, `security-review`, and `review` do not run on a change that fails its checks. A gate that cannot run (exit 2) stops the task, and a person is asked.
 - When the gate passes, `qa`, `security-review`, and `review` all run, in that order, before anything goes back, so that one round gives the developer everything they found.
-- The work goes back when any of these holds: the gate failed; a criterion in QA's report is `fail`; `security-review` or `review` has an open finding of high or medium severity.
-- When it goes back, the developer gets every open finding, low ones included, and the gate's failing checks. When only low findings are open, the work does not go back; they are listed in the delivery report as open.
+- The work goes back when any of these holds: the gate failed; a criterion in QA's report is `fail`; QA could not build or start the deliverable from the developer's "How to run", so its criteria are `not tested` for that reason; `security-review` or `review` has an open finding of high or medium severity.
+- When it goes back, the developer gets every finding still open from the last reports, low ones included, and the gate's failing checks. When only low findings are open, the work does not go back; they are listed in the delivery report as open.
 - Each time the work goes back, the round count goes up by one. The limit is 3 rounds by default, set by the optional `rework_limit` in `keyturn/config.json`. When the work would go back once more than the limit allows, the task stops for the rework limit, and the maintainer decides what happens next.
 - In a new round, the steps after `implement` run again from their inputs, as reruns of their own skills (each of them reads its earlier report). None is skipped because it found nothing in the round before: a fix can break what an earlier round passed.
 
