@@ -7,6 +7,7 @@ Usage (from inside the project's repository; the base and the head are checked o
 Checks, in this order, each reported as one PASS or FAIL line:
   protected-paths  no change in the range to a protected path ("Guardrails" 1)
   suppressions     no new suppression comment, unless the same line names an accepted ADR that existed at the base
+                   (or at the newest spec, design, or conventions commit named with --others)
   test-count       no part has fewer tests at the head than at the base
   <profile check>  each check its profile names (build, test, lint, ...), run in the part's folder at the head,
                    after the profile's setup commands (for example, installing dependencies)
@@ -48,10 +49,15 @@ FIXED_PROTECTED = (
 # The developer's own document, under a protected folder.
 NOT_PROTECTED = ("keyturn/internal/handoff.md",)
 
-# What a commit named as another role's may change (ADR 0029), by the step names of the task state file. QA's folders
-# from the design are added for "qa", and a "security-review" commit may change only the "Status" lines of the threat model.
+# What a commit named as another role's may change (ADR 0029, ADR 0032), by the step names of the task state file. QA's
+# folders from the design are added for "qa", each profile's linter configs for "conventions", and a "security-review"
+# commit may change only the "Status" lines of the threat model.
 THREAT_MODEL = "keyturn/internal/threat-model.md"
 ROLE_PATHS = {
+    "spec": ["keyturn/client/requirements.md", "keyturn/client/approvals.md", ".gitattributes", CONFIG_PATH],
+    "design": [DESIGN_PATH, THREAT_MODEL, f"{ADR_DIR}/**", "keyturn/client/design-summary.md",
+               "keyturn/client/decision-card-*.md"],
+    "conventions": ["keyturn/internal/conventions.md", f"{ADR_DIR}/**", CONFIG_PATH],
     "qa": ["keyturn/internal/test-report.md"],
     "security-review": ["keyturn/internal/security-review.md", THREAT_MODEL],
     "review": ["keyturn/internal/review.md"],
@@ -62,6 +68,9 @@ PROFILE_FIELDS = {"name", "tools", "setup", "checks", "count_tests", "source_fil
 NAME_RE = re.compile(r"[a-z0-9][a-z0-9-]*")
 ADR_REF_RE = re.compile(r"\bADR-(\d{4})\b")
 EXIT_PASS, EXIT_FAIL, EXIT_SETUP = 0, 1, 2
+# The roles that write the documents the developer is judged against. Their commits all come before the developer's
+# (ADR 0031), and the gate reads the design and the ADRs at the newest of them (ADR 0032).
+DOCUMENT_ROLES = ("spec", "design", "conventions")
 
 # Every command the gate runs gets the caller's environment without Git's variables: GIT_DIR, GIT_WORK_TREE, and the like
 # would point git, and the profile commands, at another repository than the worktree they run in.
@@ -330,7 +339,8 @@ def qa_folders(root: Path, base: str) -> list[str]:
     """The path patterns under "QA's tests" in the design at the base (ADR 0017), so that a change in the range cannot narrow them."""
     text = file_at(root, base, DESIGN_PATH)
     if text is None:
-        raise SetupError([f"{DESIGN_PATH}: missing at the base; the gate needs its \"QA's tests\" section"])
+        raise SetupError([f"{DESIGN_PATH}: missing at the base (or at the newest design commit named with --others); "
+                          "the gate needs its \"QA's tests\" section"])
     section = re.search(r"^## QA's tests\s*$(.*?)(?=^## |\Z)", text, re.M | re.S)
     if section is None:
         raise SetupError([f"{DESIGN_PATH}: no \"QA's tests\" section"])
@@ -375,7 +385,8 @@ def check_protected(paths: list[str], patterns: list[str]) -> Result:
 
 
 def accepted_adrs(root: Path, base: str) -> dict[str, list[str]]:
-    """What each of the project's ADRs accepted at the base allows, by number, so that none the range adds can approve anything.
+    """What each of the project's ADRs accepted at a commit allows, by number: the base, or the newest commit named as a
+    document role's (ADR 0032), so that no ADR the developer's commits add can approve anything.
 
     Only the lines before the first "## " heading count: "- Status: accepted", and one "- Allows: <text>" line per suppression it allows.
     """
@@ -392,7 +403,8 @@ def accepted_adrs(root: Path, base: str) -> dict[str, list[str]]:
     return allows
 
 
-def check_suppressions(root: Path, base: str, head: str, parts: list[Part], others: dict[str, str]) -> list[Result]:
+def check_suppressions(root: Path, base: str, head: str, parts: list[Part], others: dict[str, str],
+                       documents: str) -> list[Result]:
     # QA's commits are checked too: a suppression in QA's tests needs an ADR as the developer's does (ADR 0029).
     skip = {commit for commit, role in others.items() if role != "qa"}
     if others:  # commit by commit, leaving out the other roles' commits
@@ -400,7 +412,7 @@ def check_suppressions(root: Path, base: str, head: str, parts: list[Part], othe
                  for line in added_lines(root, parents[0], commit)]
     else:
         added = added_lines(root, base, head)
-    approved = accepted_adrs(root, base)
+    approved = accepted_adrs(root, documents)
     results = []
     for part in parts:
         patterns = [re.compile(pattern) for pattern in part.profile["suppressions"]]
@@ -539,7 +551,27 @@ def parse_others(root: Path, values: list[str]) -> dict[str, str]:
     return others
 
 
-def check_others(root: Path, base: str, head: str, others: dict[str, str], qa: list[str]) -> None:
+def documents_commit(root: Path, base: str, head: str, others: dict[str, str]) -> str:
+    """Where the design and the ADRs are read: the newest commit named as spec's, design's, or conventions', or else the base.
+
+    Stops when such a commit comes after a commit that is not named, since the developer is then judged against
+    documents that changed after their work started (ADR 0031, ADR 0032).
+    """
+    documents, developer = base, None
+    for commit, _ in range_commits(root, base, head):
+        role = others.get(commit)
+        if role in DOCUMENT_ROLES:
+            if developer is not None:
+                raise SetupError([f"the commits named as other roles' do not match the range: {commit[:12]} ({role}): "
+                                  f"comes after {developer[:12]}, which is not named; the documents are fixed before "
+                                  "the developer's work"])
+            documents = commit
+        elif role is None:
+            developer = developer or commit
+    return documents
+
+
+def check_others(root: Path, base: str, head: str, others: dict[str, str], qa: list[str], configs: list[str]) -> None:
     """Stop unless each commit named as another role's is in the range and changes only what that role may write (ADR 0029)."""
     commits = dict(range_commits(root, base, head))
     problems = [f"{commit[:12]} ({role}): not in the range" for commit, role in others.items() if commit not in commits]
@@ -550,7 +582,7 @@ def check_others(root: Path, base: str, head: str, others: dict[str, str], qa: l
         if commit not in commits or len(commits[commit]) != 1:
             continue
         parent = commits[commit][0]
-        allowed = ROLE_PATHS[role] + (qa if role == "qa" else [])
+        allowed = ROLE_PATHS[role] + {"qa": qa, "conventions": configs}.get(role, [])
         outside = [path for path in name_status(root, parent, commit) if not any(matches(path, p) for p in allowed)]
         problems += [f"{commit[:12]} ({role}): changes {path}, which a {role} commit may not" for path in outside]
         if role == "security-review":
@@ -574,12 +606,13 @@ def gate(base_rev: str, head_rev: str, profiles_dir: Path, timeout: float,
         trees = Trees(root, base, head, Path(temp), timeout)
         try:
             parts = load_parts(trees.paths["head"], profiles_dir)
-            qa = qa_folders(root, base)
-            check_others(root, base, head, others, qa)
+            documents = documents_commit(root, base, head, others)
+            qa = qa_folders(root, documents)
+            check_others(root, base, head, others, qa, [f"**/{pattern}" for part in parts for pattern in part.profile["protected"]])
             check_tools(parts)
             skip = set(others)
             results = [check_protected(changed_paths(root, base, head, skip), protected_patterns(parts, qa))]
-            results += check_suppressions(root, base, head, parts, others)
+            results += check_suppressions(root, base, head, parts, others, documents)
             results += check_test_count(trees, parts)
             results += check_profile(trees, parts)
         finally:
@@ -595,7 +628,8 @@ def main() -> int:
     parser.add_argument("--profiles", type=Path, default=PLUGIN_ROOT / "profiles", help="the folder of stack profiles")
     parser.add_argument("--timeout-minutes", type=float, default=30, help="the limit for each command (default: 30)")
     parser.add_argument("--others", action="append", default=[], metavar="ROLE:COMMIT",
-                        help="a commit in the range that is another role's (qa, security-review, review, deliver); repeat for each (ADR 0029)")
+                        help="a commit in the range that is another role's (spec, design, conventions, qa, security-review, review, deliver); "
+                             "repeat for each (ADR 0029, ADR 0032)")
     args = parser.parse_args()
 
     try:

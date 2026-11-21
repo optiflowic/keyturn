@@ -7,7 +7,7 @@ description: Run keyturn's delivery pipeline for one task, from the client's req
 
 Take one task through every role, in order, and keep its state in the repository so that it can stop at any step boundary and go on later. This is keyturn's pipeline. It does none of the roles' work itself: it runs each role's skill in a context of its own, checks what the step left, runs the gate on the developer's work, decides from the results whether the work goes back to the developer, and records every step in the task state file.
 
-Paths below that start with `../` or `../../` are relative to the folder of this `SKILL.md` file. Paths that start with `keyturn/` are in the project's repository. Everything this skill needs is in this file, the skills and scripts it names, and the templates they name. The background is in keyturn's `docs/design/` (`roles.md`, `guardrails.md`, `resuming-work.md`, and "Client attention budget" in `documents.md`) and ADRs 0009, 0011, 0029, 0030, and 0031 in keyturn's `docs/adr/`, for whoever has them; the procedure does not depend on reading them.
+Paths below that start with `../` or `../../` are relative to the folder of this `SKILL.md` file. Paths that start with `keyturn/` are in the project's repository. Everything this skill needs is in this file, the skills and scripts it names, and the templates they name. The background is in keyturn's `docs/design/` (`roles.md`, `guardrails.md`, `resuming-work.md`, and "Client attention budget" in `documents.md`) and ADRs 0009, 0011, 0029, 0030, 0031, and 0032 in keyturn's `docs/adr/`, for whoever has them; the procedure does not depend on reading them.
 
 ## Rules
 
@@ -61,7 +61,7 @@ Do this before each step in step 3, and before each rerun of a step.
 1. **Usage.** Run the usage check. If it exits 0, go on. If it prints `stop:` lines, stop ("Stopping"): when every line is a window over its limit with `can continue after <time>`, `Stopped because: usage limit` and `Can continue: after <the latest of those times>`, written `YYYY-MM-DDTHH:MMZ`; when a value is unknown, `Stopped because: error` and `Can continue: now`, and say in "Summary" and to the person that the usage could not be read, and why. On a tool whose adapter has no usage check, go on, and say in the final report that usage was not checked.
 2. **Nothing waits for it.** If an item in "Open questions" names this step under "Blocks:" (or "every later step" after an earlier step), stop: waiting for the client.
 3. **A clean working tree.** Run `git status --porcelain`. If it prints anything, follow "Interrupted outputs".
-4. **No merge.** After the first `implement` step has started, `git rev-list --merges <start>..HEAD` (`<start>` in "The commits") must print nothing. If it prints a merge, stop and ask the maintainer: the default branch is never merged into a task branch (ADR 0031).
+4. **No merge.** `git rev-list --merges <base>..HEAD` (`<base>` in "The commits") must print nothing. If it prints a merge, stop and ask the maintainer: the default branch is never merged into a task branch (ADR 0031).
 
 Do not edit the state file while a step runs: each role checks that the working tree has nothing of anyone else's, so the state file changes only in step 4, after the step.
 
@@ -90,9 +90,9 @@ Run the steps in this order, from the current step on. Before each, note the hea
 #### implement
 
 - **After the rework limit**: when the last two lines of "History" are a `stopped: rework limit` line and the `resumed` line after it, the task stopped at the limit, and `resume` asked the maintainer. (`Rework` at its limit alone does not say so: the last round allowed runs at it too.) Apply their decision first. If they allow more rounds, raise the limit in `Rework` by the number they give, add one to `Rework`, say so in "Summary", and check and commit the state file (`chore(state): allow more rounds for <task>`); then go on. If they do not, do not run `implement`: stop again, waiting for the maintainer, with `Can continue: when the maintainer decides: <what they decided instead>` (for example, closing the task), and run no more rounds.
-- **Before it**: check that "Open questions" is `None.`; if not, stop as the item says. Find `<start>` as "The commits" says, in every round and on every rerun: never take it from the head when the step starts, since an earlier run of the step may have committed already.
-- **Give it**: in the first round, that the task covers every requirement that is not removed. In a later round, also the findings to fix: the gate's `FAIL` lines, if the gate failed in the round before (when they are not from this run of `deliver`, run the gate again on the round before's range, from `<start>` to the `implement` row's "Commit", with that range's other roles' commits, and take its `FAIL` lines), and every finding still open from the last reports: the "Failures" in `keyturn/internal/test-report.md`, and every finding with "Status: open" in `keyturn/internal/security-review.md` and `keyturn/internal/review.md`, low ones included (in the first round after a failing gate, there are no reports yet).
-- **After it, run the gate** before recording the step: `gate.sh --base <start> --head <the developer's head> --others <role>:<commit> --others <role>:<commit> ...`, where the developer's head is `HEAD` now, with one `--others` for each commit in `<start>..HEAD` that is another role's ("Other roles' commits" in "The commits"), each with its full hash (`git rev-parse <hash>`). In the first round there may be none; then leave `--others` out only if `git rev-list <start>..HEAD` lists only `implement`'s commits.
+- **Before it**: check that "Open questions" is `None.`; if not, stop as the item says.
+- **Give it**: in the first round, that the task covers every requirement that is not removed. In a later round, also the findings to fix: the gate's `FAIL` lines, if the gate failed in the round before (when they are not from this run of `deliver`, run the gate again on the round before's range, from `<base>` to the `implement` row's "Commit", with that range's other roles' commits, and take its `FAIL` lines), and every finding still open from the last reports: the "Failures" in `keyturn/internal/test-report.md`, and every finding with "Status: open" in `keyturn/internal/security-review.md` and `keyturn/internal/review.md`, low ones included (in the first round after a failing gate, there are no reports yet).
+- **After it, run the gate** before recording the step: `gate.sh --base <base> --head <the developer's head> --others <role>:<commit> --others <role>:<commit> ...`, where the developer's head is `HEAD` now, with one `--others` for each commit in `<base>..HEAD` that is another role's ("Other roles' commits" in "The commits"), each with its full hash (`git rev-parse <hash>`). The list is never empty: the task's state commits and the `spec`, `design`, and `conventions` commits are in the range.
   - Exit 0: the gate passed. Record the step as done, with "gate passed" in "Notes".
   - Exit 1: the gate failed. Record the step as done, with "gate failed: <the failing checks>" in "Notes", and go to step 5 with the `FAIL` lines.
   - Exit 2: the gate could not run. Record the step as done, with "gate could not run" in "Notes", and stop before `qa`: waiting for the maintainer, with the gate's problems (for example, a tool to install) in `Can continue: when the maintainer decides: <what>` and in "Summary". The developer's work is kept: when the task resumes, the gate runs again first (in `qa`).
@@ -105,11 +105,11 @@ Run the steps in this order, from the current step on. Before each, note the hea
 
 #### security-review
 
-- **Give it**: the range `<start>..<the developer's head>` (the commit `implement` reported last), the commits in that range that are another role's, each with its role ("The commits"), that no default-branch parent is merged in the range, that the gate has no scan results yet (no scan runs during the MVP), and, on a rerun, the commit of its earlier report: the newest commit listed as `security-review` under "Commits".
+- **Give it**: the range `<base>..<the developer's head>` (the commit `implement` reported last), the commits in that range that are another role's, each with its role ("The commits"), the documents' commit (the newest of them named as `spec`, `design`, or `conventions`, where the documents the change is judged against are read), that no default-branch parent is merged in the range, that the gate has no scan results yet (no scan runs during the MVP), and, on a rerun, the commit of its earlier report: the newest commit listed as `security-review` under "Commits".
 
 #### review
 
-- **Give it**: the same range and list of other roles' commits, and, on a rerun, the commit of its earlier report: the newest commit listed as `review` under "Commits".
+- **Give it**: the same range, list of other roles' commits, and documents' commit, and, on a rerun, the commit of its earlier report: the newest commit listed as `review` under "Commits".
 
 After `qa`, `security-review`, and `review` are all done, go to step 5.
 
@@ -124,7 +124,7 @@ After each step, check what it left, then record it.
 1. **What it committed.** `git status --porcelain` must print nothing: a role commits everything it writes. If it prints anything, follow "Interrupted outputs". List the step's commits: `git rev-list --reverse <the head before the step>..HEAD`. A step with no commit is right only for a rerun of `security-review` or `review` that found the same (it gives the commit of its earlier report), and for a step that waits (`design`); any other step with no commit: stop and ask the maintainer.
 2. **Approved input.** If an output of the step says that it is not based on approved requirements, or the test report says `Specification: none`, stop and ask the maintainer: such an output is never taken in.
 3. **The row.** Set it to `done` (or as the step says above), with links to its outputs, the step's last commit (or the earlier report's commit it gave) in "Commit", and a few words in "Notes" (for example "gate passed", "3 of 9 criteria fail", "1 high, 2 low").
-4. **The commits**, once the first `implement` step has started: add the lines "The commits" says.
+4. **The commits**: add the lines "The commits" says.
 5. **The fields.** `Current step`: the next step that is neither done nor skipped. `Updated`: now. "Summary": where the task is, in one or two lines a client could follow.
 6. Run `task_state.py check <the state file>` until it prints `ok`, and commit the state file alone, as in step 1, with the message `chore(state): record <step> of <task>`.
 
@@ -152,7 +152,7 @@ To stop, edit the state file, keeping to the template:
 
 - `Status: stopped`, `Stopped because:` and `Can continue:` as the case says, `Current step`, and `Updated: <time>`.
 - "Open questions": what waits for the client, as the step said. "Summary": why it stopped and when it can go on, in plain words.
-- "Commits": the lines "The commits" says, once the first `implement` step has started.
+- "Commits": the lines "The commits" says.
 - "History": ``- <time>: stopped: <reason>, in <step>``, with what it waits for in brackets (for example "(decision cards 1 and 2)", or for a usage limit "(5-hour window at 80%, resets at 2026-11-08T15:30Z)"). Never change the earlier lines.
 
 Check it with `task_state.py check` until it prints `ok`, and commit it alone (`chore(state): stop <task> in <step>`). Then tell the person, in their language: why the task stopped; what it waits for, and who does what next (the client answers; their answer is recorded with `spec`, its step 6, or `design`, its step 9; the maintainer decides; a person installs a tool); and that the task goes on with the `resume` skill and the task's name.
@@ -172,16 +172,17 @@ Then discard them from both the index and the working tree: `git restore --sourc
 
 ### The commits
 
-**`<start>`**, the base of the gate and of the reviews, is the head the task's first `implement` step started from (ADR 0029). Find it the same way in every run: it is the first parent of the first commit listed under "Commits"; when "Commits" is still `None.`, it is the last of the commits after the `conventions` row's commit, in `git rev-list --reverse --first-parent <conventions commit>..HEAD` order, before the first one that changes anything but the state file (`git show --name-only --format= <commit>` prints more than the state file's path), or `HEAD` if there is none.
+**`<base>`**, the base of the gate and of the reviews, is where the task branch left the default branch: `git merge-base <default branch> HEAD`, with the default branch found as in step 1 (ADR 0032). Since the default branch is never merged into the task branch, it does not move during the task, and no commit on the branch can move it. Never take it from the state file.
 
-**The lines.** From the first `implement` step on, every state commit lists the commits after the newest one already listed (or after `<start>`, for the first), up to the head it is made on, oldest first, as ``- `<short hash>`: <step>, round <n>``, where the round is 1 plus the number in `Rework` when the commit was made:
+**The lines.** Every state commit lists, under "Commits", the commits after the newest one already listed (or after `<base>`, for the first), up to the head it is made on, oldest first, as ``- `<short hash>`: <step>, round <n>``, where the round is 1 plus the number in `Rework` in the state file at that commit:
 
-- the commits the step just made: that step;
-- the commits from before the step started, after the newest listed one: your own state commits (each listed by the next one), and a stop's and a resume's state commits: `deliver`. Each of them must change only the state file: if one changes anything else, it is from an earlier run of the current step that stopped before it was recorded; list it as that step.
+- the commits the step just made: that step (the configuration committed in step 1 is listed as `spec`, and `parts` added before `conventions` as `conventions`);
+- the commits this run of `deliver` made itself (its earlier state commits, each listed by the next one), and the resume commit it continues from, when `resume` made it in this session: `deliver`. Check that each changes only the state file;
+- any other commit: if it changes anything but the state file, it is from an earlier run of the current step that stopped before it was recorded; list it as that step. If it changes only the state file, stop and ask the maintainer whose it is: a state commit that nothing lists cannot be told from someone else's edit of the state file.
 
 `resume` lists the state commit it resumes from itself; do not list it again.
 
-**Other roles' commits**, which the gate, `security-review`, and `review` get: every commit in their range listed as `qa`, `security-review`, `review`, or `deliver`, plus every commit in the range after the newest listed one, made before the current step started, that changes only the state file (your own state commits, and a stop's and a resume's state commits, which the next state commit lists). Never a commit the current step made. Name them from what you recorded in this run; after a resume, the state file is all there is, and the gate checks that each one changes only what its role may write. The developer's commits are never on that list.
+**Other roles' commits**, which the gate, `security-review`, and `review` get: every commit in their range listed as `spec`, `design`, `conventions`, `qa`, `security-review`, `review`, or `deliver`, plus the commits this run of `deliver` made that no line lists yet. Never a commit the current step made. After a resume, the state file is all there is, and the gate checks that each one changes only what its role may write, and that the `spec`, `design`, and `conventions` commits all come before the developer's (ADR 0029, ADR 0032). The developer's commits are never on that list.
 
 ## When inputs are missing
 

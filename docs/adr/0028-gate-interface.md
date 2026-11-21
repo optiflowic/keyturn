@@ -1,6 +1,6 @@
 # 0028. The gate is a Python CLI behind `gates/gate.sh`, run on a Git range, with JSON stack profiles
 
-- Status: accepted
+- Status: accepted; the design and the ADRs read at the base, when `--others` names a document role's commit, superseded by [0032](0032-gate-base-is-where-the-task-branch-left.md)
 - Date: 2026-11-21
 
 ## Context

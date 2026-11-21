@@ -316,6 +316,60 @@ class GateTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assert_fails(self.gate(), "FAIL protected-paths:")  # without the list, every commit is the developer's
 
+    def start_before_the_documents(self) -> dict[str, str]:
+        """Move the base to a commit without the task's documents, and commit them as spec, design, and conventions would."""
+        self.git("rm", "-q", "keyturn/internal/design.md")
+        self.base = self.commit("the default branch, before the task")
+        self.put("keyturn/client/requirements.md", "# Requirements\n")
+        spec = self.commit("spec")
+        self.put("keyturn/internal/design.md", DESIGN)
+        self.put("keyturn/internal/adr/0001-allow-one-noqa.md", ADR)
+        design = self.commit("design")
+        self.put("keyturn/internal/conventions.md", "# Conventions\n")
+        self.put(".lintrc", "strict\n")
+        conventions = self.commit("conventions")
+        return {"spec": spec, "design": design, "conventions": conventions}
+
+    def others(self, roles: dict[str, str]) -> list[str]:
+        return [argument for role, commit in roles.items() for argument in ("--others", f"{role}:{commit}")]
+
+    def test_the_document_roles_commits_before_the_developer_s_are_left_out(self):
+        roles = self.start_before_the_documents()
+        self.put("app/src/main.py", "import os  # noqa: F401 ADR-0001\n")
+        self.commit("developer")
+        result = self.gate(*self.others(roles))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)  # the ADR is read at the design's commit
+
+    def test_qa_s_folders_are_read_at_the_newest_document_commit(self):
+        roles = self.start_before_the_documents()
+        self.put("app/qa/test_qa.txt", "weakened")
+        self.commit("developer changes QA's test")
+        self.assert_fails(self.gate(*self.others(roles)), "FAIL protected-paths: app/qa/test_qa.txt (matches app/qa/**)")
+
+    def test_a_document_commit_after_the_developer_s_stops_the_gate(self):
+        roles = self.start_before_the_documents()
+        self.put("app/src/main.py", "print('developer')\n")
+        self.commit("developer")
+        self.put("keyturn/internal/design.md", DESIGN + "\nchanged\n")
+        roles["design"] = self.commit("design, later")
+        result = self.gate(*self.others(roles))
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("the documents are fixed before the developer's work", result.stderr)
+
+    def test_a_document_commit_that_changes_code_stops_the_gate(self):
+        roles = self.start_before_the_documents()
+        self.put("app/src/main.py", "print('hidden in the spec')\n")
+        disguised = self.commit("spec and code")
+        result = self.gate(*self.others(roles), "--others", f"spec:{disguised}")
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("changes app/src/main.py, which a spec commit may not", result.stderr)
+
+    def test_a_developer_change_to_a_linter_config_still_fails(self):
+        roles = self.start_before_the_documents()
+        self.put(".lintrc", "loose\n")
+        self.commit("developer loosens the linter")
+        self.assert_fails(self.gate(*self.others(roles)), "FAIL protected-paths: .lintrc")
+
     def test_a_developer_change_to_qa_s_folder_fails_even_when_qa_commits_after_it(self):
         self.put("app/qa/test_qa.txt", "weakened")
         self.commit("developer changes QA's test")

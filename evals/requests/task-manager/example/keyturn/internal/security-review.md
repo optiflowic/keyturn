@@ -1,7 +1,7 @@
 # Security review: delivery 1
 
 - Reviewed by: security
-- Reviewed change: `c2e6a94`..`9b02d4f`
+- Reviewed change: `09f4c3d`..`9b02d4f`
 - Compared against: [threat-model.md](threat-model.md), [design.md](design.md), [ADR 0003](adr/0003-password-sign-in-with-server-sessions.md)
 
 ## Summary

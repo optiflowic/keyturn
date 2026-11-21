@@ -1,6 +1,6 @@
 # 0029. `deliver` names each role's commits to the gate and the reviews as arguments; the task state file only records them
 
-- Status: accepted
+- Status: accepted; the gate's range starting at the head before the first `implement` step superseded by [0032](0032-gate-base-is-where-the-task-branch-left.md) (it starts where the task branch left the default branch, and the document roles' commits are named too)
 - Date: 2026-11-21
 
 ## Context
