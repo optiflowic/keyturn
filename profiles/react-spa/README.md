@@ -1,0 +1,78 @@
+# `react-spa` profile
+
+What "verified" means for a React single-page application built with Vite, for the MVP gate ("Stack Profiles" in [`docs/design/stack-profiles.md`](../../docs/design/stack-profiles.md), [ADR 0003](../../docs/adr/0003-first-stack-profiles.md)). [`profile.json`](profile.json) is what the gate runs, in the format of [ADR 0028](../../docs/adr/0028-gate-interface.md); this file is what the roles read: the tools it approves, where QA's tests live, how the tests are counted, and what it does not check.
+
+A part with this profile is a folder that holds one npm project in TypeScript: its `package.json` and its `package-lock.json` (lockfile version 2 or 3, from npm 7 or later), named in `keyturn/config.json` as `{"path": "<folder>", "profile": "react-spa"}`. npm workspaces and packages from local folders are not supported.
+
+## What the gate runs
+
+In the part's folder, at the head of the range. First the setup, then the checks in this order:
+
+| Step | Command | Fails when |
+|---|---|---|
+| setup | `npm ci --ignore-scripts` | the lock file is missing or does not match `package.json`; no package's install scripts run |
+| `packages` | reads `package-lock.json` | a package does not come from the npm registry under its own name with an integrity hash: a package from a local folder, a link, a Git repository, another host, or an alias (`"vitest": "npm:other@1"`), any of which could replace a tool the checks run |
+| `format` | `prettier --check --no-editorconfig .` | a file is not formatted as Prettier formats it (the files are listed) |
+| `typecheck` | `tsc --build --force` | TypeScript reports an error in a project `tsconfig.json` names |
+| `lint` | `eslint --config <config> .` | a committed JavaScript or TypeScript file gets no ESLint config, or no rule that is on, unless the config ignores it; or ESLint reports an error |
+| `test` | `vitest run --config <config> --allowOnly=false --passWithNoTests=false` | a test fails, a test file does not load, a test is marked `.only`, or there are no tests; QA's tests run here too |
+| `build` | `vite build` | the application does not build |
+
+Each tool runs from the part's `node_modules`, by its own package's file (for example `node node_modules/vitest/vitest.mjs`), never through `npm run` or `node_modules/.bin`, so neither a `package.json` script nor another package's command can take its place ([ADR 0028](../../docs/adr/0028-gate-interface.md)). The `format` check runs before `build`, so the build output is never checked for formatting.
+
+The gate reads each config from the part's folder only: the ESLint config (`eslint.config.js`, or `.mjs`, `.cjs`, `.ts`, `.mts`, `.cts`) and the Vitest config (`vitest.config.ts`, or `.mts`, `.cts`, `.js`, `.mjs`, `.cjs`) must be there, and the gate fails the check without them. The Prettier config is passed with `--config` when the part has one (`.prettierrc` in any of its forms, or `prettier.config.*`); without one, Prettier's defaults apply, and a config above the part, in `package.json`, or in `.editorconfig` is never used. The configs load their plugins from the part's `node_modules`, which is why they live in the part's folder.
+
+The gate also records the versions of Node.js, npm, Vite, Vitest, ESLint, TypeScript, and Prettier that ran, in its output and its log ([ADR 0037](../../docs/adr/0037-gate-records-tool-versions.md)). It does not pin them: they are the ones the project's lock file names.
+
+## Tools
+
+Install them before the gate runs; it stops with exit code 2 and says how when one is missing.
+
+- **Toolchain** (covered by approving the stack, ADR 0015): Node.js 22 or later (an LTS release), with npm.
+- **Runtime** (part of the deliverable, so the client agrees to them through the design, ADR 0015): React, `react-dom`, Vite, and `@vitejs/plugin-react`.
+- **Profile tools** (approved by this profile, ADR 0015; the design still lists each with its kind and a passing check), installed as development dependencies of the part:
+  - type checking: `typescript` (at a version `typescript-eslint` supports: 6.0, since TypeScript 7 is not supported by it yet), `@types/react`, `@types/react-dom`, `@types/node`;
+  - linting: `eslint`, `@eslint/js`, `typescript-eslint`, `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh`, `globals`;
+  - formatting: `prettier`;
+  - tests: `vitest`, `jsdom`, `@testing-library/react`, `@testing-library/dom`, `@testing-library/user-event`, `@testing-library/jest-dom`.
+
+Any other development tool is an other tool: it needs the client's agreement through the design. That includes a browser test tool (such as Playwright): the gate does not run one. The project template that `npm create vite` makes uses `oxlint` and TypeScript 7; with this profile, use ESLint and TypeScript 6 instead.
+
+## Where the rules go
+
+`conventions` writes every rule in these files, in the part's folder:
+
+- **`eslint.config.js`**: the recommended rules of `@eslint/js` and `typescript-eslint`, `eslint-plugin-react-hooks`, the readability limits (`complexity`, `max-lines-per-function`, `max-depth`), boundaries between parts (`no-restricted-imports`), and forbidden patterns (`no-restricted-syntax`, such as `dangerouslySetInnerHTML`). Its `files` must cover every JavaScript and TypeScript file in the part, the config files included (`**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}`): the `lint` check fails on a committed file that gets no config or no rule. Ignore only build output (`dist/`) and generated code.
+- **The Prettier config** (for example `.prettierrc.json`), if the defaults are not used.
+- **`tsconfig.json`** and the files it references (for example `tsconfig.app.json` and `tsconfig.node.json`): `strict` and the other compiler checks. Include the folder of QA's tests (`qa`) as well as `src`, so QA's tests are type-checked too.
+- **`vitest.config.ts`**: `include` names the developer's tests (for example `src/**/*.test.{ts,tsx}`) and every QA test (`qa/**/*.test.{ts,tsx}`); `environment: 'jsdom'`. A setup file, if any, is `vitest.setup.ts` next to it. It never imports `vite.config.ts`, which the developer may change: the tests run with the conventions' config only.
+- **`.gitignore`**: `node_modules/` and `dist/` ([ADR 0039](../../docs/adr/0039-conventions-writes-gitignore.md)).
+
+`vite.config.ts` is the developer's: it builds the application, and the design names it under "Areas the work may change" when the work needs it (for example, a development server's proxy). It is not read by the tests.
+
+Every file named under `protected` in `profile.json` may change only in the standards role's commits, wherever it is in the repository: the ESLint configs (`eslint.config.*`, `.eslintrc*`, `.eslintignore`), the Prettier configs (`.prettierrc*`, `prettier.config.*`, `.prettierignore`), `tsconfig*.json` and `jsconfig*.json`, the Vitest files (`vitest.config.*`, `vitest.workspace.*`, `vitest.setup.*`), `.npmrc` (which could point npm at another registry), and Semgrep rule files (`.semgrep.yml`, `.semgrep.yaml`, `.semgrep/`). Every `.gitignore` is protected by the gate itself. The gate does not run Semgrep during the MVP: a rule only Semgrep can express is not enforced yet, and is listed in `conventions.md` as waiting.
+
+## QA's tests
+
+QA's tests live in `qa/` at the root of the part (for a part `web`, `web/qa/**`), as Vitest test files whose names end in `.test.ts` or `.test.tsx`. They test the pages and the code through what the application's modules export (for example, rendering an exported component with Testing Library in `jsdom`), never by changing the application's code. `vitest run` runs them with the rest, so a failing QA test fails the `test` check. The design names this folder under "QA's tests", and never under "Areas the work may change": list the developer's paths in the part one by one (`web/src/**`, `web/index.html`, `web/package.json`, `web/package-lock.json`, `web/vite.config.ts`, `web/public/**`), never `web/**`.
+
+## How the tests are counted
+
+`vitest list --json` with the Vitest config lists every test Vitest would run, and the count is the number of entries. A test marked `.skip` or `.todo` is not counted, so skipping an existing test is a drop in the count. A test written with `.each` counts once, however many rows it has. A part's folder that is not there yet, or that has no `package.json` yet (for example, only the conventions' configs), counts 0. A count that cannot run (for example, a test file that does not load) fails the `test-count` check.
+
+## Suppressions
+
+An added line in a JavaScript, TypeScript, CSS, or HTML file fails the `suppressions` check when it has `eslint-disable` (in any form), an inline ESLint config comment (`/* eslint <rule>: off */`, `/* eslint-env */`, `/* global */`), `@ts-ignore`, `@ts-nocheck`, or `@ts-expect-error`, or `prettier-ignore`, unless an accepted ADR allows it (ADR 0028). The line names the ADR (`// eslint-disable-next-line no-console -- ADR-0005`), or the ADR allows it in a folder (`- Allows in web/src/api/generated/**: /* eslint-disable */`, [ADR 0038](../../docs/adr/0038-suppressions-allowed-in-a-folder.md)), which is how generated code that carries such a comment is allowed.
+
+## What this profile does not check
+
+Each delivery report made with this profile lists these under "What was not verified":
+
+- **Security checks**: no SAST (for example Semgrep rules or ESLint security plugins), no scan of the packages for known vulnerabilities (`npm audit` or OSV), and no secret scanning, until phase 5.
+- **Packages**: the `packages` check makes sure every package comes from the npm registry under its own name, not that it is a version the design lists, or that the design lists it at all; the review reads changes to `package.json`.
+- **Tests**: coverage is not checked; a test written with `.each` counts once, so a dropped row is not found; a test replaced with a weaker one under the same name is not found.
+- **Code that runs during the tests and the build**: the tests run the application's code, which can change what the test tools do (for example, by changing `expect`); `vite build` runs `vite.config.ts` and its plugins; the packages' own code runs in every check. The gate does not stop code that changes how the checks run; the review and the security review read it.
+- **Type checking**: `tsc` checks the files `tsconfig.json` reaches. JavaScript files are linted but not type-checked, unless the conventions turn on `checkJs`.
+- **Browsers**: no test runs in a real browser; `jsdom` stands in for one. A page that works in `jsdom` and fails in a browser is not found.
+- **The Node.js version**: the gate uses the Node.js on `PATH`, whatever `engines` in `package.json` asks for.
+- **Structure and secure defaults**: this profile does not give a recommended project structure or secure defaults yet; the architect takes them from React's and Vite's own documentation and says so in the stack's ADR.
