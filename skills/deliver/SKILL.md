@@ -124,6 +124,8 @@ After `qa`, `security-review`, and `review` are all done, go to step 5.
 
 The last step writes what the client decides from: the acceptance guide and the delivery report, from the committed records only (ADR 0033).
 
+**When it stopped after its commit.** If exactly one commit comes after the state file's last commit, and it changes exactly `keyturn/client/acceptance-guide.md`, `keyturn/client/delivery-report.md`, and `keyturn/internal/gate/<task>.json`, an earlier run of this step committed the documents and stopped before it was recorded (for example, at a usage limit during the translation). Do not run the gate or write the documents again: go on with item 3, with that commit's parent as the head before the step. With any other commits there, follow "The commits".
+
 1. **Run the gate on everything delivered.** Run `mkdir -p keyturn/internal/gate`, then the gate as in `implement`, with `HEAD` as the head and every other role's commit in `<base>..HEAD` named with `--others` (QA's, the security role's, the reviewer's, and the state commits included), and with `--log keyturn/internal/gate/<task>.json`.
    - Exit 0: go on with item 2.
    - Exit 1: delete the log (`rm -f -- keyturn/internal/gate/<task>.json`), write "gate failed: <the failing checks>" in this step's "Notes", and go to step 5 with the `FAIL` lines: the work goes back to the developer.
