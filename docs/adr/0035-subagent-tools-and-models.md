@@ -19,7 +19,7 @@ Each definition has to say three things: how the subagent gets its skill, which 
 
 ## Options considered
 
-1. **Each subagent preloads its one skill by its namespaced name, and gets the file tools and the shell (`Read`, `Grep`, `Glob`, `Edit`, `Write`, `Bash`) and nothing else; `pm` and `architect` also get `Skill` and `Agent`, for `localize`. The model follows the role's tier.** Every role can read, write its outputs, run the skills' scripts and Git, and commit, which every role does. No role can fetch from the web, use an MCP server, or hand its work to another agent, except for the translation the two document roles need.
+1. **Each subagent preloads its one skill by its namespaced name, and gets the file tools and the shell (`Read`, `Grep`, `Glob`, `Edit`, `Write`, `Bash`) and nothing else; `pm` and `architect` also get `Skill` and `Agent`, for `localize` (and `Skill` for `project-config`). The model follows the role's tier.** Every role can read, write its outputs, run the skills' scripts and Git, and commit, which every role does. No role has a web tool or an MCP server's tools, or can hand its work to another agent, except for the translation the two document roles need. (The shell can still reach the network; the architect checks dependencies through it.)
 2. **No `tools` list: every subagent inherits the session's tools.** Nothing a role might need is missing, but a role gets web access and every MCP tool the person has, which no role needs and which widen what a prompt injection in the reviewed code or a document can do.
 3. **Read-only tools for the reviewing roles (`security`, `reviewer`): no `Edit`, `Write`, or `Bash`.** They could not change code, but they could not write and commit their reports, run Git to read the range, or run the scripts their skills use either: the skills need the shell.
 4. **The skill read through the `Skill` tool instead of preloaded.** Works without depending on how `skills` resolves names, but the subagent would have to choose to load it first, and every role would get `Skill`, which can load any other skill.
@@ -39,7 +39,7 @@ Option 1. The definitions are:
 | `reviewer` | `review` | `Read`, `Grep`, `Glob`, `Edit`, `Write`, `Bash` | `opus` |
 | `pm-delivery` | the last step of `deliver` | `Read`, `Grep`, `Glob`, `Edit`, `Write`, `Bash` | `opus` |
 
-Each of the first seven preloads its skill as `keyturn:<skill>`. `pm-delivery` preloads none: `deliver` gives it everything it writes from. `pm` and `architect` use `Skill` only for `localize`, and `Agent` only where `localize` asks for a context of its own.
+Each of the first seven preloads its skill as `keyturn:<skill>`. `pm-delivery` preloads none: `deliver` gives it everything it writes from. `pm` and `architect` use `Skill` only for `localize` and `project-config`, and `Agent` only where `localize` asks for a context of its own.
 
 ## Reasons
 
@@ -55,4 +55,6 @@ Each of the first seven preloads its skill as `keyturn:<skill>`. `pm-delivery` p
 - The model is fixed per role in the plugin. `deliver` (or a person) can still pass another model when it starts a subagent; making the model a per-project setting, and recording usage per role (`docs/design/model-tiers.md`), are left for after the MVP. On a Pro plan, the `opus` roles use the windows faster; the usage limits still stop the run before they are used up.
 - Roles must be run as subagents, not as the main session with `claude --agent`, or their skill is not loaded.
 - Each description names the step of `deliver` it is for, and says to start it rather than a general-purpose subagent. That is how `deliver` gets the right one; whether it always does is checked in the end-to-end run (#63). A general-purpose subagent in its place would have every tool and no preloaded skill.
+- The subagent `pm` or `architect` starts for a translation is not one of these definitions, so it may have every tool of the session, web and MCP tools included, while it reads the client's words. Until the translation subagent (#119) exists, that is a known gap.
+- Using a skill other than `localize` and `project-config` through `Skill`, or a translation on a lower-tier model, is not given to these roles: forward translations in `spec` and `design` run on their model until #119.
 - The translation subagent (#119) and the Codex adapter's definitions (phase 10) follow the same rules when they are added.

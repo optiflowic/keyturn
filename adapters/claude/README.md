@@ -17,7 +17,7 @@ The parts of keyturn that only Claude Code uses. Everything shared (skills, temp
 | `reviewer` | the `review` skill | `opus` |
 | `pm-delivery` | the last step of `deliver`: the acceptance guide and the delivery report | `opus` |
 
-Each one preloads its skill (as `keyturn:<skill>`; a bare name can load another skill or command of the same name) and gets only `Read`, `Grep`, `Glob`, `Edit`, `Write`, and `Bash`; `pm` and `architect` also get `Skill` and `Agent`, for the `localize` skill's translations. No web access, no MCP tools. Why, and what that does not limit, is in [ADR 0035](../../docs/adr/0035-subagent-tools-and-models.md).
+Each one preloads its skill (as `keyturn:<skill>`; a bare name can load another skill or command of the same name) and gets only `Read`, `Grep`, `Glob`, `Edit`, `Write`, and `Bash`; `pm` and `architect` also get `Skill` (for the `localize` and `project-config` skills) and `Agent` (for the `localize` skill's translations). No web tool and no MCP tools (the shell can still reach the network). The subagent `pm` or `architect` starts for a translation is not one of these, so it may have every tool of the session until the translation subagent exists (#119). Why, and what that does not limit, is in [ADR 0035](../../docs/adr/0035-subagent-tools-and-models.md).
 
 - `deliver` does not name them: it starts each role in a context of its own, and Claude Code picks the subagent by its description, which names the step of `deliver` it is for. Start them as subagents, not as the main session with `claude --agent`: started that way, the skill is not preloaded.
 - To run a role on another model, pass the model when the subagent is started; the definitions set the defaults.
