@@ -50,3 +50,5 @@ See "Architecture decision records" in [`docs/design/documents.md`](../design/do
 | [0032](0032-gate-base-is-where-the-task-branch-left.md) | The gate's base is where the task branch left the default branch, and the document roles' commits are named too | accepted |
 | [0033](0033-delivery-documents-from-the-records.md) | `deliver`'s last step writes the acceptance guide and the delivery report from the committed records, in a context of its own | accepted |
 | [0034](0034-new-task-waits-for-unmerged-task-branches.md) | A new task waits while a task branch is not merged into the default branch, unless the person says to start anyway | accepted |
+| [0035](0035-subagent-tools-and-models.md) | Each role's subagent preloads its skill, and gets only the file tools and the shell, on a model set by its tier | accepted |
+| [0036](0036-minimal-permission-rules.md) | During the MVP, the recommended permission rules deny pushes and the commands that discard work, in the person's local settings | accepted |

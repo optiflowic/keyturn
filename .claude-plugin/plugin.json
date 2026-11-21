@@ -14,5 +14,15 @@
     "skills",
     "translation",
     "quality-gates"
+  ],
+  "agents": [
+    "./adapters/claude/agents/pm.md",
+    "./adapters/claude/agents/architect.md",
+    "./adapters/claude/agents/standards.md",
+    "./adapters/claude/agents/developer.md",
+    "./adapters/claude/agents/qa.md",
+    "./adapters/claude/agents/security.md",
+    "./adapters/claude/agents/reviewer.md",
+    "./adapters/claude/agents/pm-delivery.md"
   ]
 }

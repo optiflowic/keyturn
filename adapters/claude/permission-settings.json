@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(git push *)",
+      "Bash(git reset --hard *)",
+      "Bash(git clean -d*)",
+      "Bash(git clean -x*)",
+      "Bash(git clean -X*)",
+      "Bash(git clean -fd*)",
+      "Bash(git clean -fx*)",
+      "Bash(git clean -fX*)",
+      "Bash(git clean -f)",
+      "Bash(git clean -f .)",
+      "Bash(git clean -f -- .)",
+      "Bash(git checkout .)",
+      "Bash(git checkout -- .)",
+      "Bash(git restore .)",
+      "Bash(git restore -- .)",
+      "Bash(git branch -D *)",
+      "Bash(git branch --delete --force *)",
+      "Bash(git update-ref -d *)",
+      "Bash(git reflog expire *)",
+      "Bash(git filter-branch *)",
+      "Bash(git filter-repo *)",
+      "Bash(git stash drop *)",
+      "Bash(git stash clear *)",
+      "Bash(rm -r *)",
+      "Bash(rm -R *)",
+      "Bash(rm -rf *)",
+      "Bash(rm -fr *)",
+      "Bash(rm -Rf *)",
+      "Bash(rm -fR *)",
+      "Bash(rm -r -f *)",
+      "Bash(rm -f -r *)",
+      "Bash(rm --recursive *)",
+      "Bash(find * -delete)",
+      "Bash(find * -delete *)",
+      "Bash(sudo *)",
+      "Bash(gh repo delete *)",
+      "Bash(gh pr merge *)"
+    ]
+  }
+}

@@ -7,6 +7,7 @@ What the review before a pull request checks ([ADR 0019](adr/0019-pre-pull-reque
 - [ ] Every link in the diff to a file in this repository points to a file that exists on `main` or in this pull request, not to a file that only an unmerged pull request adds.
 - [ ] A claim that uses "every", "all", "never", "only", or "always" has no counterexample. Look for one before accepting the claim.
 - [ ] Every skill, script, or file that the change relies on, and every caller it says runs something (for example, "the `deliver` skill runs this"), exists on `main` or in this pull request; otherwise the change says what does not happen yet.
+- [ ] A path one context hands to another (a skill to a subagent, a step to a role) resolves in the context that receives it: a path relative to a skill's folder is given as a full path to a context that has no such folder.
 - [ ] A definition, or a list of the values something may take, holds for every case it covers, such as every stack or tool it names, every state a rule allows, or every kind of change a rule about changed files covers (a deleted or renamed file too), not only the first one that comes to mind.
 
 ## Documents: `docs/**`, `AGENTS.md`, `templates/**`, `evals/**`, `.github/**`
