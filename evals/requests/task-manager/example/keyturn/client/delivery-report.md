@@ -37,6 +37,7 @@ R-5, R-6, and R-9 are planned for delivery 2, so that this delivery has no more 
 ## What was not verified
 
 - The app behind HTTPS on your server: the tests ran on one computer without HTTPS. The sign-in only works over HTTPS (or on `localhost`), on purpose, to protect it.
+- The web pages in a real browser: the automatic tests use them in a simulated browser, so please try them in yours with the acceptance guide.
 - How the pages look on phones: no requirement covers it, so nobody checked it.
 - R-5, R-6, and R-9: not part of this delivery.
 
@@ -58,5 +59,5 @@ R-5, R-6, and R-9 are planned for delivery 2, so that this delivery has no more 
 | Developer, QA | Claude Sonnet | recorded in the run log |
 | AI tool | Claude Code | recorded in the run log |
 | Go tests and checks | Go, `gofmt`, golangci-lint, `gosec`, `govulncheck`, Semgrep | Go as pinned in `api/go.mod`; the tools as recorded in the gate log |
-| Web tests and checks | Node.js, Prettier, ESLint, Vitest, Playwright | as pinned in `web/package.json` |
+| Web tests and checks | Node.js, Prettier, ESLint, TypeScript, Vitest, jsdom, Testing Library | as recorded in the gate log |
 | Secret scanning | gitleaks | recorded in the gate log |

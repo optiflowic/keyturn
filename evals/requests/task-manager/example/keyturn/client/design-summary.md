@@ -97,4 +97,4 @@ These tools only check, format, and test the code; none of them is part of the a
 - Prettier: keeps the code of the web pages in one consistent layout.
 - golangci-lint: reads the code of the server part and points out common mistakes.
 - Vitest: runs automatic tests of the parts of the web pages.
-- Playwright: runs automatic tests that use the app in a real browser, the way a person would.
+- Testing Library and jsdom: let the automatic tests show the web pages and use them the way a person would, without a real browser.
