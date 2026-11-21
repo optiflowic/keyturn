@@ -13,7 +13,8 @@ Each definition has to say three things: how the subagent gets its skill, which 
 - `tools` takes tool names only. It cannot limit a tool to some paths or commands: a reviewer that may write its report may write any file. What a role may change is limited by its skill's rules, by the checks `deliver` makes after each step, and by the gate.
 - Claude Code ignores `hooks`, `mcpServers`, and `permissionMode` in a plugin's subagents. Permission rules from the person's settings, and the plugin's hooks, still apply inside them.
 - A skill is preloaded with `skills`. Tried with Claude Code 2.1.323 (`claude -p` with the plugin loaded from a working copy): a subagent preloads a plugin's skill only under its namespaced name (`keyturn:review`), and then also gets the skill's folder, which the skill's relative paths need. The bare name `review` loaded Claude Code's own `/review` command instead. A subagent started as the main session (`claude --agent keyturn:reviewer`) did not preload it at all.
-- `spec` and `design` translate with the `localize` skill in English-only mode, and `localize` asks for a context that has not seen the original for a back-translation.
+- `spec` and `design` translate with the `localize` skill in English-only mode, and `localize` asks for a context that has not seen the original for a back-translation. Tried the same way: a plugin subagent with `Agent` in its `tools` started a subagent of its own.
+- `deliver` names no subagent: who runs a role is the adapter's ("Separate the 'what' from the 'who'"). Claude Code chooses a subagent for a task by its `description`.
 - "Model Tiers" in `docs/design/model-tiers.md`: lower-tier models for well-defined work (implementation of a clear design, test writing), higher-tier models for what needs judgment (requirements, design, and reviews).
 
 ## Options considered
@@ -53,4 +54,5 @@ Each of the first seven preloads its skill as `keyturn:<skill>`. `pm-delivery` p
 - The shell gives every role network access through commands (for example, `curl`, or installing a dependency). The minimal permission rules ([ADR 0036](0036-minimal-permission-rules.md)) block pushes and destructive commands, not the network.
 - The model is fixed per role in the plugin. `deliver` (or a person) can still pass another model when it starts a subagent; making the model a per-project setting, and recording usage per role (`docs/design/model-tiers.md`), are left for after the MVP. On a Pro plan, the `opus` roles use the windows faster; the usage limits still stop the run before they are used up.
 - Roles must be run as subagents, not as the main session with `claude --agent`, or their skill is not loaded.
+- Each description names the step of `deliver` it is for, and says to start it rather than a general-purpose subagent. That is how `deliver` gets the right one; whether it always does is checked in the end-to-end run (#63). A general-purpose subagent in its place would have every tool and no preloaded skill.
 - The translation subagent (#119) and the Codex adapter's definitions (phase 10) follow the same rules when they are added.

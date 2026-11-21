@@ -1,6 +1,6 @@
 ---
 name: reviewer
-description: keyturn's reviewer. Runs keyturn's `review` skill in a context of its own. Use when `deliver` runs its `review` step, or someone asks for a code review of a change.
+description: keyturn's reviewer. Runs keyturn's `review` skill in a context of its own. Start this subagent, not a general-purpose one, when `deliver` runs its `review` step, or someone asks for a code review of a change.
 tools: Read, Grep, Glob, Edit, Write, Bash
 model: opus
 skills:

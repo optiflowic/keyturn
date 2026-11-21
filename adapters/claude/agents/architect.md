@@ -1,6 +1,6 @@
 ---
 name: architect
-description: keyturn's architect. Runs keyturn's `design` skill in a context of its own. Use when `deliver` runs its `design` step, or someone asks for a design, or to record the client's answer to a decision card or the design summary.
+description: keyturn's architect. Runs keyturn's `design` skill in a context of its own. Start this subagent, not a general-purpose one, when `deliver` runs its `design` step, or someone asks for a design, or to record the client's answer to a decision card or the design summary.
 tools: Read, Grep, Glob, Edit, Write, Bash, Agent, Skill
 model: opus
 skills:

@@ -1,6 +1,6 @@
 ---
 name: pm
-description: keyturn's PM. Runs keyturn's `spec` skill in a context of its own. Use when `deliver` runs its `spec` step, or someone asks for requirements, a new version of them, or to record the client's answer to them.
+description: keyturn's PM. Runs keyturn's `spec` skill in a context of its own. Start this subagent, not a general-purpose one, when `deliver` runs its `spec` step, or someone asks for requirements, a new version of them, or to record the client's answer to them.
 tools: Read, Grep, Glob, Edit, Write, Bash, Agent, Skill
 model: opus
 skills:

@@ -1,6 +1,6 @@
 ---
 name: qa
-description: keyturn's QA. Runs keyturn's `qa` skill in a context of its own. Use when `deliver` runs its `qa` step, or someone asks for tests written from the requirements.
+description: keyturn's QA. Runs keyturn's `qa` skill in a context of its own. Start this subagent, not a general-purpose one, when `deliver` runs its `qa` step, or someone asks for tests written from the requirements.
 tools: Read, Grep, Glob, Edit, Write, Bash
 model: sonnet
 skills:

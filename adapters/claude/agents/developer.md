@@ -1,6 +1,6 @@
 ---
 name: developer
-description: keyturn's developer. Runs keyturn's `implement` skill in a context of its own. Use when `deliver` runs its `implement` step, or someone asks to implement an approved design.
+description: keyturn's developer. Runs keyturn's `implement` skill in a context of its own. Start this subagent, not a general-purpose one, when `deliver` runs its `implement` step, or someone asks to implement an approved design.
 tools: Read, Grep, Glob, Edit, Write, Bash
 model: sonnet
 skills:

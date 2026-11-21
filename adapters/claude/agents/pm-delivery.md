@@ -1,6 +1,6 @@
 ---
 name: pm-delivery
-description: keyturn's PM, for the last step of deliver. Writes the client's acceptance guide and delivery report from the committed records only, in a context of its own. Use when `deliver` runs its last step (ADR 0033 in keyturn's docs/adr/).
+description: keyturn's PM, for the last step of deliver. Writes the client's acceptance guide and delivery report from the committed records only, in a context of its own. Start this subagent, not a general-purpose one, when `deliver` runs its last step (ADR 0033 in keyturn's docs/adr/).
 tools: Read, Grep, Glob, Edit, Write, Bash
 model: opus
 ---

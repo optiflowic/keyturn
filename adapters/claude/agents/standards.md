@@ -1,6 +1,6 @@
 ---
 name: standards
-description: keyturn's standards role. Runs keyturn's `conventions` skill in a context of its own. Use when `deliver` runs its `conventions` step, or someone asks for a project's coding conventions and tool rules.
+description: keyturn's standards role. Runs keyturn's `conventions` skill in a context of its own. Start this subagent, not a general-purpose one, when `deliver` runs its `conventions` step, or someone asks for a project's coding conventions and tool rules.
 tools: Read, Grep, Glob, Edit, Write, Bash
 model: sonnet
 skills:

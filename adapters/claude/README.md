@@ -19,17 +19,17 @@ The parts of keyturn that only Claude Code uses. Everything shared (skills, temp
 
 Each one preloads its skill (as `keyturn:<skill>`; a bare name can load another skill or command of the same name) and gets only `Read`, `Grep`, `Glob`, `Edit`, `Write`, and `Bash`; `pm` and `architect` also get `Skill` and `Agent`, for the `localize` skill's translations. No web access, no MCP tools. Why, and what that does not limit, is in [ADR 0035](../../docs/adr/0035-subagent-tools-and-models.md).
 
-- Start them as subagents (the `deliver` skill does), not as the main session with `claude --agent`: started that way, the skill is not preloaded.
+- `deliver` does not name them: it starts each role in a context of its own, and Claude Code picks the subagent by its description, which names the step of `deliver` it is for. Start them as subagents, not as the main session with `claude --agent`: started that way, the skill is not preloaded.
 - To run a role on another model, pass the model when the subagent is started; the definitions set the defaults.
 - Claude Code ignores `hooks`, `mcpServers`, and `permissionMode` in a plugin's subagents. The plugin's hooks (the usage limits) and your permission rules still apply inside them.
 
 ## Permission settings
 
-During the MVP, agents run without a sandbox ("4. The environment limits the damage" in [`docs/design/guardrails.md`](../../docs/design/guardrails.md#4-the-environment-limits-the-damage)). [`permission-settings.json`](permission-settings.json) holds the recommended rules: they deny every `git push`, and the plain forms of commands that discard work for good (a recursive `rm`, `find ... -delete`, `git reset --hard`, `git clean` of more than a named path, `git checkout .`, `git restore .`, deleting branches and refs, rewriting history, dropping stashes), `sudo`, `gh repo delete`, and `gh pr merge` ([ADR 0036](../../docs/adr/0036-minimal-permission-rules.md)).
+During the MVP, agents run without a sandbox ("4. The environment limits the damage" in [`docs/design/guardrails.md`](../../docs/design/guardrails.md#4-the-environment-limits-the-damage)). [`permission-settings.json`](permission-settings.json) holds the recommended rules: they deny `git push` as it is usually written, and the plain forms of commands that discard work for good (a recursive `rm`, `find ... -delete`, `git reset --hard`, `git clean` of more than a named path, `git checkout .`, `git restore .`, deleting branches and refs, `filter-branch` and `filter-repo`, dropping stashes), `sudo`, `gh repo delete`, and `gh pr merge` ([ADR 0036](../../docs/adr/0036-minimal-permission-rules.md)).
 
 - Add its `permissions.deny` list to `.claude/settings.local.json` in each project keyturn works on (not committed), or to your user settings (`~/.claude/settings.json`) to cover every project. If the file already has a `deny` list, add these to it. Deny rules apply in every permission mode, auto mode included, and inside subagents.
 - Push the task branch, open its pull request, and merge it from a terminal of your own: no step pushes during the MVP.
-- The rules match the command as written. A command written another way (`/usr/bin/git push`, `bash -c '...'`), a script that does the same, or a deletion through the file tools is not stopped: they are a guardrail, not a sandbox. Protect the default branch on the Git host (branch protection) so that a push to it is refused for certain.
+- The rules match the command as written, and list the usual forms only. A command written another way (`/usr/bin/git push`, `git -C . push`, `rm -rv`, `git clean -f -d`, `bash -c '...'`), a script that does the same, or a deletion through the file tools is not stopped: they are a guardrail, not a sandbox. Protect the default branch on the Git host (branch protection) so that a push to it is refused for certain.
 
 ## Usage limits
 
