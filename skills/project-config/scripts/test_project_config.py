@@ -83,6 +83,21 @@ class ProjectConfigTest(unittest.TestCase):
                    b'{"path": "api", "profile": "go"}, {"path": "api/web", "profile": "react-spa"}]}')
         self.assert_problems('parts: "api" and "api/web": a folder belongs to one part only')
 
+    def test_rework_limit_is_optional_and_checked_when_set(self):
+        self.write(b'{"client_language": "ja", "english_only": false, "rework_limit": 0}')
+        self.assertEqual(self.run_script("get", "rework_limit").stdout, "0\n")
+        self.write(b'{"client_language": "ja", "english_only": false, "rework_limit": 10}')
+        self.assertEqual(self.run_script("check").stdout, "ok\n")
+        self.write(b'{"client_language": "ja", "english_only": false}')
+        result = self.run_script("get", "rework_limit")
+        self.assertEqual((result.returncode, result.stderr), (1, "error: rework_limit: not set\n"))
+
+    def test_rework_limit_must_be_a_whole_number_from_0_to_10(self):
+        for value in (b"11", b"-1", b"2.5", b'"3"', b"true", b"null"):
+            with self.subTest(value=value):
+                self.write(b'{"client_language": "ja", "english_only": false, "rework_limit": ' + value + b"}")
+                self.assert_problems(f"rework_limit: must be a whole number from 0 to 10, not {value.decode()}")
+
     def test_get_prints_one_setting(self):
         self.write(VALID)
         self.assertEqual(self.run_script("get", "client_language").stdout, "ja\n")

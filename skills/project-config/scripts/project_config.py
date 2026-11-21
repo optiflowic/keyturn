@@ -26,9 +26,11 @@ CONFIG_PATH = Path("keyturn") / "config.json"
 LANG_RE = re.compile(r"[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*")
 
 # Every setting, in the order problems are reported. Add a setting here, and to the tests, in the pull request that uses it.
-SETTINGS = ("client_language", "english_only", "parts")
-# Settings a configuration may leave out. Only what reads them needs them: the gate stops without "parts" (ADR 0028).
-OPTIONAL = ("parts",)
+SETTINGS = ("client_language", "english_only", "parts", "rework_limit")
+# Settings a configuration may leave out. Only what reads them needs them: the gate stops without "parts" (ADR 0028),
+# and deliver uses 3 rounds without "rework_limit" (ADR 0030).
+OPTIONAL = ("parts", "rework_limit")
+MAX_REWORK_LIMIT = 10
 PROFILE_RE = re.compile(r"[a-z0-9][a-z0-9-]*")
 
 
@@ -57,6 +59,10 @@ def setting_problems(name: str, value: object) -> list[str]:
             return [f"english_only: must be true or false, not {json.dumps(value)}"]
     elif name == "parts":
         return parts_problems(value)
+    elif name == "rework_limit":
+        # bool is a subclass of int in Python, so true and false are refused explicitly.
+        if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= MAX_REWORK_LIMIT:
+            return [f"rework_limit: must be a whole number from 0 to {MAX_REWORK_LIMIT}, not {json.dumps(value)}"]
     return []
 
 
