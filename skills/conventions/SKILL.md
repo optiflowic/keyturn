@@ -18,7 +18,7 @@ Make the project's coding conventions checkable. Everything a tool can check bec
 ## Inputs
 
 - `keyturn/internal/design.md`: the stack, the parts and their locations, the libraries and their kinds, the areas the work may change, and QA's test folders ("QA's tests").
-- The stack profile the design names, in keyturn's `profiles/<profile>/`, if it exists: its `README.md` names its tools, where their rules go, and the config files it protects. Write every config and rule file only under a name it protects: a `conventions` commit that changes any other file stops the gate. A stack without a profile: see "When inputs are missing".
+- The stack profile the design names, in keyturn's `profiles/<profile>/`, if it exists: its `README.md` names its tools, where their rules go, and the config files it protects. Write every config and rule file only under a name it protects: a `conventions` commit that changes any other file stops the gate, except a `.gitignore` (step 4). A stack without a profile: see "When inputs are missing".
 - `keyturn/internal/threat-model.md`, if it exists: mitigations that a lint or static-analysis rule verifies.
 - `keyturn/internal/adr/`: accepted decisions to follow.
 - `keyturn/internal/conventions.md` and the tool configs it lists, if they exist (for a change).
@@ -28,7 +28,7 @@ Make the project's coding conventions checkable. Everything a tool can check bec
 ## Outputs
 
 - `keyturn/internal/conventions.md`, in English, committed.
-- The tool configs it lists, in the project, committed in the same commit.
+- The tool configs it lists, and the `.gitignore` files of step 4, in the project, committed in the same commit.
 - For a change: an ADR in `keyturn/internal/adr/`, committed with the change.
 
 ## Procedure
@@ -69,13 +69,14 @@ Use a profile tool or an other tool only when the design's "Libraries and extern
 
 ### 4. Write the tool rules
 
-Put each config where its tool finds it by default, at the root of the part it checks (for example, `api/.golangci.yml` and `web/eslint.config.js`). If that folder is inside the design's "Areas the work may change", put the config in the nearest folder above it that is not (often the repository root), and point the tool to it if it does not find it there by default. Never put a config, a rule file, or `conventions.md` inside QA's test folders (the design's "QA's tests", ADR 0017 in keyturn's `docs/adr/`) or inside the design's "Areas the work may change": the developer or QA could change it there. Cover:
+Put each config where its tool finds it by default, at the root of the part it checks (for example, `api/.golangci.yml` and `web/eslint.config.js`). If that folder is inside the design's "Areas the work may change", put the config in the nearest folder above it that is not (often the repository root), and point the tool to it if it does not find it there by default. When the profile's `README.md` says its configs live in the part's folder (as `react-spa`'s do), they go there only: if that folder is inside the areas, stop and report it to the architect. Never put a config, a rule file, or `conventions.md` inside QA's test folders (the design's "QA's tests", ADR 0017 in keyturn's `docs/adr/`) or inside the design's "Areas the work may change": the developer or QA could change it there. Cover:
 
 - **Formatting**: the formatter's output is the only accepted layout.
 - **Correctness**: the linter's recommended rule set, including unused code and unchecked errors.
 - **Readability limits** ("Readable code is mandatory" in `docs/design/principles.md`): cyclomatic complexity, function length, and nesting depth. Without a profile, start from complexity 10, 60 lines per function, and nesting depth 4, and list them as assumed.
 - **Boundaries between parts**: every design statement about what a part may use, as an import rule (for example, the HTTP handlers may not import the storage package).
 - **Forbidden patterns**: every pattern the threat model or the design forbids (for example, rendering text as HTML).
+- **What Git ignores**: the `.gitignore` entries the profile's `README.md` names (for `react-spa`, `node_modules/` and `dist/`), and the project's other build output, in a `.gitignore` in the part's folder (ADR 0039 in keyturn's `docs/adr/`). Ignore nothing else: some tools skip the files Git ignores. The developer cannot change it, so a new entry is a change to the conventions.
 
 Every rule fails the check; a warning is not a rule. The formatter and the linter check QA's test folders like any other code. Exclude only generated code and build output, and list each exclusion in "What it enforces".
 
@@ -97,13 +98,13 @@ Before committing, check that:
 - every tool under "Tool rules" has its kind in "Tool kind", and is a toolchain tool, a gate scanner that is not in the project's dependencies, or a profile tool or other tool that the design lists with that kind and a passing check;
 - every file under "Tool rules" exists, and contains every rule its row names;
 - no file under "Tool rules", and not `conventions.md`, is in the design's "Areas the work may change" or "QA's tests", directly or through a glob. If one is, stop and report it to the architect: the developer or QA could change it;
-- no exclusion skips QA's test folders;
+- no exclusion skips QA's test folders, and every `.gitignore` entry the profile names is there, and no entry ignores source code or QA's tests;
 - each tool that is installed loads its config without errors. Run it once on the project; for a tool that is not installed, say so in your report. Report any code that already breaks a rule, with its location, for the developer to fix;
 - every checklist item has a reason no tool can check it, and every limit chosen without a profile is under "Assumed defaults".
 
 ### 7. Commit
 
-Commit `conventions.md` and the tool configs together, on their own commit, and report: the tools chosen, the defaults assumed, the tools waiting for the design (with their kind), and any code that breaks a rule.
+Commit `conventions.md`, the tool configs, and the `.gitignore` files together, on their own commit, and report: the tools chosen, the defaults assumed, the tools waiting for the design (with their kind), and any code that breaks a rule.
 
 ### Changing conventions
 

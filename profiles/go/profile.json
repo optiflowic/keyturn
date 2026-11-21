@@ -15,6 +15,7 @@
     {"name": "lint", "run": ["sh", "-c", "top=$(cd \"$(git rev-parse --show-toplevel)\" && pwd -P) || exit 1; dir=$(pwd -P); config=; while [ -z \"$config\" ]; do for name in .golangci.yml .golangci.yaml .golangci.toml .golangci.json; do if [ -f \"$dir/$name\" ]; then config=$dir/$name; break; fi; done; if [ -n \"$config\" ] || [ \"$dir\" = \"$top\" ] || [ \"$dir\" = / ]; then break; fi; dir=$(dirname \"$dir\"); done; if [ -n \"$config\" ]; then set -- --config \"$config\"; else set -- --no-config; fi; exec env GOWORK=off GOFLAGS=-mod=readonly golangci-lint run \"$@\" ./..."]}
   ],
   "count_tests": ["sh", "-c", "out=$(GOWORK=off GOFLAGS=-mod=readonly go test -list . ./... 2>&1) || { printf '%s\\n' \"$out\"; exit 1; }; printf '%s\\n' \"$out\" | grep -cE '^(Test|Fuzz|Example)[^[:space:]]*$' || true"],
+  "versions": ["sh", "-c", "env GOWORK=off go version; golangci-lint --version"],
   "source_files": ["*.go"],
   "suppressions": [
     "//\\s*nolint\\b",

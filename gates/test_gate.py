@@ -21,6 +21,7 @@ PROFILE = {
     "checks": [{"name": "build", "run": [sys.executable, "-c",
                                          "import pathlib, sys; sys.exit(1 if pathlib.Path('BROKEN').exists() else 0)"]}],
     "count_tests": [sys.executable, "-c", "import pathlib; print(len(list(pathlib.Path('.').rglob('test_*.txt'))))"],
+    "versions": [sys.executable, "-c", "print('fake 1.0'); print('helper 2.3')"],
     "source_files": ["*.py"],
     "suppressions": [r"#\s*noqa"],
     "protected": [".lintrc"],
@@ -115,6 +116,20 @@ class GateTest(unittest.TestCase):
         record = json.loads(log.read_text(encoding="utf-8"))
         self.assertTrue(record["passed"])
         self.assertEqual([c["check"] for c in record["checks"]], ["protected-paths", "suppressions", "test-count", "build"])
+        self.assertEqual(record["versions"], [{"part": "app", "profile": "fake", "versions": ["fake 1.0", "helper 2.3"]}])
+
+    def test_the_tool_versions_are_printed(self):
+        self.commit("nothing")
+        result = self.gate()
+        self.assertIn("VERSIONS [app]: fake 1.0; helper 2.3", result.stdout)
+        self.assertTrue(result.stdout.splitlines()[-1].startswith("gate: passed"))
+
+    def test_versions_that_cannot_be_read_are_recorded_and_do_not_fail_the_gate(self):
+        self.write_profile(dict(PROFILE, versions=[sys.executable, "-c", "import sys; print('no such tool'); sys.exit(3)"]))
+        self.commit("nothing")
+        result = self.gate()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("VERSIONS [app]: not read (exit 3): no such tool", result.stdout)
 
     # Protected paths
 
@@ -254,6 +269,41 @@ class GateTest(unittest.TestCase):
         self.assertIn("names ADR-0001, not accepted at the base", result.stdout)
         self.assertIn("keyturn/internal/adr/0001-allow-one-noqa.md", result.stdout)  # and the ADR is a protected path
 
+    def test_an_adr_that_allows_a_suppression_in_a_folder_passes_it_there_without_its_number(self):
+        self.put("keyturn/internal/adr/0001-generated-code.md",
+                 "# 0001. Generated code\n\n- Status: accepted\n- Allows in app/src/gen/**: # noqa: generated\n")
+        self.base = self.commit("ADR")
+        self.put("app/src/gen/models.py", "import os  # noqa: generated\n")
+        self.commit("generated")
+        self.assertEqual(self.gate().returncode, 0)
+
+    def test_the_backticks_around_what_an_adr_allows_are_not_part_of_it(self):
+        self.put("keyturn/internal/adr/0001-allow-one-noqa.md", ADR.replace("- Allows: # noqa: F401", "- Allows: `# noqa: F401`"))
+        self.base = self.commit("ADR")
+        self.put("app/src/main.py", "print('hello')\nimport os  # noqa: F401  ADR-0001\n")
+        self.commit("suppress")
+        self.assertEqual(self.gate().returncode, 0)
+
+    def test_an_adr_that_allows_a_suppression_in_a_folder_approves_nothing_outside_it(self):
+        self.put("keyturn/internal/adr/0001-generated-code.md",
+                 "# 0001. Generated code\n\n- Status: accepted\n- Allows in `app/src/gen/**`: # noqa: generated\n")
+        self.base = self.commit("ADR")
+        self.put("app/src/main.py", "import os  # noqa: generated\n")
+        self.put("app/src/gen/models.py", "import os  # noqa\n")
+        self.commit("outside the folder, and another suppression inside it")
+        result = self.gate()
+        self.assert_fails(result, "FAIL suppressions [app]:")
+        self.assertIn("app/src/main.py:1:", result.stdout)
+        self.assertIn("app/src/gen/models.py:1:", result.stdout)
+
+    def test_a_folder_allowance_in_an_adr_that_is_not_accepted_approves_nothing(self):
+        self.put("keyturn/internal/adr/0001-generated-code.md",
+                 "# 0001. Generated code\n\n- Status: proposed\n- Allows in app/src/gen/**: # noqa: generated\n")
+        self.base = self.commit("ADR")
+        self.put("app/src/gen/models.py", "import os  # noqa: generated\n")
+        self.commit("generated")
+        self.assert_fails(self.gate(), "FAIL suppressions [app]: app/src/gen/models.py:1:")
+
     def test_marking_a_file_as_binary_does_not_hide_a_suppression(self):
         self.put(".gitattributes", "*.py -diff\n")
         self.base = self.commit("attributes")
@@ -339,6 +389,16 @@ class GateTest(unittest.TestCase):
         self.commit("developer")
         result = self.gate(*self.others(roles))
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)  # the ADR is read at the design's commit
+
+    def test_a_conventions_commit_may_change_a_gitignore_and_the_developer_s_may_not(self):
+        roles = self.start_before_the_documents()
+        self.put("app/.gitignore", "node_modules/\n")
+        named = [*self.others(roles), "--others", f"conventions:{self.commit('conventions: what Git ignores')}"]
+        result = self.gate(*named)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.put("app/.gitignore", "node_modules/\nsrc/\n")
+        self.commit("developer")
+        self.assert_fails(self.gate(*named), "FAIL protected-paths: app/.gitignore (matches **/.gitignore)")
 
     def test_qa_s_folders_are_read_at_the_newest_document_commit(self):
         roles = self.start_before_the_documents()

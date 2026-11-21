@@ -12,6 +12,8 @@ Checks, in this order, each reported as one PASS or FAIL line:
   <profile check>  each check its profile names (build, test, lint, ...), run in the part's folder at the head,
                    after the profile's setup commands (for example, installing dependencies)
 
+Then one VERSIONS line per part: the versions of the tools its checks ran, as its profile reads them (recorded, never judged).
+
 Exit codes: 0 every check passed; 1 at least one check failed; 2 the gate could not run (setup error).
 Needs Python 3.9 or later and Git. Uses only the standard library.
 """
@@ -49,8 +51,9 @@ FIXED_PROTECTED = (
 # The developer's own document, under a protected folder.
 NOT_PROTECTED = ("keyturn/internal/handoff.md",)
 
-# What a commit named as another role's may change (ADR 0029, ADR 0032, and ADR 0033 for "deliver": the state file, and,
-# in its last step, the gate's log, the acceptance guide, and the delivery report), by the step names of the task state file. QA's
+# What a commit named as another role's may change (ADR 0029, ADR 0032, ADR 0033 for "deliver": the state file, and,
+# in its last step, the gate's log, the acceptance guide, and the delivery report, and ADR 0039 for the `.gitignore` files
+# "conventions" writes), by the step names of the task state file. QA's
 # folders from the design are added for "qa", each profile's linter configs for "conventions", and a "security-review"
 # commit may change only the "Status" lines of the threat model.
 THREAT_MODEL = "keyturn/internal/threat-model.md"
@@ -58,7 +61,7 @@ ROLE_PATHS = {
     "spec": ["keyturn/client/requirements.md", "keyturn/client/approvals.md", ".gitattributes", CONFIG_PATH],
     "design": [DESIGN_PATH, THREAT_MODEL, f"{ADR_DIR}/**", "keyturn/client/design-summary.md",
                "keyturn/client/decision-card-*.md"],
-    "conventions": ["keyturn/internal/conventions.md", f"{ADR_DIR}/**", CONFIG_PATH],
+    "conventions": ["keyturn/internal/conventions.md", f"{ADR_DIR}/**", CONFIG_PATH, "**/.gitignore"],
     "qa": ["keyturn/internal/test-report.md"],
     "security-review": ["keyturn/internal/security-review.md", THREAT_MODEL],
     "review": ["keyturn/internal/review.md"],
@@ -66,7 +69,7 @@ ROLE_PATHS = {
                 "keyturn/client/delivery-report.md"],
 }
 
-PROFILE_FIELDS = {"name", "tools", "setup", "checks", "count_tests", "source_files", "suppressions", "protected"}
+PROFILE_FIELDS = {"name", "tools", "setup", "checks", "count_tests", "versions", "source_files", "suppressions", "protected"}
 NAME_RE = re.compile(r"[a-z0-9][a-z0-9-]*")
 ADR_REF_RE = re.compile(r"\bADR-(\d{4})\b")
 EXIT_PASS, EXIT_FAIL, EXIT_SETUP = 0, 1, 2
@@ -295,8 +298,9 @@ def profile_problems(name: str, profile: object) -> list[str]:
         problems.append(f"{where}: checks: names must be unique")
     if not isinstance(profile["setup"], list) or not all(is_command(command) for command in profile["setup"]):
         problems.append(f"{where}: setup: must be a list of commands, each a non-empty list of words (it may be empty)")
-    if not is_command(profile["count_tests"]):
-        problems.append(f"{where}: count_tests: must be a command, as a non-empty list of words")
+    for key in ("count_tests", "versions"):
+        if not is_command(profile[key]):
+            problems.append(f"{where}: {key}: must be a command, as a non-empty list of words")
     for key in ("source_files", "suppressions", "protected"):
         value = profile[key]
         if not isinstance(value, list) or not all(isinstance(item, str) and item for item in value):
@@ -386,14 +390,24 @@ def check_protected(paths: list[str], patterns: list[str]) -> Result:
     return Result("protected-paths", None, not hits, hits)
 
 
-def accepted_adrs(root: Path, base: str) -> dict[str, list[str]]:
-    """What each of the project's ADRs accepted at a commit allows, by number: the base, or the newest commit named as a
-    document role's (ADR 0032), so that no ADR the developer's commits add can approve anything.
+@dataclass
+class Allowed:
+    """What the project's accepted ADRs allow: by number, the text a line that names the ADR may contain ("- Allows: <text>"),
+    and, for every line in a file matching a path pattern, the text it may contain without naming the ADR
+    ("- Allows in <pattern>: <text>", ADR 0037), as (pattern, text, ADR number)."""
+    named: dict[str, list[str]] = field(default_factory=dict)
+    placed: list[tuple[str, str, str]] = field(default_factory=list)
 
-    Only the lines before the first "## " heading count: "- Status: accepted", and one "- Allows: <text>" line per suppression it allows.
+
+def accepted_adrs(root: Path, base: str) -> Allowed:
+    """What the project's ADRs accepted at a commit allow: the base, or the newest commit named as a document role's
+    (ADR 0032), so that no ADR the developer's commits add can approve anything.
+
+    Only the lines before the first "## " heading count: "- Status: accepted", and one "- Allows: <text>" or
+    "- Allows in <path pattern>: <text>" line per suppression it allows.
     """
     listing = git(root, "ls-tree", "-z", "--name-only", f"{base}:{ADR_DIR}") if file_at(root, base, ADR_DIR) is not None else ""
-    allows: dict[str, list[str]] = {}
+    allowed = Allowed()
     for name in filter(None, listing.split("\0")):
         match = re.fullmatch(r"(\d{4})-.*\.md", name)
         text = file_at(root, base, f"{ADR_DIR}/{name}") if match else None
@@ -401,8 +415,18 @@ def accepted_adrs(root: Path, base: str) -> dict[str, list[str]]:
             continue
         header = re.split(r"^## ", text, maxsplit=1, flags=re.M)[0]
         if re.search(r"^- Status: accepted\s*$", header, re.M):
-            allows[match.group(1)] = [value.strip() for value in re.findall(r"^- Allows: (.+)$", header, re.M) if value.strip()]
-    return allows
+            number = match.group(1)
+            allowed.named[number] = [value for value in map(allowed_text, re.findall(r"^- Allows: (.+)$", header, re.M)) if value]
+            for pattern, value in re.findall(r"^- Allows in `?([^`:\s]+)`?: (.+)$", header, re.M):
+                if allowed_text(value):
+                    allowed.placed.append((pattern, allowed_text(value), number))
+    return allowed
+
+
+def allowed_text(value: str) -> str:
+    """An allowed suppression as the ADR writes it, without the backticks around it (`//nolint:gosec`)."""
+    value = value.strip()
+    return value[1:-1].strip() if len(value) > 2 and value.startswith("`") and value.endswith("`") else value
 
 
 def check_suppressions(root: Path, base: str, head: str, parts: list[Part], others: dict[str, str],
@@ -427,11 +451,13 @@ def check_suppressions(root: Path, base: str, head: str, parts: list[Part], othe
                 continue
             if any(pattern.search(text) for pattern in patterns):
                 named = ADR_REF_RE.findall(text)
-                # Approved only by an ADR that was accepted at the base and allows what this line writes.
-                if not any(allowed in text for adr in named for allowed in approved.get(adr, [])):
+                # Approved only by an ADR that was accepted at the base and allows what this line writes: one the line
+                # names, or one that allows it in this file's folder.
+                if not any(allowed in text for adr in named for allowed in approved.named.get(adr, [])) and not any(
+                        allowed in text and matches(path, where) for where, allowed, _ in approved.placed):
                     if not named:
                         reason = "names no accepted ADR"
-                    elif not any(adr in approved for adr in named):
+                    elif not any(adr in approved.named for adr in named):
                         reason = f"names ADR-{', ADR-'.join(named)}, not accepted at the base"
                     else:
                         reason = f"ADR-{', ADR-'.join(named)} has no \"- Allows:\" line that this line contains"
@@ -531,6 +557,23 @@ def check_profile(trees: Trees, parts: list[Part]) -> list[Result]:
     return results
 
 
+def read_versions(trees: Trees, parts: list[Part]) -> list[dict]:
+    """The versions of the tools each part's checks ran, from its profile's `versions` command at the head (ADR 0037).
+    Only recorded: a command that fails says so, and never fails the gate."""
+    records = []
+    for part in parts:
+        problem = trees.prepare("head", part)
+        if problem:
+            lines = [f"not read: {problem}"]
+        else:
+            code, output = run(part.profile["versions"], trees.paths["head"] / part.path, trees.timeout)
+            lines = [line.strip() for line in output.splitlines() if line.strip()]
+            if code != 0 or not lines:
+                lines = [f"not read (exit {code}): {'; '.join(lines) or 'no output'}"]
+        records.append({"part": part.path, "profile": part.profile["name"], "versions": lines})
+    return records
+
+
 def parse_others(root: Path, values: list[str]) -> dict[str, str]:
     """`--others ROLE:COMMIT` values as {commit: role}."""
     others: dict[str, str] = {}
@@ -598,7 +641,7 @@ def check_others(root: Path, base: str, head: str, others: dict[str, str], qa: l
 
 
 def gate(base_rev: str, head_rev: str, profiles_dir: Path, timeout: float,
-         others_values: list[str]) -> tuple[str, str, list[Result]]:
+         others_values: list[str]) -> tuple[str, str, list[Result], list[dict]]:
     root = repo_root()
     base, head = commit_of(root, base_rev), commit_of(root, head_rev)
     if subprocess.run(["git", "-C", str(root), "merge-base", "--is-ancestor", base, head], env=ENV).returncode != 0:
@@ -617,9 +660,10 @@ def gate(base_rev: str, head_rev: str, profiles_dir: Path, timeout: float,
             results += check_suppressions(root, base, head, parts, others, documents)
             results += check_test_count(trees, parts)
             results += check_profile(trees, parts)
+            versions = read_versions(trees, parts)
         finally:
             trees.remove()
-    return base, head, results
+    return base, head, results, versions
 
 
 def main() -> int:
@@ -635,7 +679,7 @@ def main() -> int:
     args = parser.parse_args()
 
     try:
-        base, head, results = gate(args.base, args.head, args.profiles, args.timeout_minutes * 60, args.others)
+        base, head, results, versions = gate(args.base, args.head, args.profiles, args.timeout_minutes * 60, args.others)
     except SetupError as error:
         for problem in error.problems:
             print(f"setup error: {problem}", file=sys.stderr)
@@ -646,10 +690,13 @@ def main() -> int:
     passed = all(result.passed for result in results)
     for result in results:
         print(result.line())
+    for record in versions:
+        print(f"VERSIONS [{record['part']}]: {'; '.join(record['versions'])}")
     print(f"gate: {'passed' if passed else 'failed'} ({base[:12]}..{head[:12]})")
     if args.log is not None:
         record = {"base": base, "head": head, "passed": passed,
-                  "checks": [{"check": r.check, "part": r.part, "passed": r.passed, "details": r.details} for r in results]}
+                  "checks": [{"check": r.check, "part": r.part, "passed": r.passed, "details": r.details} for r in results],
+                  "versions": versions}
         try:
             args.log.write_text(json.dumps(record, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         except OSError as error:

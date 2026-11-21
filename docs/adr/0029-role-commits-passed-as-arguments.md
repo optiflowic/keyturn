@@ -1,6 +1,6 @@
 # 0029. `deliver` names each role's commits to the gate and the reviews as arguments; the task state file only records them
 
-- Status: accepted; the gate's range starting at the head before the first `implement` step superseded by [0032](0032-gate-base-is-where-the-task-branch-left.md) (it starts where the task branch left the default branch, and the document roles' commits are named too), and `resume` listing its state commit only past that head superseded by the same ADR (it always lists it); what `deliver` may write superseded by [0033](0033-delivery-documents-from-the-records.md) (also the gate's log, the acceptance guide, and the delivery report)
+- Status: accepted; the gate's range starting at the head before the first `implement` step superseded by [0032](0032-gate-base-is-where-the-task-branch-left.md) (it starts where the task branch left the default branch, and the document roles' commits are named too), and `resume` listing its state commit only past that head superseded by the same ADR (it always lists it); what `deliver` may write superseded by [0033](0033-delivery-documents-from-the-records.md) (also the gate's log, the acceptance guide, and the delivery report); what `conventions` may write superseded by [0039](0039-conventions-writes-gitignore.md) (also `.gitignore` files)
 - Date: 2026-11-21
 
 ## Context
