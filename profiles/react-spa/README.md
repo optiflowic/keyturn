@@ -10,11 +10,12 @@ In the part's folder, at the head of the range. First the setup, then the checks
 
 | Step | Command | Fails when |
 |---|---|---|
-| setup | `npm ci --ignore-scripts` | the lock file is missing or does not match `package.json`; no package's install scripts run |
-| `packages` | reads `package-lock.json` | a package does not come from the npm registry under its own name with an integrity hash: a package from a local folder, a link, a Git repository, another host, or an alias (`"vitest": "npm:other@1"`), any of which could replace a tool the checks run |
+| setup | `rm -rf node_modules`, then `npm ci --ignore-scripts` when there is a `package.json` | the lock file is missing or does not match `package.json`; no package's install scripts run, and nothing committed under `node_modules/` is used |
+| `files` | `git ls-files` | a committed file is inside a `node_modules` folder, or a `.gitignore` names it (some checks skip such files) |
+| `packages` | reads `package-lock.json`, and `node_modules/.package-lock.json` (what `npm ci` installed) | there is no `package.json`, or there is an `npm-shrinkwrap.json` (which npm would install from instead); or a package does not come from the npm registry at exactly `https://registry.npmjs.org/<name>/-/<name>-<version>.tgz` with an integrity hash: a package from a local folder, a link, a Git repository, another host, or an alias (`"vitest": "npm:other@1"`), any of which could replace a tool the checks run |
 | `format` | `prettier --check --no-editorconfig .` | a file is not formatted as Prettier formats it (the files are listed) |
 | `typecheck` | `tsc --build --force` | TypeScript reports an error in a project `tsconfig.json` names |
-| `lint` | `eslint --config <config> .` | a committed JavaScript or TypeScript file gets no ESLint config, or no rule that is on, unless the config ignores it; or ESLint reports an error |
+| `lint` | `eslint --config <config> .` | a committed JavaScript or TypeScript file gets no ESLint config, or no rule that is on, unless the config ignores it; there is an `eslint-suppressions.json` (ESLint's bulk suppressions, which would turn errors off without an ADR); or ESLint reports an error |
 | `test` | `vitest run --config <config> --allowOnly=false --passWithNoTests=false` | a test fails, a test file does not load, a test is marked `.only`, or there are no tests; QA's tests run here too |
 | `build` | `vite build` | the application does not build |
 
@@ -50,7 +51,7 @@ Any other development tool is an other tool: it needs the client's agreement thr
 
 `vite.config.ts` is the developer's: it builds the application, and the design names it under "Areas the work may change" when the work needs it (for example, a development server's proxy). It is not read by the tests.
 
-Every file named under `protected` in `profile.json` may change only in the standards role's commits, wherever it is in the repository: the ESLint configs (`eslint.config.*`, `.eslintrc*`, `.eslintignore`), the Prettier configs (`.prettierrc*`, `prettier.config.*`, `.prettierignore`), `tsconfig*.json` and `jsconfig*.json`, the Vitest files (`vitest.config.*`, `vitest.workspace.*`, `vitest.setup.*`), `.npmrc` (which could point npm at another registry), and Semgrep rule files (`.semgrep.yml`, `.semgrep.yaml`, `.semgrep/`). Every `.gitignore` is protected by the gate itself. The gate does not run Semgrep during the MVP: a rule only Semgrep can express is not enforced yet, and is listed in `conventions.md` as waiting.
+Every file named under `protected` in `profile.json` may change only in the standards role's commits, wherever it is in the repository: the ESLint configs (`eslint.config.*`, `.eslintrc*`, `.eslintignore`), the Prettier configs (`.prettierrc*`, `prettier.config.*`, `.prettierignore`), `tsconfig*.json` and `jsconfig*.json`, the Vitest files (`vitest.config.*`, `vitest.workspace.*`, `vitest.setup.*`), `.npmrc` (which could point npm at another registry), `eslint-suppressions.json`, and Semgrep rule files (`.semgrep.yml`, `.semgrep.yaml`, `.semgrep/`). Every `.gitignore` is protected by the gate itself. The gate does not run Semgrep during the MVP: a rule only Semgrep can express is not enforced yet, and is listed in `conventions.md` as waiting.
 
 ## QA's tests
 
@@ -62,7 +63,7 @@ QA's tests live in `qa/` at the root of the part (for a part `web`, `web/qa/**`)
 
 ## Suppressions
 
-An added line in a JavaScript, TypeScript, CSS, or HTML file fails the `suppressions` check when it has `eslint-disable` (in any form), an inline ESLint config comment (`/* eslint <rule>: off */`, `/* eslint-env */`, `/* global */`, also when `eslint` or `global` starts a later line of the comment), `@ts-ignore`, `@ts-nocheck`, or `@ts-expect-error`, or `prettier-ignore`, unless an accepted ADR allows it (ADR 0028). The line names the ADR (`// eslint-disable-next-line no-console -- ADR-0005`), or the ADR allows it in a folder (`- Allows in web/src/api/generated/**: /* eslint-disable */`, [ADR 0038](../../docs/adr/0038-suppressions-allowed-in-a-folder.md)), which is how generated code that carries such a comment is allowed.
+An added line in a JavaScript, TypeScript, CSS, or HTML file fails the `suppressions` check when it has `eslint-disable` (in any form), an inline ESLint config comment (`/* eslint <rule>: off */`, `/* eslint-env */`, `/* global */`, also when `eslint` or `global` starts a later line of the comment), `@ts-ignore`, `@ts-nocheck`, or `@ts-expect-error`, `prettier-ignore`, or `.fails` (Vitest's `it.fails` and `test.fails`, which pass when the test fails), unless an accepted ADR allows it (ADR 0028). The line names the ADR (`// eslint-disable-next-line no-console -- ADR-0005`), or the ADR allows it in a folder (`- Allows in web/src/api/generated/**: /* eslint-disable */`, [ADR 0038](../../docs/adr/0038-suppressions-allowed-in-a-folder.md)), which is how generated code that carries such a comment is allowed.
 
 ## What this profile does not check
 
