@@ -1,6 +1,6 @@
 # 0039. `conventions` writes the project's `.gitignore` files
 
-- Status: accepted
+- Status: accepted; what a `conventions` commit may change superseded by [0040](0040-profile-tools-at-conventions-versions.md) (also the files a profile installs its tools with)
 - Date: 2026-11-22
 
 ## Context

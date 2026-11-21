@@ -6,7 +6,7 @@ A part with this profile is a folder that holds one npm project in TypeScript: i
 
 ## What the gate runs
 
-In the part's folder, at the head of the range. First the setup, then the checks in this order:
+Before the checks, the gate's `pinned-tools` check compares the profile's tools in `package-lock.json` at the head with the newest commit named as `conventions`' (or, without one, the base), and fails when a version changed, or a tool was added or removed ([ADR 0040](../../docs/adr/0040-profile-tools-at-conventions-versions.md); see "Tools"). Then, in the part's folder, at the head of the range, the setup, then the checks in this order:
 
 | Step | Command | Fails when |
 |---|---|---|
@@ -36,6 +36,8 @@ Install them before the gate runs; it stops with exit code 2 and says how when o
   - linting: `eslint`, `@eslint/js`, `typescript-eslint`, `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh`, `globals`;
   - formatting: `prettier`;
   - tests: `vitest`, `jsdom`, `@testing-library/react`, `@testing-library/dom`, `@testing-library/user-event`, `@testing-library/jest-dom`.
+
+`conventions` installs every profile tool the design lists, at the design's version, in the part's folder (`npm install --save-dev --save-exact --ignore-scripts <tool>@<version> ...`), and commits `package.json` and `package-lock.json` (creating them in a new project). The developer installs the runtime dependencies, and never adds, removes, or changes the version of a profile tool: the `pinned-tools` check fails on any change to the version in the lock file of a profile tool above, or of a package in the `@typescript-eslint/`, `@vitest/`, or `@eslint/` scopes (which an npm `overrides` entry could change without changing the tool's own version), compared with the newest `conventions` commit. A newer version is a change to the conventions.
 
 Any other development tool is an other tool: it needs the client's agreement through the design. That includes a browser test tool (such as Playwright): the gate does not run one. The project template that `npm create vite` makes uses `oxlint` and TypeScript 7; with this profile, use ESLint and TypeScript 6 instead.
 
@@ -70,7 +72,8 @@ An added line in a JavaScript, TypeScript, CSS, or HTML file fails the `suppress
 Each delivery report made with this profile lists these under "What was not verified":
 
 - **Security checks**: no SAST (for example Semgrep rules or ESLint security plugins), no scan of the packages for known vulnerabilities (`npm audit` or OSV), and no secret scanning, until phase 5.
-- **Packages**: the `packages` check makes sure every package comes from the npm registry under its own name, not that it is a version the design lists, or that the design lists it at all; the review reads changes to `package.json`.
+- **Packages**: the `packages` check makes sure every package comes from the npm registry under its own name, and `pinned-tools` keeps the profile's tools where `conventions` put them; neither checks that a runtime dependency is a version the design lists, or that the design lists it at all, and the other indirect dependencies may change; the review reads changes to `package.json`.
+- **Hand-written code in a generated folder**: an ADR that allows a suppression in a generated code's folder ([ADR 0038](../../docs/adr/0038-suppressions-allowed-in-a-folder.md)) allows it on every line there, so code the developer writes by hand in that folder, with the same comment, passes the gate; and the gate does not run the generator to compare its output. The review reads what changed in such a folder.
 - **Tests**: coverage is not checked; a test written with `.each` counts once, so a dropped row is not found; a test replaced with a weaker one under the same name is not found.
 - **Code that runs during the tests and the build**: the tests run the application's code, which can change what the test tools do (for example, by changing `expect`); `vite build` runs `vite.config.ts` and its plugins; the packages' own code runs in every check. The gate does not stop code that changes how the checks run; the review and the security review read it.
 - **Type checking**: `tsc` checks the files `tsconfig.json` reaches. JavaScript files are linted but not type-checked, unless the conventions turn on `checkJs`.

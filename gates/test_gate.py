@@ -22,6 +22,7 @@ PROFILE = {
                                          "import pathlib, sys; sys.exit(1 if pathlib.Path('BROKEN').exists() else 0)"]}],
     "count_tests": [sys.executable, "-c", "import pathlib; print(len(list(pathlib.Path('.').rglob('test_*.txt'))))"],
     "versions": [sys.executable, "-c", "print('fake 1.0'); print('helper 2.3')"],
+    "pinned": None,
     "source_files": ["*.py"],
     "suppressions": [r"#\s*noqa"],
     "protected": [".lintrc"],
@@ -399,6 +400,45 @@ class GateTest(unittest.TestCase):
         self.put("app/.gitignore", "node_modules/\nsrc/\n")
         self.commit("developer")
         self.assert_fails(self.gate(*named), "FAIL protected-paths: app/.gitignore (matches **/.gitignore)")
+
+    def pin(self) -> None:
+        """Give the stand-in profile a lock file, app/tools.lock, whose lines are "<tool> <version>"."""
+        self.write_profile(dict(PROFILE, pinned={"files": ["tools.json", "tools.lock"], "lock": "tools.lock",
+                                                 "read": [sys.executable, "-c", "import sys; print(sys.stdin.read())"]}))
+
+    def test_a_developer_change_to_a_pinned_tool_s_version_fails(self):
+        self.pin()
+        self.put("app/tools.lock", "lint 2.0\ntest 1.0\n")
+        self.base = self.commit("tools")
+        self.put("app/tools.lock", "lint 1.0\ntest 1.0\nother 3.0\n")
+        self.commit("developer: an older linter")
+        result = self.gate()
+        self.assert_fails(result, "FAIL pinned-tools [app]: lint: 2.0 at the base, 1.0 at the head")
+        self.assertIn("other: not installed at the base, 3.0 at the head", result.stdout)
+
+    def test_a_pinned_tool_s_version_set_by_conventions_is_kept_by_the_developer(self):
+        self.pin()
+        roles = self.start_before_the_documents()
+        self.put("app/tools.json", "{}\n")
+        self.put("app/tools.lock", "lint 2.0\n")
+        named = [*self.others(roles), "--others", f"conventions:{self.commit('conventions: the tools')}"]
+        self.put("app/src/main.py", "print('developer')\n")
+        self.commit("developer: code only")
+        result = self.gate(*named)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("PASS pinned-tools [app]: ok", result.stdout)
+        self.put("app/tools.lock", "lint 2.1\n")
+        self.commit("developer: a newer linter")
+        self.assert_fails(self.gate(*named), "FAIL pinned-tools [app]: lint: 2.0 at the conventions commit")
+
+    def test_a_conventions_commit_may_not_change_another_part_file(self):
+        self.pin()
+        roles = self.start_before_the_documents()
+        self.put("app/src/main.py", "print('conventions')\n")
+        named = [*self.others(roles), "--others", f"conventions:{self.commit('conventions: code')}"]
+        result = self.gate(*named)
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("changes app/src/main.py, which a conventions commit may not", result.stderr)
 
     def test_qa_s_folders_are_read_at_the_newest_document_commit(self):
         roles = self.start_before_the_documents()

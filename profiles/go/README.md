@@ -60,6 +60,8 @@ An added line in a `.go` file fails the `suppressions` check when it has `//noli
 
 Each delivery report made with this profile lists these under "What was not verified":
 
+- **Hand-written code in a generated folder**: an ADR that allows the generated-file mark in a folder ([ADR 0038](../../docs/adr/0038-suppressions-allowed-in-a-folder.md)) allows it on every file there, so code the developer writes by hand in that folder, with the same mark, is skipped by `golangci-lint` and passes the gate; and the gate does not run the generator to compare its output. The review reads what changed in such a folder.
+- **The tools' versions**: the gate records the versions of Go and `golangci-lint` it ran, and does not keep them fixed ([ADR 0037](../../docs/adr/0037-gate-records-tool-versions.md)).
 - **Security checks**: no SAST (for example `gosec` or Semgrep rules), no scan of the modules for known vulnerabilities (`govulncheck`), and no secret scanning, until phase 5.
 - **Tests**: subtests (`t.Run`) are not counted, so a dropped subtest is not found; skipped tests (`t.Skip`) and coverage are not checked.
 - **Code that runs during the tests**: `go test` runs the project's own code, including `init` functions and `TestMain` in the developer's packages. The gate does not stop code that changes how the tests run; the review and the security review read it.

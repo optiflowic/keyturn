@@ -18,7 +18,7 @@ Make the project's coding conventions checkable. Everything a tool can check bec
 ## Inputs
 
 - `keyturn/internal/design.md`: the stack, the parts and their locations, the libraries and their kinds, the areas the work may change, and QA's test folders ("QA's tests").
-- The stack profile the design names, in keyturn's `profiles/<profile>/`, if it exists: its `README.md` names its tools, where their rules go, and the config files it protects. Write every config and rule file only under a name it protects: a `conventions` commit that changes any other file stops the gate, except a `.gitignore` (step 4). A stack without a profile: see "When inputs are missing".
+- The stack profile the design names, in keyturn's `profiles/<profile>/`, if it exists: its `README.md` names its tools, where their rules go, and the config files it protects. Write every config and rule file only under a name it protects: a `conventions` commit that changes any other file stops the gate, except a `.gitignore` (step 4) and the files the profile installs its tools with (step 4). A stack without a profile: see "When inputs are missing".
 - `keyturn/internal/threat-model.md`, if it exists: mitigations that a lint or static-analysis rule verifies.
 - `keyturn/internal/adr/`: accepted decisions to follow.
 - `keyturn/internal/conventions.md` and the tool configs it lists, if they exist (for a change).
@@ -28,7 +28,7 @@ Make the project's coding conventions checkable. Everything a tool can check bec
 ## Outputs
 
 - `keyturn/internal/conventions.md`, in English, committed.
-- The tool configs it lists, and the `.gitignore` files of step 4, in the project, committed in the same commit.
+- The tool configs it lists, the `.gitignore` files of step 4, and, when the profile says so, the manifest and lock file its tools are installed with (step 4), in the project, committed in the same commit.
 - For a change: an ADR in `keyturn/internal/adr/`, committed with the change.
 
 ## Procedure
@@ -76,7 +76,8 @@ Put each config where its tool finds it by default, at the root of the part it c
 - **Readability limits** ("Readable code is mandatory" in `docs/design/principles.md`): cyclomatic complexity, function length, and nesting depth. Without a profile, start from complexity 10, 60 lines per function, and nesting depth 4, and list them as assumed.
 - **Boundaries between parts**: every design statement about what a part may use, as an import rule (for example, the HTTP handlers may not import the storage package).
 - **Forbidden patterns**: every pattern the threat model or the design forbids (for example, rendering text as HTML).
-- **What Git ignores**: the `.gitignore` entries the profile's `README.md` names (for `react-spa`, `node_modules/` and `dist/`), and the project's other build output, in a `.gitignore` in the part's folder (ADR 0039 in keyturn's `docs/adr/`). Ignore nothing else: some tools skip the files Git ignores. The developer cannot change it, so a new entry is a change to the conventions.
+- **The profile's tools, installed**: when the profile's `README.md` says the gate keeps its tools at the versions `conventions` installed (as `react-spa`'s does, ADR 0040 in keyturn's `docs/adr/`), install every profile tool the design lists, at exactly the version the design names, in the part's folder, with the command the README gives, and commit the manifest and the lock file it changes (for `react-spa`, `package.json` and `package-lock.json`). Create the manifest if the part has none yet. Install nothing else: the developer installs the runtime dependencies. A later version change is a change to the conventions.
+- **What Git ignores**: the `.gitignore` entries the profile's `README.md` names (for `react-spa`, `node_modules/` and `dist/`), and the project's other build output, in a `.gitignore` in the part's folder (ADR 0039 in keyturn's `docs/adr/`). Ignore nothing else: some tools skip the files Git ignores. The developer cannot change it, so a new entry is a change to the conventions. Then run `git ls-files --cached --ignored --exclude-standard` in the part's folder: a committed file that an entry now ignores (for example build output in `dist/`) fails the gate's `files` check, and you may not remove it, so stop and report each such file to the architect before committing.
 
 Every rule fails the check; a warning is not a rule. The formatter and the linter check QA's test folders like any other code. Exclude only generated code and build output, and list each exclusion in "What it enforces".
 
@@ -98,13 +99,14 @@ Before committing, check that:
 - every tool under "Tool rules" has its kind in "Tool kind", and is a toolchain tool, a gate scanner that is not in the project's dependencies, or a profile tool or other tool that the design lists with that kind and a passing check;
 - every file under "Tool rules" exists, and contains every rule its row names;
 - no file under "Tool rules", and not `conventions.md`, is in the design's "Areas the work may change" or "QA's tests", directly or through a glob. If one is, stop and report it to the architect: the developer or QA could change it;
+- every profile tool the design lists is installed at the design's version, when the profile says `conventions` installs them;
 - no exclusion skips QA's test folders, and every `.gitignore` entry the profile names is there, and no entry ignores source code or QA's tests;
 - each tool that is installed loads its config without errors. Run it once on the project; for a tool that is not installed, say so in your report. Report any code that already breaks a rule, with its location, for the developer to fix;
 - every checklist item has a reason no tool can check it, and every limit chosen without a profile is under "Assumed defaults".
 
 ### 7. Commit
 
-Commit `conventions.md`, the tool configs, and the `.gitignore` files together, on their own commit, and report: the tools chosen, the defaults assumed, the tools waiting for the design (with their kind), and any code that breaks a rule.
+Commit `conventions.md`, the tool configs, the `.gitignore` files, and the installed tools' manifest and lock file together, on their own commit, and report: the tools chosen, the defaults assumed, the tools waiting for the design (with their kind), and any code that breaks a rule.
 
 ### Changing conventions
 

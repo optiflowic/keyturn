@@ -8,6 +8,8 @@ Checks, in this order, each reported as one PASS or FAIL line:
   protected-paths  no change in the range to a protected path ("Guardrails" 1)
   suppressions     no new suppression comment, unless the same line names an accepted ADR that existed at the base
                    (or at the newest spec, design, or conventions commit named with --others)
+  pinned-tools     the profile's tools in a part's lock file are at the versions of the newest conventions commit named with
+                   --others, or of the base (profiles with "pinned" only)
   test-count       no part has fewer tests at the head than at the base
   <profile check>  each check its profile names (build, test, lint, ...), run in the part's folder at the head,
                    after the profile's setup commands (for example, installing dependencies)
@@ -69,7 +71,7 @@ ROLE_PATHS = {
                 "keyturn/client/delivery-report.md"],
 }
 
-PROFILE_FIELDS = {"name", "tools", "setup", "checks", "count_tests", "versions", "source_files", "suppressions", "protected"}
+PROFILE_FIELDS = {"name", "tools", "setup", "checks", "count_tests", "versions", "pinned", "source_files", "suppressions", "protected"}
 NAME_RE = re.compile(r"[a-z0-9][a-z0-9-]*")
 ADR_REF_RE = re.compile(r"\bADR-(\d{4})\b")
 EXIT_PASS, EXIT_FAIL, EXIT_SETUP = 0, 1, 2
@@ -301,6 +303,13 @@ def profile_problems(name: str, profile: object) -> list[str]:
     for key in ("count_tests", "versions"):
         if not is_command(profile[key]):
             problems.append(f"{where}: {key}: must be a command, as a non-empty list of words")
+    pinned = profile["pinned"]
+    if pinned is not None and not (
+            isinstance(pinned, dict) and set(pinned) == {"files", "lock", "read"} and is_command(pinned["read"])
+            and isinstance(pinned["lock"], str) and is_plain_name(pinned["lock"]) and isinstance(pinned["files"], list)
+            and pinned["lock"] in pinned["files"] and all(isinstance(name, str) and is_plain_name(name) for name in pinned["files"])):
+        problems.append(f"{where}: pinned: must be null, or {{\"files\", \"lock\", \"read\"}}: file names in the part's folder, "
+                        "the lock file among them, and a command")
     for key in ("source_files", "suppressions", "protected"):
         value = profile[key]
         if not isinstance(value, list) or not all(isinstance(item, str) and item for item in value):
@@ -312,6 +321,11 @@ def profile_problems(name: str, profile: object) -> list[str]:
             except re.error as error:
                 problems.append(f"{where}: suppressions: {json.dumps(pattern)}: {error}")
     return problems
+
+
+def is_plain_name(value: str) -> bool:
+    """A file name in the part's folder itself, with no folder in it."""
+    return bool(value) and "/" not in value and value not in (".", "..")
 
 
 def is_command(value: object) -> bool:
@@ -557,6 +571,57 @@ def check_profile(trees: Trees, parts: list[Part]) -> list[Result]:
     return results
 
 
+def in_part(part: Part, name: str) -> str:
+    return name if part.path == "." else f"{part.path}/{name}"
+
+
+def pinned_versions(part: Part, text: str, timeout: float) -> tuple[dict[str, str] | None, str]:
+    """The versions the profile's `pinned.read` reads from a lock file's text ("" when there is none), by tool name."""
+    with tempfile.TemporaryDirectory(prefix="keyturn-pinned-") as folder:
+        try:
+            result = subprocess.run(part.profile["pinned"]["read"], cwd=folder, input=text, capture_output=True, text=True,
+                                    timeout=timeout, env=ENV)
+        except (OSError, subprocess.TimeoutExpired) as error:
+            return None, str(error)
+    if result.returncode != 0:
+        return None, (result.stdout + result.stderr).strip() or f"exit {result.returncode}"
+    versions = {}
+    for line in result.stdout.splitlines():
+        name, _, version = line.strip().partition(" ")
+        if name:
+            versions[name] = version.strip()
+    return versions, ""
+
+
+def check_pinned(root: Path, reference: str, where: str, head: str, parts: list[Part], timeout: float) -> list[Result]:
+    """The profile's tools at the head are at the versions in the lock file at the reference: the newest commit named as
+    conventions', or else the base (ADR 0040). A tool missing at one and present at the other is a change too."""
+    results = []
+    for part in parts:
+        if part.profile["pinned"] is None:
+            continue
+        lock = in_part(part, part.profile["pinned"]["lock"])
+        before, why_before = pinned_versions(part, file_at(root, reference, lock) or "", timeout)
+        after, why_after = pinned_versions(part, file_at(root, head, lock) or "", timeout)
+        if before is None or after is None:
+            details = [f"{lock} at {where}: {why_before}" if before is None else "", f"{lock} at the head: {why_after}" if after is None else ""]
+            results.append(Result("pinned-tools", part.path, False, [d for d in details if d]))
+            continue
+        changed = [f"{name}: {before.get(name) or 'not installed'} at {where}, {after.get(name) or 'not installed'} at the head"
+                   for name in sorted(set(before) | set(after)) if (before.get(name) or "") != (after.get(name) or "")]
+        results.append(Result("pinned-tools", part.path, not changed, changed))
+    return results
+
+
+def conventions_commit(root: Path, base: str, head: str, others: dict[str, str]) -> tuple[str, str]:
+    """The newest commit in the range named as conventions', or else the base, and how to name it in a result."""
+    reference, where = base, "the base"
+    for commit, _ in range_commits(root, base, head):
+        if others.get(commit) == "conventions":
+            reference, where = commit, f"the conventions commit {commit[:12]}"
+    return reference, where
+
+
 def read_versions(trees: Trees, parts: list[Part]) -> list[dict]:
     """The versions of the tools each part's checks ran, from its profile's `versions` command at the head (ADR 0037).
     Only recorded: a command that fails says so, and never fails the gate."""
@@ -653,11 +718,14 @@ def gate(base_rev: str, head_rev: str, profiles_dir: Path, timeout: float,
             parts = load_parts(trees.paths["head"], profiles_dir)
             documents = documents_commit(root, base, head, others)
             qa = qa_folders(root, documents)
-            check_others(root, base, head, others, qa, [f"**/{pattern}" for part in parts for pattern in part.profile["protected"]])
+            configs = [f"**/{pattern}" for part in parts for pattern in part.profile["protected"]]
+            configs += [in_part(part, name) for part in parts if part.profile["pinned"] for name in part.profile["pinned"]["files"]]
+            check_others(root, base, head, others, qa, configs)
             check_tools(parts)
             skip = set(others)
             results = [check_protected(changed_paths(root, base, head, skip), protected_patterns(parts, qa))]
             results += check_suppressions(root, base, head, parts, others, documents)
+            results += check_pinned(root, *conventions_commit(root, base, head, others), head, parts, timeout)
             results += check_test_count(trees, parts)
             results += check_profile(trees, parts)
             versions = read_versions(trees, parts)

@@ -1,6 +1,6 @@
 # 0037. The gate records the versions of the tools it ran; pinning them waits until after the MVP
 
-- Status: accepted
+- Status: accepted; leaving every tool's version free until after the MVP superseded by [0040](0040-profile-tools-at-conventions-versions.md) for the tools a profile installs in the project (kept at the versions `conventions` installed)
 - Date: 2026-11-22
 
 ## Context
