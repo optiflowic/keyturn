@@ -2,7 +2,7 @@
 """keyturn's gate: run a project's stack-profile checks and the guardrail checks on a Git range. See ADR 0028.
 
 Usage (from inside the project's repository; the base and the head are checked out in temporary worktrees, so only committed files count):
-  gate.sh --base REV [--head REV] [--log FILE] [--profiles DIR] [--timeout-minutes N]
+  gate.sh --base REV [--head REV] [--others ROLE:COMMIT ...] [--log FILE] [--profiles DIR] [--timeout-minutes N]
 
 Checks, in this order, each reported as one PASS or FAIL line:
   protected-paths  no change in the range to a protected path ("Guardrails" 1)
@@ -47,6 +47,16 @@ FIXED_PROTECTED = (
 )
 # The developer's own document, under a protected folder.
 NOT_PROTECTED = ("keyturn/internal/handoff.md",)
+
+# What a commit named as another role's may change (ADR 0029), by the step names of the task state file. QA's folders
+# from the design are added for "qa", and a "security-review" commit may change only the "Status" lines of the threat model.
+THREAT_MODEL = "keyturn/internal/threat-model.md"
+ROLE_PATHS = {
+    "qa": ["keyturn/internal/test-report.md"],
+    "security-review": ["keyturn/internal/security-review.md", THREAT_MODEL],
+    "review": ["keyturn/internal/review.md"],
+    "deliver": ["keyturn/internal/state/**"],
+}
 
 PROFILE_FIELDS = {"name", "tools", "setup", "checks", "count_tests", "source_files", "suppressions", "protected"}
 NAME_RE = re.compile(r"[a-z0-9][a-z0-9-]*")
@@ -138,16 +148,26 @@ def name_status(root: Path, old: str, new: str) -> list[str]:
     return paths
 
 
-def changed_paths(root: Path, base: str, head: str) -> list[str]:
-    """Every path any commit in the range changes, so that a change a later commit undoes is still found.
-
-    A merge is compared with each of its parents.
-    """
-    paths = set(name_status(root, base, head))
-    for line in git(root, "rev-list", "--parents", f"{base}..{head}").splitlines():
+def range_commits(root: Path, base: str, head: str) -> list[tuple[str, list[str]]]:
+    """Each commit in the range, oldest first, with its parents."""
+    commits = []
+    for line in git(root, "rev-list", "--reverse", "--parents", f"{base}..{head}").splitlines():
         commit, *parents = line.split()
-        for parent in parents:
-            paths.update(name_status(root, parent, commit))
+        commits.append((commit, parents))
+    return commits
+
+
+def changed_paths(root: Path, base: str, head: str, skip: set[str]) -> list[str]:
+    """Every path a commit in the range changes, so that a change a later commit undoes is still found.
+
+    A merge is compared with each of its parents. Without commits to skip, the range's total diff counts too;
+    with them, it does not, since it holds the skipped commits' changes as well.
+    """
+    paths = set() if skip else set(name_status(root, base, head))
+    for commit, parents in range_commits(root, base, head):
+        if commit not in skip:
+            for parent in parents:
+                paths.update(name_status(root, parent, commit))
     return sorted(paths)
 
 
@@ -372,8 +392,14 @@ def accepted_adrs(root: Path, base: str) -> dict[str, list[str]]:
     return allows
 
 
-def check_suppressions(root: Path, base: str, head: str, parts: list[Part]) -> list[Result]:
-    added = added_lines(root, base, head)
+def check_suppressions(root: Path, base: str, head: str, parts: list[Part], others: dict[str, str]) -> list[Result]:
+    # QA's commits are checked too: a suppression in QA's tests needs an ADR as the developer's does (ADR 0029).
+    skip = {commit for commit, role in others.items() if role != "qa"}
+    if others:  # commit by commit, leaving out the other roles' commits
+        added = [line for commit, parents in range_commits(root, base, head) if commit not in skip
+                 for line in added_lines(root, parents[0], commit)]
+    else:
+        added = added_lines(root, base, head)
     approved = accepted_adrs(root, base)
     results = []
     for part in parts:
@@ -491,19 +517,69 @@ def check_profile(trees: Trees, parts: list[Part]) -> list[Result]:
     return results
 
 
-def gate(base_rev: str, head_rev: str, profiles_dir: Path, timeout: float) -> tuple[str, str, list[Result]]:
+def parse_others(root: Path, values: list[str]) -> dict[str, str]:
+    """`--others ROLE:COMMIT` values as {commit: role}."""
+    others: dict[str, str] = {}
+    problems = []
+    for value in values:
+        role, _, rev = value.partition(":")
+        if role not in ROLE_PATHS or not rev:
+            problems.append(f"--others {value}: use ROLE:COMMIT, with ROLE one of {', '.join(ROLE_PATHS)}")
+            continue
+        try:
+            commit = commit_of(root, rev)
+        except SetupError as error:
+            problems += error.problems
+            continue
+        if others.get(commit, role) != role:
+            problems.append(f"--others {value}: the commit is also named as {others[commit]}'s")
+        others[commit] = role
+    if problems:
+        raise SetupError(problems)
+    return others
+
+
+def check_others(root: Path, base: str, head: str, others: dict[str, str], qa: list[str]) -> None:
+    """Stop unless each commit named as another role's is in the range and changes only what that role may write (ADR 0029)."""
+    commits = dict(range_commits(root, base, head))
+    problems = [f"{commit[:12]} ({role}): not in the range" for commit, role in others.items() if commit not in commits]
+    if others:  # without a list, a merge is checked like any commit (ADR 0028)
+        problems += [f"{commit[:12]}: a merge in the range; a task run by deliver has none" for commit, parents in commits.items()
+                     if len(parents) > 1]
+    for commit, role in others.items():
+        if commit not in commits or len(commits[commit]) != 1:
+            continue
+        parent = commits[commit][0]
+        allowed = ROLE_PATHS[role] + (qa if role == "qa" else [])
+        outside = [path for path in name_status(root, parent, commit) if not any(matches(path, p) for p in allowed)]
+        problems += [f"{commit[:12]} ({role}): changes {path}, which a {role} commit may not" for path in outside]
+        if role == "security-review":
+            diff = git(root, "diff", "--no-color", "--no-ext-diff", "--text", "--no-textconv", "--unified=0", parent, commit,
+                       "--", THREAT_MODEL)
+            changed = [row for row in diff.split("\n") if row[:1] in ("+", "-") and not row.startswith(("+++ ", "--- "))]
+            if any(not re.match(r"[+-]- Status: ", row) for row in changed):
+                problems.append(f"{commit[:12]} (security-review): changes a line of {THREAT_MODEL} other than a \"Status\" line")
+    if problems:
+        raise SetupError(["the commits named as other roles' do not match the range: " + problem for problem in problems])
+
+
+def gate(base_rev: str, head_rev: str, profiles_dir: Path, timeout: float,
+         others_values: list[str]) -> tuple[str, str, list[Result]]:
     root = repo_root()
     base, head = commit_of(root, base_rev), commit_of(root, head_rev)
     if subprocess.run(["git", "-C", str(root), "merge-base", "--is-ancestor", base, head], env=ENV).returncode != 0:
         raise SetupError([f"{base_rev} is not an ancestor of {head_rev}: name the commit the change started from"])
+    others = parse_others(root, others_values)
     with tempfile.TemporaryDirectory(prefix="keyturn-gate-") as temp:
         trees = Trees(root, base, head, Path(temp), timeout)
         try:
             parts = load_parts(trees.paths["head"], profiles_dir)
             qa = qa_folders(root, base)
+            check_others(root, base, head, others, qa)
             check_tools(parts)
-            results = [check_protected(changed_paths(root, base, head), protected_patterns(parts, qa))]
-            results += check_suppressions(root, base, head, parts)
+            skip = set(others)
+            results = [check_protected(changed_paths(root, base, head, skip), protected_patterns(parts, qa))]
+            results += check_suppressions(root, base, head, parts, others)
             results += check_test_count(trees, parts)
             results += check_profile(trees, parts)
         finally:
@@ -518,10 +594,12 @@ def main() -> int:
     parser.add_argument("--log", type=Path, help="also write the result as JSON to this file")
     parser.add_argument("--profiles", type=Path, default=PLUGIN_ROOT / "profiles", help="the folder of stack profiles")
     parser.add_argument("--timeout-minutes", type=float, default=30, help="the limit for each command (default: 30)")
+    parser.add_argument("--others", action="append", default=[], metavar="ROLE:COMMIT",
+                        help="a commit in the range that is another role's (qa, security-review, review, deliver); repeat for each (ADR 0029)")
     args = parser.parse_args()
 
     try:
-        base, head, results = gate(args.base, args.head, args.profiles, args.timeout_minutes * 60)
+        base, head, results = gate(args.base, args.head, args.profiles, args.timeout_minutes * 60, args.others)
     except SetupError as error:
         for problem in error.problems:
             print(f"setup error: {problem}", file=sys.stderr)

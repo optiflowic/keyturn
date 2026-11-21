@@ -67,7 +67,7 @@ MEANINGFUL_VALUES = {
 }
 MEANINGFUL_FIELDS = ["Task", "Branch", "Requirements version", "Rework", "Updated", *MEANINGFUL_VALUES]
 MEANINGFUL_STEP_STATUSES = ["not started", "in progress", "done", "skipped"]
-MEANINGFUL_SECTIONS = ["Summary", "Steps", "Open questions", "History"]
+MEANINGFUL_SECTIONS = ["Summary", "Steps", "Commits", "Open questions", "History"]
 FINISHED_STEP_STATUSES = ("done", "skipped")
 
 
@@ -405,6 +405,33 @@ def blocks_problems(number: int, blocks: str, steps: list[str]) -> list[str]:
     return problems
 
 
+def check_commits(lines: list[tuple[int, str]], template: Template) -> list[str]:
+    """Each line names a commit, the step that made it, and the round: "- `<commit>`: <step>, round <n>" (ADR 0029)."""
+    content = [(number, line.strip()) for number, line in lines if line.strip()]
+    if [line for _, line in content] == ["None."]:
+        return []
+    if not content:
+        return ['Commits: should say "None." when no commit is listed']
+    problems, seen = [], {}
+    for number, line in content:
+        match = re.fullmatch(r"- (`[^`]*`): (.+), round (\d+)", line)
+        if not match:
+            problems.append(f'line {number}: "{line}" should be "- `<commit>`: <step>, round <n>"')
+            continue
+        commit, step, round_number = match.groups()
+        if not COMMIT_RE.fullmatch(commit):
+            problems.append(f'line {number}: "{commit}" should be a commit hash in backticks')
+        elif commit in seen:
+            problems.append(f"line {number}: commit {commit} is also listed on line {seen[commit]}")
+        else:
+            seen[commit] = number
+        if step not in template.steps:
+            problems.append(f'line {number}: "{step}" is not a step of the template')
+        if int(round_number) < 1:
+            problems.append(f"line {number}: the round should be 1 or more")
+    return problems
+
+
 def check_open_questions(lines: list[tuple[int, str]], template: Template, state: StateFile) -> list[str]:
     content = [(number, line.strip()) for number, line in lines if line.strip()]
     if [line for _, line in content] == ["None."]:
@@ -533,6 +560,8 @@ def check_state(text: str, template: Template, file_name: str | None = None) -> 
         problems.append("Summary: should not be empty")
     if "Steps" in by_name:
         problems += check_steps(by_name["Steps"], template, state)
+    if "Commits" in by_name:
+        problems += check_commits(by_name["Commits"], template)
     if "Open questions" in by_name:
         problems += check_open_questions(by_name["Open questions"], template, state)
     if "History" in by_name:
