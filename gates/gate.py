@@ -8,9 +8,13 @@ Checks, in this order, each reported as one PASS or FAIL line:
   protected-paths  no change in the range to a protected path ("Guardrails" 1)
   suppressions     no new suppression comment, unless the same line names an accepted ADR that existed at the base
                    (or at the newest spec, design, or conventions commit named with --others)
+  pinned-tools     the profile's tools in a part's lock file are at the versions of the newest conventions commit named with
+                   --others, or of the base (profiles with "pinned" only)
   test-count       no part has fewer tests at the head than at the base
   <profile check>  each check its profile names (build, test, lint, ...), run in the part's folder at the head,
                    after the profile's setup commands (for example, installing dependencies)
+
+Then one VERSIONS line per part: the versions of the tools its checks ran, as its profile reads them (recorded, never judged).
 
 Exit codes: 0 every check passed; 1 at least one check failed; 2 the gate could not run (setup error).
 Needs Python 3.9 or later and Git. Uses only the standard library.
@@ -49,8 +53,9 @@ FIXED_PROTECTED = (
 # The developer's own document, under a protected folder.
 NOT_PROTECTED = ("keyturn/internal/handoff.md",)
 
-# What a commit named as another role's may change (ADR 0029, ADR 0032, and ADR 0033 for "deliver": the state file, and,
-# in its last step, the gate's log, the acceptance guide, and the delivery report), by the step names of the task state file. QA's
+# What a commit named as another role's may change (ADR 0029, ADR 0032, ADR 0033 for "deliver": the state file, and,
+# in its last step, the gate's log, the acceptance guide, and the delivery report, and ADR 0039 for the `.gitignore` files
+# "conventions" writes), by the step names of the task state file. QA's
 # folders from the design are added for "qa", each profile's linter configs for "conventions", and a "security-review"
 # commit may change only the "Status" lines of the threat model.
 THREAT_MODEL = "keyturn/internal/threat-model.md"
@@ -58,7 +63,7 @@ ROLE_PATHS = {
     "spec": ["keyturn/client/requirements.md", "keyturn/client/approvals.md", ".gitattributes", CONFIG_PATH],
     "design": [DESIGN_PATH, THREAT_MODEL, f"{ADR_DIR}/**", "keyturn/client/design-summary.md",
                "keyturn/client/decision-card-*.md"],
-    "conventions": ["keyturn/internal/conventions.md", f"{ADR_DIR}/**", CONFIG_PATH],
+    "conventions": ["keyturn/internal/conventions.md", f"{ADR_DIR}/**", CONFIG_PATH, "**/.gitignore"],
     "qa": ["keyturn/internal/test-report.md"],
     "security-review": ["keyturn/internal/security-review.md", THREAT_MODEL],
     "review": ["keyturn/internal/review.md"],
@@ -66,7 +71,7 @@ ROLE_PATHS = {
                 "keyturn/client/delivery-report.md"],
 }
 
-PROFILE_FIELDS = {"name", "tools", "setup", "checks", "count_tests", "source_files", "suppressions", "protected"}
+PROFILE_FIELDS = {"name", "tools", "setup", "checks", "count_tests", "versions", "pinned", "source_files", "suppressions", "protected"}
 NAME_RE = re.compile(r"[a-z0-9][a-z0-9-]*")
 ADR_REF_RE = re.compile(r"\bADR-(\d{4})\b")
 EXIT_PASS, EXIT_FAIL, EXIT_SETUP = 0, 1, 2
@@ -295,8 +300,16 @@ def profile_problems(name: str, profile: object) -> list[str]:
         problems.append(f"{where}: checks: names must be unique")
     if not isinstance(profile["setup"], list) or not all(is_command(command) for command in profile["setup"]):
         problems.append(f"{where}: setup: must be a list of commands, each a non-empty list of words (it may be empty)")
-    if not is_command(profile["count_tests"]):
-        problems.append(f"{where}: count_tests: must be a command, as a non-empty list of words")
+    for key in ("count_tests", "versions"):
+        if not is_command(profile[key]):
+            problems.append(f"{where}: {key}: must be a command, as a non-empty list of words")
+    pinned = profile["pinned"]
+    if pinned is not None and not (
+            isinstance(pinned, dict) and set(pinned) == {"files", "lock", "read"} and is_command(pinned["read"])
+            and isinstance(pinned["lock"], str) and is_plain_name(pinned["lock"]) and isinstance(pinned["files"], list)
+            and pinned["lock"] in pinned["files"] and all(isinstance(name, str) and is_plain_name(name) for name in pinned["files"])):
+        problems.append(f"{where}: pinned: must be null, or {{\"files\", \"lock\", \"read\"}}: file names in the part's folder, "
+                        "the lock file among them, and a command")
     for key in ("source_files", "suppressions", "protected"):
         value = profile[key]
         if not isinstance(value, list) or not all(isinstance(item, str) and item for item in value):
@@ -308,6 +321,11 @@ def profile_problems(name: str, profile: object) -> list[str]:
             except re.error as error:
                 problems.append(f"{where}: suppressions: {json.dumps(pattern)}: {error}")
     return problems
+
+
+def is_plain_name(value: str) -> bool:
+    """A file name in the part's folder itself, with no folder in it."""
+    return bool(value) and "/" not in value and value not in (".", "..")
 
 
 def is_command(value: object) -> bool:
@@ -386,14 +404,24 @@ def check_protected(paths: list[str], patterns: list[str]) -> Result:
     return Result("protected-paths", None, not hits, hits)
 
 
-def accepted_adrs(root: Path, base: str) -> dict[str, list[str]]:
-    """What each of the project's ADRs accepted at a commit allows, by number: the base, or the newest commit named as a
-    document role's (ADR 0032), so that no ADR the developer's commits add can approve anything.
+@dataclass
+class Allowed:
+    """What the project's accepted ADRs allow: by number, the text a line that names the ADR may contain ("- Allows: <text>"),
+    and, for every line in a file matching a path pattern, the text it may contain without naming the ADR
+    ("- Allows in <pattern>: <text>", ADR 0038), as (pattern, text, ADR number)."""
+    named: dict[str, list[str]] = field(default_factory=dict)
+    placed: list[tuple[str, str, str]] = field(default_factory=list)
 
-    Only the lines before the first "## " heading count: "- Status: accepted", and one "- Allows: <text>" line per suppression it allows.
+
+def accepted_adrs(root: Path, base: str) -> Allowed:
+    """What the project's ADRs accepted at a commit allow: the base, or the newest commit named as a document role's
+    (ADR 0032), so that no ADR the developer's commits add can approve anything.
+
+    Only the lines before the first "## " heading count: "- Status: accepted", and one "- Allows: <text>" or
+    "- Allows in <path pattern>: <text>" line per suppression it allows.
     """
     listing = git(root, "ls-tree", "-z", "--name-only", f"{base}:{ADR_DIR}") if file_at(root, base, ADR_DIR) is not None else ""
-    allows: dict[str, list[str]] = {}
+    allowed = Allowed()
     for name in filter(None, listing.split("\0")):
         match = re.fullmatch(r"(\d{4})-.*\.md", name)
         text = file_at(root, base, f"{ADR_DIR}/{name}") if match else None
@@ -401,8 +429,18 @@ def accepted_adrs(root: Path, base: str) -> dict[str, list[str]]:
             continue
         header = re.split(r"^## ", text, maxsplit=1, flags=re.M)[0]
         if re.search(r"^- Status: accepted\s*$", header, re.M):
-            allows[match.group(1)] = [value.strip() for value in re.findall(r"^- Allows: (.+)$", header, re.M) if value.strip()]
-    return allows
+            number = match.group(1)
+            allowed.named[number] = [value for value in map(allowed_text, re.findall(r"^- Allows: (.+)$", header, re.M)) if value]
+            for pattern, value in re.findall(r"^- Allows in `?([^`:\s]+)`?: (.+)$", header, re.M):
+                if allowed_text(value):
+                    allowed.placed.append((pattern, allowed_text(value), number))
+    return allowed
+
+
+def allowed_text(value: str) -> str:
+    """An allowed suppression as the ADR writes it, without the backticks around it (`//nolint:gosec`)."""
+    value = value.strip()
+    return value[1:-1].strip() if len(value) > 2 and value.startswith("`") and value.endswith("`") else value
 
 
 def check_suppressions(root: Path, base: str, head: str, parts: list[Part], others: dict[str, str],
@@ -427,11 +465,13 @@ def check_suppressions(root: Path, base: str, head: str, parts: list[Part], othe
                 continue
             if any(pattern.search(text) for pattern in patterns):
                 named = ADR_REF_RE.findall(text)
-                # Approved only by an ADR that was accepted at the base and allows what this line writes.
-                if not any(allowed in text for adr in named for allowed in approved.get(adr, [])):
+                # Approved only by an ADR that was accepted at the base and allows what this line writes: one the line
+                # names, or one that allows it in this file's folder.
+                if not any(allowed in text for adr in named for allowed in approved.named.get(adr, [])) and not any(
+                        allowed in text and matches(path, where) for where, allowed, _ in approved.placed):
                     if not named:
                         reason = "names no accepted ADR"
-                    elif not any(adr in approved for adr in named):
+                    elif not any(adr in approved.named for adr in named):
                         reason = f"names ADR-{', ADR-'.join(named)}, not accepted at the base"
                     else:
                         reason = f"ADR-{', ADR-'.join(named)} has no \"- Allows:\" line that this line contains"
@@ -531,6 +571,74 @@ def check_profile(trees: Trees, parts: list[Part]) -> list[Result]:
     return results
 
 
+def in_part(part: Part, name: str) -> str:
+    return name if part.path == "." else f"{part.path}/{name}"
+
+
+def pinned_versions(part: Part, text: str, timeout: float) -> tuple[dict[str, str] | None, str]:
+    """The versions the profile's `pinned.read` reads from a lock file's text ("" when there is none), by tool name."""
+    with tempfile.TemporaryDirectory(prefix="keyturn-pinned-") as folder:
+        try:
+            result = subprocess.run(part.profile["pinned"]["read"], cwd=folder, input=text, capture_output=True, text=True,
+                                    timeout=timeout, env=ENV)
+        except (OSError, subprocess.TimeoutExpired) as error:
+            return None, str(error)
+    if result.returncode != 0:
+        return None, (result.stdout + result.stderr).strip() or f"exit {result.returncode}"
+    versions = {}
+    for line in result.stdout.splitlines():
+        name, _, version = line.strip().partition(" ")
+        if name:
+            versions[name] = version.strip()
+    return versions, ""
+
+
+def check_pinned(root: Path, reference: str, where: str, head: str, parts: list[Part], timeout: float) -> list[Result]:
+    """The profile's tools at the head are at the versions in the lock file at the reference: the newest commit named as
+    conventions', or else the base (ADR 0040). A tool missing at one and present at the other is a change too."""
+    results = []
+    for part in parts:
+        if part.profile["pinned"] is None:
+            continue
+        lock = in_part(part, part.profile["pinned"]["lock"])
+        before, why_before = pinned_versions(part, file_at(root, reference, lock) or "", timeout)
+        after, why_after = pinned_versions(part, file_at(root, head, lock) or "", timeout)
+        if before is None or after is None:
+            details = [f"{lock} at {where}: {why_before}" if before is None else "", f"{lock} at the head: {why_after}" if after is None else ""]
+            results.append(Result("pinned-tools", part.path, False, [d for d in details if d]))
+            continue
+        changed = [f"{name}: {before.get(name) or 'not installed'} at {where}, {after.get(name) or 'not installed'} at the head"
+                   for name in sorted(set(before) | set(after)) if (before.get(name) or "") != (after.get(name) or "")]
+        results.append(Result("pinned-tools", part.path, not changed, changed))
+    return results
+
+
+def conventions_commit(root: Path, base: str, head: str, others: dict[str, str]) -> tuple[str, str]:
+    """The newest commit in the range named as conventions', or else the base, and how to name it in a result."""
+    reference, where = base, "the base"
+    for commit, _ in range_commits(root, base, head):
+        if others.get(commit) == "conventions":
+            reference, where = commit, f"the conventions commit {commit[:12]}"
+    return reference, where
+
+
+def read_versions(trees: Trees, parts: list[Part]) -> list[dict]:
+    """The versions of the tools each part's checks ran, from its profile's `versions` command at the head (ADR 0037).
+    Only recorded: a command that fails says so, and never fails the gate."""
+    records = []
+    for part in parts:
+        problem = trees.prepare("head", part)
+        if problem:
+            lines = [f"not read: {problem}"]
+        else:
+            code, output = run(part.profile["versions"], trees.paths["head"] / part.path, trees.timeout)
+            lines = [line.strip() for line in output.splitlines() if line.strip()]
+            if code != 0 or not lines:
+                lines = [f"not read (exit {code}): {'; '.join(lines) or 'no output'}"]
+        records.append({"part": part.path, "profile": part.profile["name"], "versions": lines})
+    return records
+
+
 def parse_others(root: Path, values: list[str]) -> dict[str, str]:
     """`--others ROLE:COMMIT` values as {commit: role}."""
     others: dict[str, str] = {}
@@ -598,7 +706,7 @@ def check_others(root: Path, base: str, head: str, others: dict[str, str], qa: l
 
 
 def gate(base_rev: str, head_rev: str, profiles_dir: Path, timeout: float,
-         others_values: list[str]) -> tuple[str, str, list[Result]]:
+         others_values: list[str]) -> tuple[str, str, list[Result], list[dict]]:
     root = repo_root()
     base, head = commit_of(root, base_rev), commit_of(root, head_rev)
     if subprocess.run(["git", "-C", str(root), "merge-base", "--is-ancestor", base, head], env=ENV).returncode != 0:
@@ -610,16 +718,20 @@ def gate(base_rev: str, head_rev: str, profiles_dir: Path, timeout: float,
             parts = load_parts(trees.paths["head"], profiles_dir)
             documents = documents_commit(root, base, head, others)
             qa = qa_folders(root, documents)
-            check_others(root, base, head, others, qa, [f"**/{pattern}" for part in parts for pattern in part.profile["protected"]])
+            configs = [f"**/{pattern}" for part in parts for pattern in part.profile["protected"]]
+            configs += [in_part(part, name) for part in parts if part.profile["pinned"] for name in part.profile["pinned"]["files"]]
+            check_others(root, base, head, others, qa, configs)
             check_tools(parts)
             skip = set(others)
             results = [check_protected(changed_paths(root, base, head, skip), protected_patterns(parts, qa))]
             results += check_suppressions(root, base, head, parts, others, documents)
+            results += check_pinned(root, *conventions_commit(root, base, head, others), head, parts, timeout)
             results += check_test_count(trees, parts)
             results += check_profile(trees, parts)
+            versions = read_versions(trees, parts)
         finally:
             trees.remove()
-    return base, head, results
+    return base, head, results, versions
 
 
 def main() -> int:
@@ -635,7 +747,7 @@ def main() -> int:
     args = parser.parse_args()
 
     try:
-        base, head, results = gate(args.base, args.head, args.profiles, args.timeout_minutes * 60, args.others)
+        base, head, results, versions = gate(args.base, args.head, args.profiles, args.timeout_minutes * 60, args.others)
     except SetupError as error:
         for problem in error.problems:
             print(f"setup error: {problem}", file=sys.stderr)
@@ -646,10 +758,13 @@ def main() -> int:
     passed = all(result.passed for result in results)
     for result in results:
         print(result.line())
+    for record in versions:
+        print(f"VERSIONS [{record['part']}]: {'; '.join(record['versions'])}")
     print(f"gate: {'passed' if passed else 'failed'} ({base[:12]}..{head[:12]})")
     if args.log is not None:
         record = {"base": base, "head": head, "passed": passed,
-                  "checks": [{"check": r.check, "part": r.part, "passed": r.passed, "details": r.details} for r in results]}
+                  "checks": [{"check": r.check, "part": r.part, "passed": r.passed, "details": r.details} for r in results],
+                  "versions": versions}
         try:
             args.log.write_text(json.dumps(record, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         except OSError as error:

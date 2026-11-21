@@ -93,8 +93,8 @@ Sign-up, sign-in, and task list pages. Task titles are rendered as React text, n
 | `react`, `react-dom` | pinned in `web/package.json` | runtime | web client | R-1 to R-9 | yes | exist, maintained, no OSV entries for this version (checked 2026-11-08), MIT |
 | `vite` | pinned in `web/package.json` | runtime | builds the web client that is delivered | R-1 to R-9 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), MIT |
 | `eslint` | pinned in `web/package.json` | profile tool (`react-spa`) | lints the web client | R-1 to R-9 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), MIT |
-| `vitest` | pinned in `web/package.json` | profile tool (`react-spa`) | unit tests for the web client | R-1 to R-9 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), MIT |
-| `@playwright/test` | pinned in `web/package.json` | profile tool (`react-spa`) | browser tests of the whole app | R-1 to R-9 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), Apache-2.0 |
+| `vitest` | pinned in `web/package.json` | profile tool (`react-spa`) | the web client's unit tests and QA's tests of the pages | R-1 to R-9 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), MIT |
+| `jsdom`, `@testing-library/react`, `@testing-library/dom` | pinned in `web/package.json` | profile tool (`react-spa`) | QA's tests show the pages in a simulated browser and use them as a person would | R-1 to R-9 | yes | exist, maintained, no OSV entries for this version (checked 2026-11-08), MIT |
 | `@eslint/js`, `typescript-eslint` | pinned in `web/package.json` | profile tool (`react-spa`) | ESLint's recommended rules and its rules for TypeScript | R-1 to R-9 | yes | exist, maintained, no OSV entries for this version (checked 2026-11-08), MIT |
 | `typescript` | pinned in `web/package.json` | profile tool (`react-spa`) | type checks the web client's code; a peer dependency of `typescript-eslint` | R-1 to R-9 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), Apache-2.0 |
 | `prettier` | pinned in `web/package.json` | profile tool (`react-spa`) | formats the web client's code | R-1 to R-9 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), MIT |
@@ -115,7 +115,7 @@ No external services.
 | `api/internal/store/**` | schema, migrations, queries | R-1, R-3 to R-6 |
 | `api/go.mod`, `api/go.sum` | the two approved Go dependencies only | R-1 to R-6 |
 | `web/src/**`, `web/index.html` | pages and components | R-1 to R-6, R-8, R-9 |
-| `web/package.json`, `web/package-lock.json` | the npm dependencies listed above only: those approved in ADR 0004 and the `react-spa` profile's development tools | R-1 to R-9 |
+| `web/package.json`, `web/package-lock.json` | the runtime npm dependencies listed above only (approved in ADR 0004); the `react-spa` profile's development tools are installed by `conventions`, and their versions never change here | R-1 to R-9 |
 | `web/vite.config.ts` | the development server's proxy to the API only (added in delivery 1, see the delivery report) | R-1 to R-9 |
 
 ## QA's tests
@@ -123,7 +123,7 @@ No external services.
 | Path | What is tested there |
 |---|---|
 | `api/qa/**` | the API, through its HTTP interface only |
-| `web/e2e/**` | the pages in a browser, against the built web client and the API |
+| `web/qa/**` | the pages, rendered in `jsdom` through the components the web client exports, with the API's answers stubbed |
 
 ## Requirements coverage
 
