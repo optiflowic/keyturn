@@ -392,8 +392,10 @@ def accepted_adrs(root: Path, base: str) -> dict[str, list[str]]:
     return allows
 
 
-def check_suppressions(root: Path, base: str, head: str, parts: list[Part], skip: set[str]) -> list[Result]:
-    if skip:  # commit by commit, leaving out the other roles' commits
+def check_suppressions(root: Path, base: str, head: str, parts: list[Part], others: dict[str, str]) -> list[Result]:
+    # QA's commits are checked too: a suppression in QA's tests needs an ADR as the developer's does (ADR 0029).
+    skip = {commit for commit, role in others.items() if role != "qa"}
+    if others:  # commit by commit, leaving out the other roles' commits
         added = [line for commit, parents in range_commits(root, base, head) if commit not in skip
                  for line in added_lines(root, parents[0], commit)]
     else:
@@ -577,7 +579,7 @@ def gate(base_rev: str, head_rev: str, profiles_dir: Path, timeout: float,
             check_tools(parts)
             skip = set(others)
             results = [check_protected(changed_paths(root, base, head, skip), protected_patterns(parts, qa))]
-            results += check_suppressions(root, base, head, parts, skip)
+            results += check_suppressions(root, base, head, parts, others)
             results += check_test_count(trees, parts)
             results += check_profile(trees, parts)
         finally:

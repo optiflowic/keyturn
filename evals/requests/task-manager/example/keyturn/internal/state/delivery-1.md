@@ -31,6 +31,7 @@ Delivery 1 is done: the acceptance guide and the delivery report are ready for t
 
 - `3d5e7a1`: implement, round 1
 - `4e1c9a7`: implement, round 1
+- `4f8d2c0`: deliver, round 1
 - `5b2f0d6`: deliver, round 1
 - `6a8c3e2`: implement, round 1
 - `7d4b1f9`: deliver, round 1
@@ -60,5 +61,5 @@ None.
 - 2026-11-08T03:20Z: stopped: waiting for the client, in design (decision cards 1 and 2)
 - 2026-11-08T06:02Z: resumed: in design, from commit `7c9e011`
 - 2026-11-08T12:48Z: stopped: usage limit, in implement (5-hour window at 80%, resets at 2026-11-08T15:30Z)
-- 2026-11-08T15:41Z: resumed: in implement, from commit `4e1c9a7`
+- 2026-11-08T15:41Z: resumed: in implement, from commit `4f8d2c0`
 - 2026-11-08T21:40Z: done

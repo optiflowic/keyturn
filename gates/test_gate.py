@@ -373,6 +373,11 @@ class GateTest(unittest.TestCase):
         self.git("merge", "-q", "--no-ff", "-m", "merge", "side")
         self.assertEqual(self.gate().returncode, 0)
 
+    def test_a_suppression_in_a_qa_commit_is_still_found(self):
+        self.put("app/qa/check.py", "import os  # noqa\n")
+        qa = self.commit("QA's test with a suppression")
+        self.assert_fails(self.gate("--others", f"qa:{qa}"), "FAIL suppressions [app]: app/qa/check.py:1:")
+
     def test_an_unknown_role_stops_the_gate(self):
         result = self.gate("--others", f"developer:{self.base}")
         self.assertEqual(result.returncode, 2)
