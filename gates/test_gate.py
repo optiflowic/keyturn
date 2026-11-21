@@ -299,6 +299,77 @@ class GateTest(unittest.TestCase):
         self.commit("break the build")
         self.assert_fails(self.gate(), "FAIL build [app]: exit 1")
 
+    # Other roles' commits (ADR 0029)
+
+    def qa_commit(self) -> str:
+        self.put("app/qa/test_qa2.txt", "")
+        self.put("keyturn/internal/test-report.md", "# Test report\n")
+        return self.commit("QA's tests")
+
+    def test_another_role_s_commits_named_with_others_are_left_out(self):
+        self.put("app/src/main.py", "print('developer')\n")
+        self.commit("developer")
+        qa = self.qa_commit()
+        self.put("keyturn/internal/state/task.md", "# State\n")
+        state = self.commit("deliver's state")
+        result = self.gate("--others", f"qa:{qa}", "--others", f"deliver:{state}")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assert_fails(self.gate(), "FAIL protected-paths:")  # without the list, every commit is the developer's
+
+    def test_a_developer_change_to_qa_s_folder_fails_even_when_qa_commits_after_it(self):
+        self.put("app/qa/test_qa.txt", "weakened")
+        self.commit("developer changes QA's test")
+        self.put("app/qa/test_qa.txt", "")
+        qa = self.commit("QA restores it")
+        self.assert_fails(self.gate("--others", f"qa:{qa}"), "FAIL protected-paths: app/qa/test_qa.txt (matches app/qa/**)")
+
+    def test_a_developer_commit_that_edits_the_state_file_fails(self):
+        self.put("keyturn/internal/state/task.md", "qa: abc\n")
+        self.commit("developer edits the list")
+        qa = self.qa_commit()
+        self.assert_fails(self.gate("--others", f"qa:{qa}"), "FAIL protected-paths: keyturn/internal/state/task.md")
+
+    def test_a_named_commit_that_changes_what_its_role_may_not_stops_the_gate(self):
+        self.put("app/qa/test_qa2.txt", "")
+        self.put("app/src/main.py", "print('hidden')\n")
+        disguised = self.commit("QA's tests and a code change")
+        result = self.gate("--others", f"qa:{disguised}")
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("changes app/src/main.py, which a qa commit may not", result.stderr)
+
+    def test_a_named_commit_outside_the_range_stops_the_gate(self):
+        result = self.gate("--others", f"qa:{self.base}")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("not in the range", result.stderr)
+
+    def test_a_security_commit_may_change_only_status_lines_of_the_threat_model(self):
+        self.put("keyturn/internal/threat-model.md", "## T-1\n\n- Severity: high\n- Status: planned\n")
+        self.base = self.commit("threat model")
+        self.put("keyturn/internal/threat-model.md", "## T-1\n\n- Severity: high\n- Status: verified\n")
+        self.put("keyturn/internal/security-review.md", "# Security review\n")
+        status = self.commit("security review")
+        self.assertEqual(self.gate("--others", f"security:{status}").returncode, 0)
+        self.put("keyturn/internal/threat-model.md", "## T-1\n\n- Severity: low\n- Status: verified\n")
+        severity = self.commit("security role lowers a severity")
+        result = self.gate("--others", f"security:{status}", "--others", f"security:{severity}")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn('other than a "Status" line', result.stderr)
+
+    def test_a_merge_in_the_range_stops_the_gate_when_others_are_named(self):
+        self.git("checkout", "-q", "-b", "side")
+        self.commit("side")
+        self.git("checkout", "-q", "main")
+        qa = self.qa_commit()
+        self.git("merge", "-q", "--no-ff", "-m", "merge", "side")
+        result = self.gate("--others", f"qa:{qa}")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("a merge in the range", result.stderr)
+
+    def test_an_unknown_role_stops_the_gate(self):
+        result = self.gate("--others", f"developer:{self.base}")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("use ROLE:COMMIT", result.stderr)
+
     # Setup errors
 
     def test_a_missing_tool_stops_with_how_to_install_it(self):
