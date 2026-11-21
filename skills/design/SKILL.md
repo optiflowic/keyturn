@@ -61,7 +61,7 @@ Run `approval.py status`, adding `--lang <client_language>` in English-only mode
 
 Choose the stack from the requirements: what is built, who runs it and where, and how it may grow. A stack profile defines what "verified" means for its stack: how to build and test it, its linters, its security checks, its recommended structure, and its secure defaults. Later, automatic checks (the gate) check only what a profile defines.
 
-- **A profile fits**: use it. Follow its recommended structure for the project's size, its secure defaults, and the patterns it says to avoid.
+- **A profile fits**: use it. Follow its recommended structure for the project's size, its secure defaults, and the patterns it says to avoid. In `design.md`, name the profile of each part's folder in the form the template gives (`` `go` for `api/`, `react-spa` for `web/` ``, or `` `go` `` alone for the whole repository): `deliver` writes the gate's `parts` from that line.
 - **No profile fits, or there are none yet**: choose the stack anyway. Planned profiles, so that coverage arrives later: `go` and `react-spa` first, then Next.js, React Router v7+, Python, Rust, a Neovim plugin (Lua), and a Rust command-line tool. Write `No profile: <stack> (would use <profile name>)` in `design.md`, or `(no planned profile)`.
   - Fit comes first. Among stacks that fit the requirements about equally well, prefer one with a planned profile; never choose a stack that fits worse only because it has one.
   - You cannot rely on a profile's structure, secure defaults, or patterns to avoid: take them from the stack's own documentation, and say so in the stack's ADR.

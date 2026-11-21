@@ -11,7 +11,7 @@ Create and check the project configuration, `keyturn/config.json`, so that every
 
 - **Never guess a setting.** If the configuration is missing or invalid, stop and report what is wrong. Do not fall back to a default, and do not infer a value from the conversation without asking.
 - **Ask the client, then write.** The settings are the client's choices. Ask for them in plain words, and write only what they said.
-- **Change the file only on request.** Create it when a project is set up, or change it when the client asks. The one exception is `parts`, which follows the approved design's stack: `deliver` adds or changes it when the design is approved (once #60 is in place), and until then a person asks for it. Every other use is read-only.
+- **Change the file only on request.** Create it when a project is set up, or change it when the client asks. The one exception is `parts`, which follows the approved design's stack: `deliver` adds or changes it from the design's stack before its `conventions` step, and outside `deliver` a person asks for it. Every other use is read-only.
 
 ## Settings
 
@@ -42,7 +42,7 @@ The helper script `scripts/project_config.py` (in this skill's folder) does all 
    - `ok`: the configuration can be used. Read a setting with `project_config.py get <setting>`, which checks the file again first.
    - Problems (exit code 1): stop, show the client or the role that asked every line the script printed, and fix the cause before going on. A missing file is created with step 2; any other problem is fixed in step 3.
 2. **Create it when the project is set up.** Ask the client which language they read and write, and whether everything published must be in English. Then run `project_config.py init --client-language <code> --english-only` (or `--no-english-only`). The script refuses to overwrite an existing file. Run `check`, and commit the file.
-3. **Change it only when the client asks.** Edit `keyturn/config.json` (keep it a JSON object with only the settings above), run `check` until it prints `ok`, and commit it. A change of `client_language` or `english_only` changes the language of client-facing documents from then on; tell the client which documents will be written in the new language.
+3. **Change it only when the client asks** (or, for `parts`, when `deliver` writes it from the design). Edit `keyturn/config.json` (keep it a JSON object with only the settings above), run `check` until it prints `ok`, and commit it. A change of `client_language` or `english_only` changes the language of client-facing documents from then on; tell the client which documents will be written in the new language.
 
 ## Notes
 

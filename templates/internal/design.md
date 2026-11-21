@@ -23,9 +23,11 @@ Based on requirements version <n>.
 <!--
 The stack profile used, from profiles/. If no profile fits, write "No profile" and the stack:
 the gate's coverage is then limited, and the delivery report must say so.
+Name each profile and its folder exactly as in the form below (for example `go` for `api/`, `react-spa` for `web/`):
+deliver writes the gate's `parts` in keyturn/config.json from this line, and stops when it cannot read it.
 -->
 
-- Stack profile: <profile name | No profile: the stack>
+- Stack profile: <`profile` for `folder/`, one per part, separated by commas | `profile` alone, for the whole repository | No profile: the stack>
 - Repository structure: <one repository | monorepo | several repositories>, see <link to the ADR>
 
 ## Structure

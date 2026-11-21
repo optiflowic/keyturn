@@ -10,8 +10,17 @@ Usage:
                                          task, even when it is done. Each task's problems are printed under
                                          its heading. Exits 1 if any task it lists has a problem; the others are
                                          still listed.
+  task_state.py unmerged DEFAULT         For every local and remote branch task/<task>, print the ones whose work is
+                                         not on the default branch DEFAULT (for example origin/main), one line each:
+                                         "<branch>: <Status of its state file | no state file>". A branch is merged
+                                         when its head is an ancestor of DEFAULT (a merge or a fast-forward), or when
+                                         DEFAULT has the task's state file exactly as the branch's head has it and
+                                         the head is the commit that last changed it (a squash merge carries the
+                                         branch's last state commit; a later commit is work not merged). Prints "no unmerged
+                                         task branches" and exits 0 when there are none; exits 1 when it lists any,
+                                         and 2 when DEFAULT is not a commit.
 
-Both commands print every problem as one line, "error: <where>: <problem>", on standard output
+`check` and `list` print every problem as one line, "error: <where>: <problem>", on standard output
 (indented under the task's heading in `list`).
 
 --now is the current time, YYYY-MM-DDTHH:MMZ in UTC (default: the clock). It only decides whether a
@@ -20,7 +29,7 @@ always gives the same verdict and the same problems, in the same order.
 
 The allowed fields, values, sections, and steps are read from the template at every run, so the script cannot
 drift from it. A template this script cannot read is reported as a problem, never worked around.
-Needs Python 3.9 or later (and Git for `list`). Uses only the standard library.
+Needs Python 3.9 or later (and Git for `list` and `unmerged`). Uses only the standard library.
 """
 
 from __future__ import annotations
@@ -715,6 +724,39 @@ def cmd_list(template: Template, now: str, only_task: str | None) -> int:
     return 0 if all(results) else 1
 
 
+STATUS_LINE_RE = re.compile(r"^- Status: (.*)$", re.MULTILINE)
+
+
+def is_merged(root: Path, branch: str, task: str, default: str) -> bool:
+    """Whether the branch's work is on the default branch: by a merge or fast-forward, or by a squash merge."""
+    if is_ancestor(root, branch, default):
+        return True
+    path = f"{STATE_DIR}/{task}.md"
+    on_branch, on_default = git(root, "rev-parse", "--verify", "-q", f"{branch}:{path}"), git(root, "rev-parse", "--verify", "-q", f"{default}:{path}")
+    if on_branch.returncode != 0 or on_default.returncode != 0 or on_branch.stdout != on_default.stdout:
+        return False
+    # A commit after the last state commit is work the squash merge did not carry.
+    last_state, head = git(root, "log", "-1", "--format=%H", branch, "--", path), git(root, "rev-parse", "--verify", "-q", branch)
+    return last_state.returncode == 0 and head.returncode == 0 and last_state.stdout.strip() == head.stdout.strip()
+
+
+def cmd_unmerged(default: str) -> int:
+    root = repo_root()
+    if git(root, "rev-parse", "--verify", "-q", f"{default}^{{commit}}").returncode != 0:
+        print(f"error: {default}: should name a commit (the default branch, for example origin/main)")
+        return 2
+    lines = []
+    for task, branches in task_branches(root).items():
+        for branch in branches:
+            if is_merged(root, branch, task, default):
+                continue
+            shown = git(root, "show", f"{branch}:{STATE_DIR}/{task}.md")
+            status = STATUS_LINE_RE.search(shown.stdout.decode("utf-8", errors="replace")) if shown.returncode == 0 else None
+            lines.append(f"{branch}: {status.group(1).strip() if status else 'no state file'}")
+    print("\n".join(lines) if lines else "no unmerged task branches")
+    return 1 if lines else 0
+
+
 def check_now(value: str) -> str:
     if not is_time(value):
         raise argparse.ArgumentTypeError(f"should be a UTC time in the form {TIME_FORM}, not {value!r}")
@@ -729,6 +771,8 @@ def main() -> int:
     check.add_argument("file", type=Path)
     listing = commands.add_parser("list", help="list the tasks on task/<task> branches that are not done")
     listing.add_argument("--task", help="list only this task, even when it is done")
+    unmerged = commands.add_parser("unmerged", help="list the task/<task> branches that are not merged into the default branch")
+    unmerged.add_argument("default", help="the default branch, for example origin/main")
     for command in (check, listing):
         command.add_argument(
             "--now", type=check_now, default=datetime.now(timezone.utc).strftime(TIME_FORMAT), metavar=TIME_FORM,
@@ -736,6 +780,13 @@ def main() -> int:
         )
     args = parser.parse_args()
 
+    if args.command == "unmerged":
+        try:
+            return cmd_unmerged(args.default)
+        except Problems as error:
+            for problem in error.problems:
+                print(f"error: {problem}")
+            return 2
     try:
         template = read_template(args.template)
         if args.command == "check":

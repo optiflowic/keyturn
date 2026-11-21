@@ -455,6 +455,73 @@ class ListTest(unittest.TestCase):
         self.assertEqual((missing.returncode, missing.stdout), (1, "delivery-7 (task/delivery-7):\n  error: task/delivery-7: has no local or remote branch\n"))
 
 
+class UnmergedTest(unittest.TestCase):
+    def setUp(self):
+        self.repo = Repo()
+        self.addCleanup(self.repo.close)
+
+    def test_no_task_branches(self):
+        result = self.repo.run("unmerged", "main")
+        self.assertEqual((result.returncode, result.stdout), (0, "no unmerged task branches\n"))
+
+    def test_lists_unmerged_branches_with_their_status_local_and_remote(self):
+        done = WORKED_EXAMPLE.read_text(encoding="utf-8")
+        self.repo.task_branch(self.repo.root, "delivery-1", done)
+        self.repo.task_branch(self.repo.origin, "delivery-2", STOPPED)
+        self.repo.git(self.repo.root, "switch", "-q", "-c", "task/delivery-3", "main")
+        self.repo.commit(self.repo.root, "notes.md", "no state file\n")
+        self.repo.git(self.repo.root, "switch", "-q", "main")
+        self.repo.git(self.repo.root, "fetch", "-q")
+
+        result = self.repo.run("unmerged", "main")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertEqual(result.stdout, (
+            "task/delivery-1: done\n"
+            "origin/task/delivery-2: stopped\n"
+            "task/delivery-3: no state file\n"
+        ))
+
+    def test_merged_and_squash_merged_branches_are_left_out(self):
+        done = WORKED_EXAMPLE.read_text(encoding="utf-8")
+        self.repo.task_branch(self.repo.root, "delivery-1", done)
+        self.repo.git(self.repo.root, "merge", "-q", "--no-edit", "task/delivery-1")
+        self.repo.task_branch(self.repo.root, "delivery-2", done)
+        self.repo.git(self.repo.root, "merge", "-q", "--squash", "task/delivery-2")
+        self.repo.git(self.repo.root, "commit", "-q", "-m", "squash")
+
+        result = self.repo.run("unmerged", "main")
+        self.assertEqual((result.returncode, result.stdout), (0, "no unmerged task branches\n"))
+
+    def test_work_after_a_squash_merge_is_unmerged(self):
+        done = WORKED_EXAMPLE.read_text(encoding="utf-8")
+        self.repo.task_branch(self.repo.root, "delivery-1", done)
+        self.repo.git(self.repo.root, "merge", "-q", "--squash", "task/delivery-1")
+        self.repo.git(self.repo.root, "commit", "-q", "-m", "squash")
+        self.repo.git(self.repo.root, "switch", "-q", "task/delivery-1")
+        self.repo.commit(self.repo.root, "keyturn/internal/state/delivery-1.md", done.replace("- Status: done", "- Status: running"))
+        self.repo.git(self.repo.root, "switch", "-q", "main")
+
+        result = self.repo.run("unmerged", "main")
+        self.assertEqual((result.returncode, result.stdout), (1, "task/delivery-1: running\n"))
+
+    def test_other_work_after_a_squash_merge_is_unmerged(self):
+        done = WORKED_EXAMPLE.read_text(encoding="utf-8")
+        self.repo.task_branch(self.repo.root, "delivery-1", done)
+        self.repo.git(self.repo.root, "merge", "-q", "--squash", "task/delivery-1")
+        self.repo.git(self.repo.root, "commit", "-q", "-m", "squash")
+        self.repo.git(self.repo.root, "switch", "-q", "task/delivery-1")
+        self.repo.commit(self.repo.root, "app/main.py", "print('later')\n")
+        self.repo.git(self.repo.root, "switch", "-q", "main")
+
+        result = self.repo.run("unmerged", "main")
+        self.assertEqual((result.returncode, result.stdout), (1, "task/delivery-1: done\n"))
+
+    def test_default_that_is_not_a_commit(self):
+        result = self.repo.run("unmerged", "origin/nothing")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("error: origin/nothing: should name a commit", result.stdout)
+
+
 class CheckCommandTest(unittest.TestCase):
     def run_check(self, text: str) -> subprocess.CompletedProcess:
         """Run check from the file's folder, so the problems name the same path, delivery-1.md, every run."""
