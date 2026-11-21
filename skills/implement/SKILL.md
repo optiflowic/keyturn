@@ -32,7 +32,7 @@ Everything this skill needs is in this file, the template it names, and the scri
 - `keyturn/internal/threat-model.md`: the threats, and the mitigation each needs in the design's parts.
 - `keyturn/internal/conventions.md` and the tool configs it lists under "Tool rules".
 - Optional: which requirements this task covers (for example, `deliver` builds a delivery in parts). Without it, the task covers every requirement that is not removed.
-- In rework: the findings to fix, in `keyturn/internal/test-report.md` ("Failures"), `keyturn/internal/review.md` and `keyturn/internal/security-review.md` (findings with "Status: open"), and gate logs when the gate exists (phase 4).
+- In rework: the findings to fix, in `keyturn/internal/test-report.md` ("Failures"), `keyturn/internal/review.md` and `keyturn/internal/security-review.md` (findings with "Status: open"), and the gate's `FAIL` lines.
 - `templates/internal/handoff.md` in keyturn (two folders above this skill's folder), not in the project. Follow every comment in it.
 
 ## Outputs
@@ -69,7 +69,7 @@ Everything else goes on.
 
 Before every change, check that the design already covers it. Stop that part and ask (step 6) when it would:
 
-- **add a dependency the design does not list** with its kind and a passing check (ADR 0015 in keyturn's `docs/adr/`). Use each listed dependency at exactly the version the design names, and commit the lock file it changes (for example `package-lock.json` or `go.sum`), so every indirect dependency is fixed (ADR 0018 in keyturn's `docs/adr/`). If the design names no version for a dependency, ask the architect instead of choosing one. Use a runtime dependency or an other tool only when its ADR is `accepted`. A development tool that a stack profile names needs no agreement, but still needs its listing and its check; until stack profiles exist (phase 4), no tool is named by one, so every tool needs its ADR to be `accepted`. The language toolchain and its standard library need nothing more than the stack's approval. Never add a gate scanner (for example Semgrep, gitleaks, or Trivy) to the project;
+- **add a dependency the design does not list** with its kind and a passing check (ADR 0015 in keyturn's `docs/adr/`). Use each listed dependency at exactly the version the design names, and commit the lock file it changes (for example `package-lock.json` or `go.sum`), so every indirect dependency is fixed (ADR 0018 in keyturn's `docs/adr/`). If the design names no version for a dependency, ask the architect instead of choosing one. Use a runtime dependency or an other tool only when its ADR is `accepted`. A development tool that a stack profile names needs no agreement, but still needs its listing and its check; for a stack without a profile, no tool is named by one, so every tool needs its ADR to be `accepted`. The language toolchain and its standard library need nothing more than the stack's approval. Never add a gate scanner (for example Semgrep, gitleaks, or Trivy) to the project;
 - **use an external service** the design does not list, or use a listed one in a way it does not describe;
 - **change how people sign in, what each person may see or change, or what data is kept**, where, and for how long, beyond what the design's parts, data model, and ADRs say;
 - **build an external service, sign-in, access, or data-keeping decision that has no `accepted` ADR with "Needs client agreement: yes"**, even when the design lists it: the design covers these only once the client agreed;

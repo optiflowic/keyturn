@@ -18,7 +18,7 @@ Make the project's coding conventions checkable. Everything a tool can check bec
 ## Inputs
 
 - `keyturn/internal/design.md`: the stack, the parts and their locations, the libraries and their kinds, the areas the work may change, and QA's test folders ("QA's tests").
-- The stack profile the design names, in keyturn's `profiles/<profile>/`, if it exists. Until profiles exist (phase 4), there is none: see "When inputs are missing".
+- The stack profile the design names, in keyturn's `profiles/<profile>/`, if it exists: its `README.md` names its tools, where their rules go, and the config files it protects. Write every config and rule file only under a name it protects: a `conventions` commit that changes any other file stops the gate. A stack without a profile: see "When inputs are missing".
 - `keyturn/internal/threat-model.md`, if it exists: mitigations that a lint or static-analysis rule verifies.
 - `keyturn/internal/adr/`: accepted decisions to follow.
 - `keyturn/internal/conventions.md` and the tool configs it lists, if they exist (for a change).
@@ -63,7 +63,7 @@ Then sort every tool by its kind (ADR 0015), and write the kind in "Tool kind":
 - **Toolchain**: part of the language's toolchain (for example, `gofmt` and `go vet`). Covered by approving the stack; use it.
 - **Gate scanner**: Semgrep, gitleaks, Trivy, and the other scanners the gate installs outside the project. Never add the scanner to the project's dependencies; only its rule file goes in the project.
 - **Profile tool**: a development tool the stack profile names (a linter, a formatter, their plugins). It needs no client approval, but it is used only when the design lists it as `profile tool` with its check.
-- **Other tool**: any development tool no profile names. Until stack profiles exist, every tool you assume is an other tool. It needs the client's approval, through the design and `design-summary.md` ("Must agree").
+- **Other tool**: any development tool no profile names. Without a profile, every tool you assume is an other tool. It needs the client's approval, through the design and `design-summary.md` ("Must agree").
 
 Use a profile tool or an other tool only when the design's "Libraries and external services" lists it, with that kind and a passing check. If it is not listed, do not add it, its config, or its rules: report it to the architect, with its name, kind, and what it would check, so it is checked and recorded (and, for an other tool, approved by the client) in the design. Go on with the other tools, and list what is waiting in your report. Prefer a toolchain tool whenever it does the same job.
 
@@ -116,7 +116,7 @@ A change comes from the developer (in the handoff notes), the reviewer, or the a
 
 ## When inputs are missing
 
-- **No stack profile** (always, until phase 4): start from the design document, choose the defaults as in step 3, and list every one under "Assumed defaults", with "No profile" on the "Stack profile" line. Every development tool you assume is then an other tool: until the client has approved it through the design, use only toolchain tools and gate scanners' rule files, and report the rest as waiting. List each waiting tool under "Assumed defaults" with the rules it would enforce and "not enforced until the design lists it", so the gap is visible: the readability limits stay tool rules even then, never checklist items.
+- **No stack profile** (a stack other than those in keyturn's `profiles/`): start from the design document, choose the defaults as in step 3, and list every one under "Assumed defaults", with "No profile" on the "Stack profile" line. Every development tool you assume is then an other tool: until the client has approved it through the design, use only toolchain tools and gate scanners' rule files, and report the rest as waiting. List each waiting tool under "Assumed defaults" with the rules it would enforce and "not enforced until the design lists it", so the gap is visible: the readability limits stay tool rules even then, never checklist items.
 - **No design document**: ask whether the design should be written first. If the human wants conventions on their own, work from the repository: find its languages from its files (for example, `go.mod`, `package.json`), skip the boundary rules and the design checks, and replace the template's "Based on the design document" line with "No design document: conventions are based on the repository only.", and say the same under "Summary". Ask the human which paths the developer may change and where QA's tests are (folders or globs), and use their answer for the placement checks in steps 4 and 6. If they cannot say, stop and report that the placement of the configs cannot be checked without them; write nothing until they say.
 - **No threat model**: skip the forbidden patterns that would come from it, and say so in your report.
 - **Existing tool configs, without `conventions.md`** (an existing repository): they are the baseline. Keep their rules, add the missing ones, list them all, and loosen nothing.

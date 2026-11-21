@@ -1,0 +1,33 @@
+{
+  "name": "go",
+  "tools": [
+    {"command": "go", "install": "install Go 1.24 or later from https://go.dev/dl/ (it includes gofmt and go vet)"},
+    {"command": "gofmt", "install": "gofmt comes with Go: install Go from https://go.dev/dl/ and put its bin folder on PATH"},
+    {"command": "golangci-lint", "install": "install golangci-lint v2 (2.0 or later): https://golangci-lint.run/docs/welcome/install/"}
+  ],
+  "setup": [],
+  "checks": [
+    {"name": "build", "run": ["go", "build", "./..."]},
+    {"name": "test", "run": ["go", "test", "-count=1", "./..."]},
+    {"name": "format", "run": ["sh", "-c", "out=$(gofmt -l .) || exit 1; if [ -n \"$out\" ]; then echo 'not formatted with gofmt:'; echo \"$out\"; exit 1; fi"]},
+    {"name": "vet", "run": ["go", "vet", "./..."]},
+    {"name": "lint", "run": ["golangci-lint", "run", "./..."]}
+  ],
+  "count_tests": ["sh", "-c", "out=$(go test -list . ./... 2>&1) || { printf '%s\\n' \"$out\"; exit 1; }; printf '%s\\n' \"$out\" | grep -cE '^(Test|Fuzz|Example)[^[:space:]]*$' || true"],
+  "source_files": ["*.go"],
+  "suppressions": [
+    "//\\s*nolint\\b",
+    "//\\s*lint:(file-)?ignore\\b",
+    "#nosec\\b"
+  ],
+  "protected": [
+    ".golangci.yml",
+    ".golangci.yaml",
+    ".golangci.toml",
+    ".golangci.json",
+    "staticcheck.conf",
+    ".semgrep.yml",
+    ".semgrep.yaml",
+    ".semgrep/**"
+  ]
+}

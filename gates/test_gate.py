@@ -531,5 +531,26 @@ class GateTest(unittest.TestCase):
         self.assertIn("is not an ancestor", result.stderr)
 
 
+class ShippedProfiles(unittest.TestCase):
+    """Every profile in keyturn's profiles/ is one the gate accepts, and has the README the roles read."""
+
+    def test_every_shipped_profile_is_valid(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("gate_module", GATE)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = module  # its dataclasses look their module up there
+        try:
+            spec.loader.exec_module(module)
+        finally:
+            del sys.modules[spec.name]
+        folders = sorted(p for p in (GATE.parent.parent / "profiles").iterdir() if p.is_dir())
+        self.assertTrue(folders)
+        for folder in folders:
+            with self.subTest(profile=folder.name):
+                profile = json.loads((folder / "profile.json").read_text(encoding="utf-8"))
+                self.assertEqual(module.profile_problems(folder.name, profile), [])
+                self.assertTrue((folder / "README.md").is_file())
+
+
 if __name__ == "__main__":
     unittest.main()
