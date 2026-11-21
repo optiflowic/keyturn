@@ -394,7 +394,7 @@ def check_protected(paths: list[str], patterns: list[str]) -> Result:
 class Allowed:
     """What the project's accepted ADRs allow: by number, the text a line that names the ADR may contain ("- Allows: <text>"),
     and, for every line in a file matching a path pattern, the text it may contain without naming the ADR
-    ("- Allows in <pattern>: <text>", ADR 0037), as (pattern, text, ADR number)."""
+    ("- Allows in <pattern>: <text>", ADR 0038), as (pattern, text, ADR number)."""
     named: dict[str, list[str]] = field(default_factory=dict)
     placed: list[tuple[str, str, str]] = field(default_factory=list)
 

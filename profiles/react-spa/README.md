@@ -62,7 +62,7 @@ QA's tests live in `qa/` at the root of the part (for a part `web`, `web/qa/**`)
 
 ## Suppressions
 
-An added line in a JavaScript, TypeScript, CSS, or HTML file fails the `suppressions` check when it has `eslint-disable` (in any form), an inline ESLint config comment (`/* eslint <rule>: off */`, `/* eslint-env */`, `/* global */`), `@ts-ignore`, `@ts-nocheck`, or `@ts-expect-error`, or `prettier-ignore`, unless an accepted ADR allows it (ADR 0028). The line names the ADR (`// eslint-disable-next-line no-console -- ADR-0005`), or the ADR allows it in a folder (`- Allows in web/src/api/generated/**: /* eslint-disable */`, [ADR 0038](../../docs/adr/0038-suppressions-allowed-in-a-folder.md)), which is how generated code that carries such a comment is allowed.
+An added line in a JavaScript, TypeScript, CSS, or HTML file fails the `suppressions` check when it has `eslint-disable` (in any form), an inline ESLint config comment (`/* eslint <rule>: off */`, `/* eslint-env */`, `/* global */`, also when `eslint` or `global` starts a later line of the comment), `@ts-ignore`, `@ts-nocheck`, or `@ts-expect-error`, or `prettier-ignore`, unless an accepted ADR allows it (ADR 0028). The line names the ADR (`// eslint-disable-next-line no-console -- ADR-0005`), or the ADR allows it in a folder (`- Allows in web/src/api/generated/**: /* eslint-disable */`, [ADR 0038](../../docs/adr/0038-suppressions-allowed-in-a-folder.md)), which is how generated code that carries such a comment is allowed.
 
 ## What this profile does not check
 
