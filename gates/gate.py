@@ -49,7 +49,8 @@ FIXED_PROTECTED = (
 # The developer's own document, under a protected folder.
 NOT_PROTECTED = ("keyturn/internal/handoff.md",)
 
-# What a commit named as another role's may change (ADR 0029, ADR 0032), by the step names of the task state file. QA's
+# What a commit named as another role's may change (ADR 0029, ADR 0032, and ADR 0033 for "deliver": the state file, and,
+# in its last step, the gate's log, the acceptance guide, and the delivery report), by the step names of the task state file. QA's
 # folders from the design are added for "qa", each profile's linter configs for "conventions", and a "security-review"
 # commit may change only the "Status" lines of the threat model.
 THREAT_MODEL = "keyturn/internal/threat-model.md"
@@ -61,7 +62,8 @@ ROLE_PATHS = {
     "qa": ["keyturn/internal/test-report.md"],
     "security-review": ["keyturn/internal/security-review.md", THREAT_MODEL],
     "review": ["keyturn/internal/review.md"],
-    "deliver": ["keyturn/internal/state/**"],
+    "deliver": ["keyturn/internal/state/**", "keyturn/internal/gate/**", "keyturn/client/acceptance-guide.md",
+                "keyturn/client/delivery-report.md"],
 }
 
 PROFILE_FIELDS = {"name", "tools", "setup", "checks", "count_tests", "source_files", "suppressions", "protected"}
