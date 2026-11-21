@@ -52,6 +52,10 @@ Stopped in the middle of the programming because the plan's 5-hour usage window 
 | review | not started | | | |
 | deliver | not started | | | |
 
+## Commits
+
+- `3d5e7a1`: implement, round 1
+
 ## Open questions
 
 None.
@@ -84,6 +88,21 @@ def check(text: str, file_name: str | None = "delivery-1.md") -> list[str]:
 class TemplateTest(unittest.TestCase):
     """The script reads the real template, so a change to it that the script cannot follow fails here."""
 
+    def test_commits_lines_name_a_commit_a_step_and_a_round(self):
+        bad = STOPPED.replace("- `3d5e7a1`: implement, round 1",
+                              "- `3d5e7a1`: implement, round 1\n- `3d5e7a1`: qa, round 1\n- `zz`: testing, round 0\n- 3d5e7a1 implement")
+        problems = check(bad)
+        self.assertTrue(any("commit `3d5e7a1` is also listed" in p for p in problems), problems)
+        self.assertTrue(any('"`zz`" should be a commit hash' in p for p in problems), problems)
+        self.assertTrue(any('"testing" is not a step' in p for p in problems), problems)
+        self.assertTrue(any("the round should be 1 or more" in p for p in problems), problems)
+        self.assertTrue(any('should be "- `<commit>`: <step>, round <n>"' in p for p in problems), problems)
+
+    def test_commits_may_be_none_but_not_empty(self):
+        self.assertEqual(check(STOPPED.replace("- `3d5e7a1`: implement, round 1", "None.")), [])
+        self.assertIn('Commits: should say "None." when no commit is listed',
+                      check(STOPPED.replace("- `3d5e7a1`: implement, round 1", "")))
+
     def test_reads_fields_steps_and_values_from_the_template(self):
         template = task_state.read_template(TEMPLATE)
         self.assertEqual(list(template.fields), [
@@ -93,7 +112,7 @@ class TemplateTest(unittest.TestCase):
         self.assertEqual(template.steps, ["spec", "design", "conventions", "implement", "qa", "security-review", "review", "deliver"])
         self.assertEqual(template.step_statuses, ["not started", "in progress", "done", "skipped"])
         self.assertEqual([p.text for p in template.fields["Status"]], ["running", "stopped", "done"])
-        self.assertEqual(template.sections, ["Summary", "Steps", "Open questions", "History"])
+        self.assertEqual(template.sections, ["Summary", "Steps", "Commits", "Open questions", "History"])
 
     def test_worked_example_passes(self):
         self.assertEqual(check(WORKED_EXAMPLE.read_text(encoding="utf-8")), [])
@@ -205,17 +224,17 @@ class MalformedTimesTest(unittest.TestCase):
 
     def test_history_time(self):
         problems = check(STOPPED.replace("- 2026-11-08T01:05Z: started", "- 8 Nov 2026: started"))
-        self.assertIn('line 36: "8 Nov 2026" should be a UTC time in the form YYYY-MM-DDTHH:MMZ', problems)
+        self.assertIn('line 40: "8 Nov 2026" should be a UTC time in the form YYYY-MM-DDTHH:MMZ', problems)
 
     def test_history_out_of_order(self):
         problems = check(STOPPED.replace("- 2026-11-08T06:02Z: resumed", "- 2026-11-08T03:22Z: resumed"))
         self.assertNotIn("should not be earlier than the line before it", " ".join(problems))
         problems = check(STOPPED.replace("- 2026-11-08T12:48Z: stopped: usage", "- 2026-11-08T05:48Z: stopped: usage"))
-        self.assertIn("line 39: 2026-11-08T05:48Z should not be earlier than the line before it (newest last)", problems)
+        self.assertIn("line 43: 2026-11-08T05:48Z should not be earlier than the line before it (newest last)", problems)
 
     def test_open_question_time(self):
         problems = check(WAITING.replace("Waiting since 2026-11-08T03:20Z", "Waiting since yesterday"))
-        self.assertIn('line 32: "yesterday" should be a UTC time in the form YYYY-MM-DDTHH:MMZ', problems)
+        self.assertIn('line 36: "yesterday" should be a UTC time in the form YYYY-MM-DDTHH:MMZ', problems)
 
     def test_blocks_names_steps_of_the_template(self):
         self.assertEqual(check(WAITING), [])
@@ -225,16 +244,16 @@ class MalformedTimesTest(unittest.TestCase):
 
     def test_blocks_with_an_unknown_step_is_reported(self):
         problems = check(WAITING.replace("Blocks: design and every later step", "Blocks: the design"))
-        self.assertIn('line 32: "Blocks:" names "the design", which should be a step (spec, design, conventions, implement, '
+        self.assertIn('line 36: "Blocks:" names "the design", which should be a step (spec, design, conventions, implement, '
                       'qa, security-review, review, deliver), "every later step" right after a step, or a requirement (R-n)', problems)
 
     def test_empty_blocks_is_reported(self):
         for blocks in (".", ",", ", ."):
             with self.subTest(blocks=blocks):
                 problems = check(WAITING.replace("Blocks: design and every later step", f"Blocks: {blocks}"))
-                self.assertIn('line 32: "Blocks:" should name at least one step or requirement', problems)
+                self.assertIn('line 36: "Blocks:" should name at least one step or requirement', problems)
         problems = check(WAITING.replace("Blocks: design and every later step", "Blocks: implement, , qa"))
-        self.assertIn('line 32: "Blocks: implement, , qa" has an empty item between its commas or "and"', problems)
+        self.assertIn('line 36: "Blocks: implement, , qa" has an empty item between its commas or "and"', problems)
 
     def test_blocks_every_later_step_needs_a_step_before_it(self):
         problems = check(WAITING.replace("Blocks: design and every later step", "Blocks: every later step"))

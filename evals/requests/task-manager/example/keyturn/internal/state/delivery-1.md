@@ -27,6 +27,29 @@ Delivery 1 is done: the acceptance guide and the delivery report are ready for t
 | review | done | [review](../review.md) | `f1c4d27` | reviewed `a51f0c2`..`9b02d4f` |
 | deliver | done | [acceptance guide](../../client/acceptance-guide.md), [delivery report](../../client/delivery-report.md) | `c08d5e1` | |
 
+## Commits
+
+- `3d5e7a1`: implement, round 1
+- `4e1c9a7`: implement, round 1
+- `5b2f0d6`: deliver, round 1
+- `6a8c3e2`: implement, round 1
+- `7d4b1f9`: deliver, round 1
+- `8c6e2a0`: qa, round 1
+- `8f0a5b3`: deliver, round 1
+- `91b7d4c`: security-review, round 1
+- `93e2c6a`: deliver, round 1
+- `95a1f8e`: review, round 1
+- `97c3b0d`: deliver, round 1
+- `9b02d4f`: implement, round 2
+- `a0d6e3f`: deliver, round 2
+- `d2a7f13`: qa, round 2
+- `d4f1a7c`: deliver, round 2
+- `e5b8c90`: security-review, round 2
+- `e7c2d91`: deliver, round 2
+- `f1c4d27`: review, round 2
+- `f3a8e05`: deliver, round 2
+- `c08d5e1`: deliver, round 2
+
 ## Open questions
 
 None.
