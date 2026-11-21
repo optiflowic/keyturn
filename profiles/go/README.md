@@ -59,5 +59,6 @@ Each delivery report made with this profile lists these under "What was not veri
 - **Tests**: subtests (`t.Run`) are not counted, so a dropped subtest is not found; skipped tests (`t.Skip`) and coverage are not checked.
 - **Code that runs during the tests**: `go test` runs the project's own code, including `init` functions and `TestMain` in the developer's packages. The gate does not stop code that changes how the tests run; the review and the security review read it.
 - **Builds outside the default**: files behind a build constraint (`//go:build`) that the default build leaves out are not built, tested, or linted.
+- **Code that `./...` does not reach**: a folder inside the part with its own `go.mod` (a nested module), and folders whose names start with `.` or `_` or are named `testdata`, are not built, tested, linted, or counted. A `go.work` file is not read either. The review reads any new `go.mod` or `go.work` in the change.
 - **The toolchain the module asks for**: a `toolchain` line in `go.mod` can make `go` download and run another Go version, with the network the gate runs in.
 - **Structure and secure defaults**: this profile does not give a recommended project structure or secure defaults yet; the architect takes them from Go's own documentation and says so in the stack's ADR.
