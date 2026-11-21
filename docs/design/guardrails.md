@@ -36,6 +36,7 @@ During the MVP ([Phases](phases.md#mvp), [ADR 0025](../adr/0025-mvp-first.md)), 
 
 - Every task has limits: rework count, token budget, time, and number of changed files.
 - When a limit is reached, or the agent is unsure (ambiguous requirements, conflicting constraints), it stops and asks the client instead of guessing.
+- During the MVP, only the rework count is a limit `deliver` stops at ([ADR 0030](../adr/0030-deliver-rework-loop.md)). Tokens, time, and the number of changed files are not measured; every delivery report made during that time says so under "What was not verified".
 
 ### Subscription usage limits
 
