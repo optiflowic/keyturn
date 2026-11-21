@@ -48,12 +48,12 @@ FIXED_PROTECTED = (
 # The developer's own document, under a protected folder.
 NOT_PROTECTED = ("keyturn/internal/handoff.md",)
 
-# What a commit named as another role's may change (ADR 0029). QA's folders from the design are added for "qa", and a
-# "security" commit may change only the "Status" lines of the threat model.
+# What a commit named as another role's may change (ADR 0029), by the step names of the task state file. QA's folders
+# from the design are added for "qa", and a "security-review" commit may change only the "Status" lines of the threat model.
 THREAT_MODEL = "keyturn/internal/threat-model.md"
 ROLE_PATHS = {
     "qa": ["keyturn/internal/test-report.md"],
-    "security": ["keyturn/internal/security-review.md", THREAT_MODEL],
+    "security-review": ["keyturn/internal/security-review.md", THREAT_MODEL],
     "review": ["keyturn/internal/review.md"],
     "deliver": ["keyturn/internal/state/**"],
 }
@@ -541,8 +541,9 @@ def check_others(root: Path, base: str, head: str, others: dict[str, str], qa: l
     """Stop unless each commit named as another role's is in the range and changes only what that role may write (ADR 0029)."""
     commits = dict(range_commits(root, base, head))
     problems = [f"{commit[:12]} ({role}): not in the range" for commit, role in others.items() if commit not in commits]
-    problems += [f"{commit[:12]}: a merge in the range; a task run by deliver has none" for commit, parents in commits.items()
-                 if len(parents) > 1]
+    if others:  # without a list, a merge is checked like any commit (ADR 0028)
+        problems += [f"{commit[:12]}: a merge in the range; a task run by deliver has none" for commit, parents in commits.items()
+                     if len(parents) > 1]
     for commit, role in others.items():
         if commit not in commits or len(commits[commit]) != 1:
             continue
@@ -550,12 +551,12 @@ def check_others(root: Path, base: str, head: str, others: dict[str, str], qa: l
         allowed = ROLE_PATHS[role] + (qa if role == "qa" else [])
         outside = [path for path in name_status(root, parent, commit) if not any(matches(path, p) for p in allowed)]
         problems += [f"{commit[:12]} ({role}): changes {path}, which a {role} commit may not" for path in outside]
-        if role == "security":
+        if role == "security-review":
             diff = git(root, "diff", "--no-color", "--no-ext-diff", "--text", "--no-textconv", "--unified=0", parent, commit,
                        "--", THREAT_MODEL)
             changed = [row for row in diff.split("\n") if row[:1] in ("+", "-") and not row.startswith(("+++ ", "--- "))]
             if any(not re.match(r"[+-]- Status: ", row) for row in changed):
-                problems.append(f"{commit[:12]} (security): changes a line of {THREAT_MODEL} other than a \"Status\" line")
+                problems.append(f"{commit[:12]} (security-review): changes a line of {THREAT_MODEL} other than a \"Status\" line")
     if problems:
         raise SetupError(["the commits named as other roles' do not match the range: " + problem for problem in problems])
 
@@ -592,7 +593,7 @@ def main() -> int:
     parser.add_argument("--profiles", type=Path, default=PLUGIN_ROOT / "profiles", help="the folder of stack profiles")
     parser.add_argument("--timeout-minutes", type=float, default=30, help="the limit for each command (default: 30)")
     parser.add_argument("--others", action="append", default=[], metavar="ROLE:COMMIT",
-                        help="a commit in the range that is another role's (qa, security, review, deliver); repeat for each (ADR 0029)")
+                        help="a commit in the range that is another role's (qa, security-review, review, deliver); repeat for each (ADR 0029)")
     args = parser.parse_args()
 
     try:

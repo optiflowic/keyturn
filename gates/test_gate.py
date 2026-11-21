@@ -348,10 +348,10 @@ class GateTest(unittest.TestCase):
         self.put("keyturn/internal/threat-model.md", "## T-1\n\n- Severity: high\n- Status: verified\n")
         self.put("keyturn/internal/security-review.md", "# Security review\n")
         status = self.commit("security review")
-        self.assertEqual(self.gate("--others", f"security:{status}").returncode, 0)
+        self.assertEqual(self.gate("--others", f"security-review:{status}").returncode, 0)
         self.put("keyturn/internal/threat-model.md", "## T-1\n\n- Severity: low\n- Status: verified\n")
         severity = self.commit("security role lowers a severity")
-        result = self.gate("--others", f"security:{status}", "--others", f"security:{severity}")
+        result = self.gate("--others", f"security-review:{status}", "--others", f"security-review:{severity}")
         self.assertEqual(result.returncode, 2)
         self.assertIn('other than a "Status" line', result.stderr)
 
@@ -364,6 +364,14 @@ class GateTest(unittest.TestCase):
         result = self.gate("--others", f"qa:{qa}")
         self.assertEqual(result.returncode, 2)
         self.assertIn("a merge in the range", result.stderr)
+
+    def test_a_merge_without_others_is_checked_like_any_commit(self):
+        self.git("checkout", "-q", "-b", "side")
+        self.put("app/src/side.py", "print('side')\n")
+        self.commit("side")
+        self.git("checkout", "-q", "main")
+        self.git("merge", "-q", "--no-ff", "-m", "merge", "side")
+        self.assertEqual(self.gate().returncode, 0)
 
     def test_an_unknown_role_stops_the_gate(self):
         result = self.gate("--others", f"developer:{self.base}")

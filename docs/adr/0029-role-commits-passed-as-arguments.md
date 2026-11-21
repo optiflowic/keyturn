@@ -21,10 +21,10 @@ Option 3.
 
 - When a role's step ends, `deliver` records every commit the step made (the commits between the head before and after it), with the role, in the task state file. The state file is a record: what is in it is never what decides which commits a check skips.
 - The gate's range starts at the head before the task's first `implement` step, so spec, design, and conventions are before it.
-- `deliver` runs the gate with `--others <role>:<commit>` for each commit in the range that is not the developer's: `qa`, `security`, `review`, or `deliver` (its own state commits). It names them from what it recorded during the run. A resumed run has only the state file to name them from.
+- `deliver` runs the gate with `--others <role>:<commit>` for each commit in the range that is not the developer's: `qa`, `security-review`, `review`, or `deliver` (its own state commits), the step names of the task state file. It names them from what it recorded during the run. A resumed run has only the state file to name them from.
 - The gate checks that each commit given with `--others` changes only what that role may write, so that a list read back from the state file cannot hide a developer commit:
   - `qa`: QA's folders (from the design at the base) and `keyturn/internal/test-report.md`;
-  - `security`: `keyturn/internal/security-review.md`, and only the "Status" lines of `keyturn/internal/threat-model.md`;
+  - `security-review`: `keyturn/internal/security-review.md`, and only the "Status" lines of `keyturn/internal/threat-model.md`;
   - `review`: `keyturn/internal/review.md`;
   - `deliver`: `keyturn/internal/state/**`.
 
