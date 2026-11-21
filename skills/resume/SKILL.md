@@ -22,7 +22,7 @@ Paths below that start with `scripts/`, `../`, or `../../` are relative to the f
 - Optional: the name of the task to resume (for example, `delivery-1`). Without it, list the tasks that can be resumed.
 - The project's Git repository, with its task branches `task/<task>` (local, or on a remote).
 - `../../templates/internal/state.md`: the fields and values of a state file. The script reads it; you need it only to edit the state file in step 5.
-- For a task waiting for the client: the decision card or `keyturn/client/approvals.md` named in its "Open questions", and the scripts `../spec/scripts/approval.py` and `../project-config/scripts/project_config.py`.
+- For a task waiting for the client: the decision card, `keyturn/client/design-summary.md`, or `keyturn/client/approvals.md` named in its "Open questions", and the scripts `../spec/scripts/approval.py` and `../project-config/scripts/project_config.py`.
 - To continue: the `deliver` skill, `../deliver/SKILL.md`.
 
 ## Outputs
@@ -65,7 +65,7 @@ Use the lines `list` printed.
 - Then **`can continue:`**:
   - `now`, or `not applicable` with status `running`: go on.
   - `after <time>`: if the line ends with `not yet (now ...)`, stop and tell the person the task can continue after `<time>` (UTC). If it ends with `the time has passed`, go on. This skill does not check the current usage itself; `deliver` checks it before it starts each step and stops again if the limit is still near.
-  - `when the client approves: requirements version <n>: only once the client's answer is recorded` or `when the client answers: decision card <n>: only once the client's answer is recorded`: check whether the client has answered, as below. If they have, go on. If not, only the work that depends on the answer waits: the "Blocks:" part of that item in "Open questions" says which steps. If it blocks the current step (for example, "design and every later step" when the current step is design), stop and say what is waiting for the client. If it does not, go on: the item stays in "Open questions", and `deliver` stops again before a step it blocks.
+  - `when the client approves: requirements version <n>: only once the client's answer is recorded`, `when the client answers: decision card <n>: only once the client's answer is recorded`, or `when the client agrees: design summary: only once the client's answer is recorded`: check whether the client has answered, as below. If they have, go on. If not, only the work that depends on the answer waits: the "Blocks:" part of that item in "Open questions" says which steps. If it blocks the current step (for example, "design and every later step" when the current step is design), stop and say what is waiting for the client. If it does not, go on: the item stays in "Open questions", and `deliver` stops again before a step it blocks.
   - `when the maintainer decides: <what>: only once the maintainer has decided`: stop and ask the maintainer. Go on only after they have decided, and follow their decision.
 - Whatever "Can continue" says, do not run the current step while any unanswered item in "Open questions" lists it under "Blocks:".
 
@@ -73,6 +73,7 @@ How to tell whether the client has answered:
 
 - **Requirements version `<n>`**: run `project_config.py get english_only` and, if it prints `true`, `project_config.py get client_language`. Then run `approval.py status`, adding `--lang <client_language>` when `english_only` is `true`. The client has approved only if its first line is `version <n>: current, answer: <answer>` with that same `<n>`, and `<answer>` is exactly `approved` (or, when `approvals.md` is written in another language, that one word in its language) and nothing else. `waiting`, an empty answer, "not approved", and an approval with conditions are not approvals. If the only errors it prints are about the kept copy of the translation, the approval still counts; tell the person, because the `spec` skill needs to know. When you are unsure what an answer means, ask whoever runs `spec`; do not decide it.
 - **Decision card `<n>`**: open the card linked in "Open questions". The client has answered only if its `Status:` line is `answered` and, under "Your answer", the `Answer:` and `Date:` lines are filled in: not empty, and no longer the template's text in angle brackets (`<option, and any comment>`, `<YYYY-MM-DD>`).
+- **Design summary**: open `keyturn/client/design-summary.md`, linked in "Open questions". The client has agreed only if its `Status:` line is `agreed` and every entry under "Must agree" has `Agreement: agreed` (in a summary written in another language, those words in its language). `waiting`, `not agreed` with what the client wants changed, and an empty value are not agreement: a decision that is not agreed is reworked with the `design` skill and sent again, and the task keeps waiting.
 - **Before writing anything**, check that the `deliver` skill (`../deliver/SKILL.md`) is available. If it is not, stop and report it: `resume` does not run the pipeline itself, and recording a resume that nothing runs would leave the task marked `running`.
 
 ### 5. Record the resume
@@ -103,7 +104,7 @@ The step to continue is the **current step**. Each step in the steps table is na
 - **No task branches**: say there are no tasks to resume.
 - **A task branch without a state file**: stop and report it (step 3).
 - **No template** (the script reports that `../../templates/internal/state.md` cannot be read): stop and report it; the file cannot be checked without it.
-- **A decision card or `approvals.md` named in the state file is missing**: stop and report it; the client's answer cannot be confirmed.
+- **A decision card, the design summary, or `approvals.md` named in the state file is missing**: stop and report it; the client's answer cannot be confirmed.
 - **No `deliver` skill**: stop before recording the resume (step 4).
 
 ## Notes
