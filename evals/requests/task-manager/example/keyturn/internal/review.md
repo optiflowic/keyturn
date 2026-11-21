@@ -1,7 +1,7 @@
 # Review: delivery 1
 
 - Reviewed by: reviewer
-- Reviewed change: `a51f0c2`..`9b02d4f`
+- Reviewed change: `09f4c3d`..`9b02d4f`
 - Compared against: [design.md](design.md), [conventions.md](conventions.md), [ADR 0001](adr/0001-one-repository-for-api-and-web-client.md), [ADR 0002](adr/0002-sqlite-database.md), [ADR 0003](adr/0003-password-sign-in-with-server-sessions.md)
 
 ## Summary

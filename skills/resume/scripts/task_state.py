@@ -62,7 +62,7 @@ PLACEHOLDER_KINDS = {
 MEANINGFUL_VALUES = {
     "Status": ["running", "stopped", "done"],
     "Current step": ["none"],
-    "Stopped because": ["none", "usage limit", "waiting for the client"],
+    "Stopped because": ["none", "usage limit", "waiting for the client", "waiting for the maintainer"],
     "Can continue": ["now", "not applicable"],
 }
 MEANINGFUL_FIELDS = ["Task", "Branch", "Requirements version", "Rework", "Updated", *MEANINGFUL_VALUES]
@@ -441,8 +441,8 @@ def check_open_questions(lines: list[tuple[int, str]], template: Template, state
     problems = []
     for number, line in content:
         waiting_since = re.search(r"since (\S+?)\.? Blocks: \S", line)
-        if not re.match(r"- \[?(decision card|requirements version) \d+\b", line):
-            problems.append(f'line {number}: "{line}" should start with "- [decision card <n>](link)" or "- [requirements version <n>](link)"')
+        if not re.match(r"- \[?((decision card|requirements version) \d+|design summary)\b", line):
+            problems.append(f'line {number}: "{line}" should start with "- [decision card <n>](link)", "- [requirements version <n>](link)", or "- [design summary](link)"')
         elif not waiting_since:
             problems.append(f'line {number}: "{line}" should say "since {TIME_FORM}. Blocks: ..."')
         else:
@@ -516,8 +516,10 @@ def consistency_problems(state: StateFile, file_name: str | None) -> list[str]:
         problems.append(f'field "Can continue": should be "after {TIME_FORM}" (when the limit resets) for a usage limit, not "{can_continue}"')
     if reason == "waiting for the client" and can_continue and not can_continue.startswith("when the client "):
         problems.append(f'field "Can continue": should say what the client must answer or approve ("when the client ..."), not "{can_continue}"')
+    if reason == "waiting for the maintainer" and can_continue and not can_continue.startswith("when the maintainer decides"):
+        problems.append(f'field "Can continue": should say what the maintainer must decide ("when the maintainer decides: ..."), not "{can_continue}"')
     if can_continue and can_continue.startswith("when the client "):
-        waited_for = can_continue.split(": ", 1)[1]  # "decision card 2" or "requirements version 1"
+        waited_for = can_continue.split(": ", 1)[1]  # "decision card 2", "requirements version 1", or "design summary"
         if not any(re.search(rf"\b{re.escape(waited_for)}\b", line) for line in state.open_questions):
             problems.append(f'Open questions: should list "{waited_for}", which the task waits for')
     return problems

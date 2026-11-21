@@ -314,6 +314,25 @@ class ConsistencyTest(unittest.TestCase):
         problems = check(WAITING.replace("decision card 2\n", "decision card 3\n", 1))
         self.assertIn('Open questions: should list "decision card 3", which the task waits for', problems)
 
+    def test_waiting_for_agreement_to_the_design_summary(self):
+        text = (WAITING.replace("when the client answers: decision card 2", "when the client agrees: design summary")
+                .replace("- [decision card 2](../../client/decision-card-2.md): which sign-in to use. ",
+                         "- [design summary](../../client/design-summary.md): "))
+        self.assertEqual(check(text), [])
+        problems = check(text.replace("- [design summary](../../client/design-summary.md): ", "- [summary](../../client/design-summary.md): "))
+        self.assertIn('Open questions: should list "design summary", which the task waits for', problems)
+
+    def test_waiting_for_the_maintainer_says_what_they_decide(self):
+        text = (WAITING.replace("- Stopped because: waiting for the client", "- Stopped because: waiting for the maintainer")
+                .replace("- Can continue: when the client answers: decision card 2", "- Can continue: when the maintainer decides: whether to go on without R-3"))
+        self.assertEqual(check(text), [])
+        problems = check(text.replace("when the maintainer decides: whether to go on without R-3", "now"))
+        self.assertIn('field "Can continue": should say what the maintainer must decide ("when the maintainer decides: ..."), not "now"', problems)
+
+    def test_a_step_sent_back_may_keep_its_earlier_commit(self):
+        text = STOPPED.replace("| qa | not started | | | |", "| qa | not started | [test report](../test-report.md) | `d2a7f13` | round 2 next |")
+        self.assertEqual(check(text), [])
+
     def test_done_with_unfinished_step(self):
         text = WORKED_EXAMPLE.read_text(encoding="utf-8").replace("| deliver | done |", "| deliver | in progress |")
         self.assertIn('step "deliver": should be done or skipped when Status is done', check(text))

@@ -14,6 +14,8 @@
 
 The `deliver` pipeline runs these in order and ends by producing `acceptance-guide.md` and `delivery-report.md` for the client.
 
+Each role runs in a context of its own, and `deliver` checkpoints every step in the task state file. After each `implement` step, `deliver` runs the gate; when it passes, QA, the security role, and the reviewer all run before anything goes back. A failing gate, a failing test, or a high or medium finding sends the work back to the developer with every open finding, up to a rework limit (3 rounds by default, set in `keyturn/config.json`); low findings alone are listed in the delivery report ([ADR 0030](../adr/0030-deliver-rework-loop.md)). During the MVP, one task runs at a time, and its requirements, design, and conventions are fixed once `implement` starts: the design step waits until the client has answered everything it asked, and a later need to change them stops the task for the maintainer ([ADR 0031](../adr/0031-documents-fixed-once-implement-starts.md)).
+
 ## Architect
 
 The architect turns requirements into a design that fits their size and nature.

@@ -1,6 +1,6 @@
 # 0009. An unanswered decision card is never decided on the client's behalf
 
-- Status: accepted
+- Status: accepted; during the MVP, `deliver` going on with the work of a task that does not depend on a waiting card replaced by [0031](0031-documents-fixed-once-implement-starts.md) (the task stops in the `design` step until every answer is in)
 - Date: 2026-11-08
 
 ## Context

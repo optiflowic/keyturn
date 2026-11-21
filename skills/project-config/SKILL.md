@@ -1,6 +1,6 @@
 ---
 name: project-config
-description: Create or check keyturn's project configuration, keyturn/config.json, which holds the client's language, whether the project uses English-only mode, and which stack profile the gate uses for each folder (parts). Use when a keyturn project is being set up, when another keyturn role needs a setting, or when someone asks to see or change the project's language settings. Stops and reports when the file is missing or invalid, instead of guessing a value.
+description: Create or check keyturn's project configuration, keyturn/config.json, which holds the client's language, whether the project uses English-only mode, which stack profile the gate uses for each folder (parts), and how many times deliver may send work back to the developer (rework_limit). Use when a keyturn project is being set up, when another keyturn role needs a setting, or when someone asks to see or change the project's language settings. Stops and reports when the file is missing or invalid, instead of guessing a value.
 ---
 
 # project-config
@@ -20,8 +20,9 @@ Create and check the project configuration, `keyturn/config.json`, so that every
 | `client_language` | a language code, such as `ja`, `de`, `pt-BR` | The language the client reads and writes. |
 | `english_only` | `true` or `false` | `true`: everything committed or posted is in English, and the client reads it through `localize`. `false`: client-facing documents are written in `client_language`. |
 | `parts` (optional) | a list of `{"path": "<folder>", "profile": "<stack profile>"}`, such as `[{"path": "api", "profile": "go"}]` | Which stack profile the gate uses for each folder of the project (ADR 0028 in keyturn's `docs/adr/`). A folder belongs to one part only; `"."` is the whole repository. It follows the approved design's stack; the gate stops until it is set. |
+| `rework_limit` (optional) | a whole number from 0 to 10, such as `3` | How many times `deliver` may send a task's work back to the developer before it stops and asks (ADR 0030 in keyturn's `docs/adr/`). Without it, the limit is 3. |
 
-There are no other settings yet. A setting is added, with the script and its tests, by the skill that first needs it. `init` writes only the two required settings; `parts` is added by editing the file (step 3).
+There are no other settings yet. A setting is added, with the script and its tests, by the skill that first needs it. `init` writes only the two required settings; `parts` and `rework_limit` are added by editing the file (step 3).
 
 ## Inputs
 

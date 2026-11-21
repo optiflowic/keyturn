@@ -6,7 +6,7 @@ Agents must not run out of control. Guardrails work in layers, so that no single
 
 The most likely failure is not malice but an agent "making the checks pass" instead of fixing the problem. The gate detects this mechanically and fails the change:
 
-- Changes by the developer to protected paths: gate scripts, stack profiles, the CI jobs that run the gates, linter configs, conventions, and tests written by QA (other CI/CD work is allowed when the approved requirements include it). QA's tests live in their own folders, named in the design and kept out of the areas the developer may change, so that the path alone protects them; the developer's own unit tests stay in the developer's areas. See [ADR 0017](../adr/0017-qa-tests-in-their-own-folder.md). In a task run by `deliver`, QA's commits and the other roles' are told apart by the list `deliver` passes to the gate and the reviews, never by a file in the range; the gate checks that each listed commit changes only what its role may write ([ADR 0029](../adr/0029-role-commits-passed-as-arguments.md)).
+- Changes by the developer to protected paths: gate scripts, stack profiles, the CI jobs that run the gates, linter configs, conventions, and tests written by QA (other CI/CD work is allowed when the approved requirements include it). QA's tests live in their own folders, named in the design and kept out of the areas the developer may change, so that the path alone protects them; the developer's own unit tests stay in the developer's areas. See [ADR 0017](../adr/0017-qa-tests-in-their-own-folder.md). In a task run by `deliver`, QA's commits and the other roles' are told apart by the list `deliver` passes to the gate and the reviews, never by a file in the range; the gate checks that each listed commit changes only what its role may write ([ADR 0029](../adr/0029-role-commits-passed-as-arguments.md)). The gate's range starts where the task branch left the default branch, which no commit on the branch can move, and the commits of `spec`, `design`, and `conventions` are listed as their roles' too ([ADR 0032](../adr/0032-gate-base-is-where-the-task-branch-left.md)).
 - New suppression comments (e.g., `//nolint`, `eslint-disable`, `# nosec`, `#[allow(...)]`) without an approved decision record
 - A drop in the number of tests or in coverage
 - Skipped or disabled tests
@@ -36,6 +36,7 @@ During the MVP ([Phases](phases.md#mvp), [ADR 0025](../adr/0025-mvp-first.md)), 
 
 - Every task has limits: rework count, token budget, time, and number of changed files.
 - When a limit is reached, or the agent is unsure (ambiguous requirements, conflicting constraints), it stops and asks the client instead of guessing.
+- During the MVP, only the rework count is a limit `deliver` stops at ([ADR 0030](../adr/0030-deliver-rework-loop.md)). Tokens, time, and the number of changed files are not measured; every delivery report made during that time says so under "What was not verified".
 
 ### Subscription usage limits
 

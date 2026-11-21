@@ -16,8 +16,8 @@ Template: task state file (internal). Written by `deliver` at every step boundar
 - Branch: `task/<task>`
 - Status: <running | stopped | done>
 - Current step: <step name from the table below | none>
-- Stopped because: <none | usage limit | session ended | waiting for the client | rework limit | budget limit | error>
-- Can continue: <now | after YYYY-MM-DDTHH:MMZ | when the client approves: requirements version <n> | when the client answers: decision card <n> | when the maintainer decides: <what> | not applicable>
+- Stopped because: <none | usage limit | session ended | waiting for the client | waiting for the maintainer | rework limit | budget limit | error>
+- Can continue: <now | after YYYY-MM-DDTHH:MMZ | when the client approves: requirements version <n> | when the client answers: decision card <n> | when the client agrees: design summary | when the maintainer decides: <what> | not applicable>
 - Rework: <n> of <limit>
 - Updated: <YYYY-MM-DDTHH:MMZ>
 
@@ -51,9 +51,9 @@ One row per step, in the order deliver runs them. Do not remove rows; a step tha
 ## Commits
 
 <!--
-Every commit made on the task branch from the head the first implement step started from, oldest first, one line each: the commit, the step that made it, and the round (1 for the first round, one more for each rework). deliver's own state commits are listed as "deliver"; since a commit cannot name itself, each one is listed by the next state commit. resume lists the state commit it resumes from (the one that recorded the stop), and its own resume commit is listed by deliver's next state commit.
-deliver adds a step's lines when the step ends. The list is a record only: deliver passes the other roles' commits to the gate and the reviews from what it recorded during the run, and the gate checks that each one changes only what its role may write (ADR 0029).
-Leave the section with "None." before the first implement step.
+Every commit made on the task branch since it left the default branch, oldest first, one line each: the commit, the step that made it, and the round (1 for the first round, one more for each rework). Commits made before spec (the configuration) are listed as "spec". deliver's own state commits are listed as "deliver"; since a commit cannot name itself, each one is listed by the next state commit. resume lists the state commit it resumes from (the one that recorded the stop), and its own resume commit is listed by deliver's next state commit.
+deliver adds a step's lines when the step ends. The list is a record only: the gate's range starts where the task branch left the default branch (git merge-base), deliver passes the other roles' commits to the gate and the reviews, and the gate checks that each one changes only what its role may write (ADR 0029 and ADR 0032 in keyturn's `docs/adr/`).
+Leave the section with "None." only until the first state commit after "started" lists it.
 -->
 
 - `<commit>`: <step name from the table above>, round <n>
@@ -61,13 +61,14 @@ Leave the section with "None." before the first implement step.
 ## Open questions
 
 <!--
-Everything waiting for the client, and the work that waits for it: decision cards, and requirements sent for approval (see approvals.md).
-A decision card is never decided for the client, and work does not start before the requirements are approved.
+Everything waiting for the client, and the work that waits for it: decision cards, decisions in the design summary that wait for the client's agreement (one line for all of them), and requirements sent for approval (see approvals.md).
+A decision card is never decided for the client, and work does not start before the requirements are approved. During the MVP, implement starts only when nothing here is left (ADR 0031 in keyturn's `docs/adr/`).
 Leave the section with "None." when there is nothing waiting.
 -->
 
 - <decision card <n>: link>: <the question, in one line>. Waiting since <YYYY-MM-DDTHH:MMZ>. Blocks: <steps or requirements>
 - <requirements version <n>: link to approvals.md>: waiting for approval since <YYYY-MM-DDTHH:MMZ>. Blocks: <design and every later step>
+- <design summary: link>: waiting for agreement since <YYYY-MM-DDTHH:MMZ>. Blocks: <design and every later step>
 
 ## History
 

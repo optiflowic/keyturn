@@ -31,7 +31,7 @@ If the client is asked too often, or given too much at once, they stop reading a
 - **Keep each request small.** One request should take a few minutes to read. Each question is a short "decision card": the context, the options, a recommendation, and what happens if the client does not answer.
 - **Limit "Must check" items.** An acceptance guide has only a few "Must check" items (around five). If a delivery needs more, it is too big and must be split into smaller deliveries.
 - **Ask only when it matters.** Low-risk changes that stay within approved requirements do not need extra approval. The changes listed in [Guardrails](guardrails.md) always do.
-- **No answer is not consent.** An unanswered card is never decided on the client's behalf, not even with its recommendation. Work that depends on the answer waits and everything else goes on; if nothing else can be done, the task stops with the card as an open question (see [Resuming Work](resuming-work.md)). See [ADR 0009](../adr/0009-no-answer-is-not-consent.md).
+- **No answer is not consent.** An unanswered card is never decided on the client's behalf, not even with its recommendation. Work that depends on the answer waits and everything else goes on; if nothing else can be done, the task stops with the card as an open question (see [Resuming Work](resuming-work.md)). See [ADR 0009](../adr/0009-no-answer-is-not-consent.md). During the MVP, the `implement` step of a task waits for every answer its design asked for, since the task's documents are fixed once it starts ([ADR 0031](../adr/0031-documents-fixed-once-implement-starts.md)).
 - Track how many requests the client receives and how long they wait, as part of the cost data.
 
 ## Internal documents
