@@ -10,18 +10,18 @@ In the part's folder, at the head of the range, in this order:
 
 | Check | Command | Fails when |
 |---|---|---|
-| `module` | `go mod edit -json` | `go.mod` has an `ignore` directive, which would hide folders (QA's included) from every `./...` below |
+| `module` | `go mod edit -json` | `go.mod` has an `ignore` directive, which would hide folders (QA's included) from every `./...` below, or a `replace` to a folder, whose code the gate does not check (replace with a module version instead) |
 | `build` | `go build ./...` | a package does not compile |
 | `test` | `go test -count=1 ./...` | a test fails, or a test package does not compile; QA's tests run here too |
 | `format` | `gofmt -l .` | a Go file is not formatted as `gofmt` formats it (the files are listed) |
 | `vet` | `go vet ./...` | `go vet` reports a problem |
-| `lint` | `golangci-lint run ./...` | a linter the project's config turns on reports a problem |
+| `lint` | `golangci-lint run --config <file> ./...` | a linter the project's config turns on reports a problem |
 
 Every `go` and `golangci-lint` command runs with `GOWORK=off` and `GOFLAGS=-mod=readonly`. A `go.work` file anywhere above the part is not used, so it cannot swap a module for other code. A committed `vendor/` folder is not used either, and every module is checked against `go.sum`.
 
 No `setup` step: `go build` and `go test` download the modules that `go.mod` and `go.sum` name.
 
-`golangci-lint` finds its config in the part's folder or the nearest folder above it, up to the repository root. Without one, it runs its default linters. The config is the standards role's (`conventions`): every limit and rule `conventions` sets for Go goes there.
+The gate looks for the `golangci-lint` config in the part's folder, then in each folder above it up to the repository root, and passes the first one it finds with `--config`. Without one, it passes `--no-config`, and `golangci-lint` runs its default linters: a config outside the repository (in a folder above it, or in the home folder) is never used. The config is the standards role's (`conventions`): every limit and rule `conventions` sets for Go goes there.
 
 ## Tools
 
