@@ -37,7 +37,8 @@ from task_branch import EXIT_DONE, EXIT_REFUSED, EXIT_SETUP, Refused, SetupError
 
 REPORTS = {"review": "keyturn/internal/review.md", "security-review": "keyturn/internal/security-review.md"}
 NAMES = {"review": "reviewer", "security-review": "security role"}
-MARKER_RE = re.compile(r"<!-- keyturn-findings: (review|security-review) ([0-9a-f]{40}) ([0-9a-f]{40}) -->")
+# Only a marker that ends a review counts; one before the end is quoted text.
+END_MARKER_RE = re.compile(r"<!-- keyturn-findings: (review|security-review) ([0-9a-f]{40}) ([0-9a-f]{40}) -->\Z")
 FINDING_RE = re.compile(r"^### (F-\d+): *(.*)$", re.MULTILINE)
 FIELD_RE = re.compile(r"^- ([A-Za-z ]+): *(.*)$")
 RANGE_RE = re.compile(r"^- Reviewed change: *`?([0-9a-f]{7,40})`?\.\.`?([0-9a-f]{7,40})`?", re.MULTILINE)
@@ -63,20 +64,47 @@ def quiet_mentions(text: str) -> str:
     return re.sub(r"@(?=[A-Za-z0-9_-])", "@⁠", text)
 
 
+FENCE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
+
+
+def outside_fences(lines: list[str]) -> list[bool]:
+    """For each line, whether it is outside a fenced block: a heading quoted in a fenced excerpt is the excerpt's text."""
+    result, fence = [], None
+    for line in lines:
+        match = FENCE_RE.match(line)
+        if fence is None:
+            result.append(match is None)
+            if match:
+                fence = match.group(1)
+        else:
+            result.append(False)
+            if match and match.group(1)[0] == fence[0] and len(match.group(1)) >= len(fence) \
+                    and not line.strip()[len(match.group(1)):].strip():
+                fence = None
+    return result
+
+
 def section(text: str, heading: str) -> str:
-    match = re.search(rf"^## {re.escape(heading)}[ \t]*\n(.*?)(?=^## |\Z)", text, flags=re.MULTILINE | re.DOTALL)
-    return match.group(1).strip() if match else ""
+    lines = text.splitlines()
+    outside = outside_fences(lines)
+    start = next((i + 1 for i, line in enumerate(lines)
+                  if outside[i] and re.fullmatch(rf"## {re.escape(heading)}[ \t]*", line)), None)
+    if start is None:
+        return ""
+    end = next((i for i in range(start, len(lines)) if outside[i] and lines[i].startswith("## ")), len(lines))
+    return "\n".join(lines[start:end]).strip()
 
 
 def findings(text: str) -> dict[str, Finding]:
     """The report's findings by number, from its "Findings" section."""
-    part = section(text, "Findings")
+    lines = section(text, "Findings").splitlines()
+    outside = outside_fences(lines)
     found: dict[str, Finding] = {}
-    heads = list(FINDING_RE.finditer(part))
-    for index, head in enumerate(heads):
-        end = heads[index + 1].start() if index + 1 < len(heads) else len(part)
+    heads = [(i, match) for i, line in enumerate(lines) if outside[i] and (match := FINDING_RE.match(line))]
+    for index, (at, head) in enumerate(heads):
+        end = heads[index + 1][0] if index + 1 < len(heads) else len(lines)
         fields, rest = [], []
-        for line in part[head.end():end].strip("\n").splitlines():
+        for line in "\n".join(lines[at + 1:end]).strip("\n").splitlines():
             match = FIELD_RE.match(line)
             if match and not rest:
                 fields.append((match.group(1).strip(), match.group(2).strip()))
@@ -168,8 +196,8 @@ def own_markers(root: Path, number: int, role: str) -> list[tuple[str, str]]:
             continue
         # Only the marker that ends a review counts: one quoted in the report's text (from code it reviewed, say)
         # is the report's content, not a post.
-        match = MARKER_RE.search((review.get("body") or "").rstrip())
-        if match and match.end() == len((review.get("body") or "").rstrip()) and match.group(1) == role:
+        match = END_MARKER_RE.search((review.get("body") or "").rstrip())
+        if match and match.group(1) == role:
             found.append((match.group(2), match.group(3)))
     return found
 

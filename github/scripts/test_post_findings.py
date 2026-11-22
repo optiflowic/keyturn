@@ -243,6 +243,29 @@ class PostFindingsTest(unittest.TestCase):
         self.assertEqual(self.run_script("delivery-1", "review", commit).returncode, 0)
         self.assertEqual(len(self.posts()), 1)
 
+    def test_a_marker_quoted_before_the_one_that_ends_a_post_does_not_hide_it(self):
+        commit = self.report()
+        blob = self.git("rev-parse", f"{commit}:keyturn/internal/review.md")
+        marker = f"<!-- keyturn-findings: review {blob} {commit} -->"
+        self.reviews.write_text(json.dumps([{"user": {"login": "agent"}, "body": f"quoted {marker} in code\n\n{marker}\n"}]),
+                                encoding="utf-8")
+        self.assertEqual(self.run_script("delivery-1", "review", commit).returncode, 0)
+        self.assertEqual(self.posts(), [])
+
+    def test_a_heading_in_a_fenced_excerpt_does_not_end_the_findings(self):
+        text = REPORT.format(base=self.base, head=self.developer, status="open").replace(
+            "The name `cnt` does not say what it counts.\n",
+            "The name `cnt` does not say what it counts.\n\n```markdown\n## Configuration\n### F-9: Not a finding\n```\n")
+        self.put("keyturn/internal/review.md", text)
+        commit = self.commit("docs(review): review delivery-1")
+        self.pushed()
+        self.assertEqual(self.run_script("delivery-1", "review", commit).returncode, 0)
+        [post] = self.posts()
+        self.assertIn("## Configuration", post["comments"][0]["body"])
+        self.assertIn("#### F-2: Outside the diff", post["body"])
+        self.assertIn("#### F-3: About the design", post["body"])
+        self.assertNotIn("F-9", post["body"])
+
     def test_the_two_roles_have_markers_of_their_own(self):
         self.assertEqual(self.run_script("delivery-1", "review", self.report()).returncode, 0)
         commit = self.report(path="keyturn/internal/security-review.md")
