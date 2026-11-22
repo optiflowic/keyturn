@@ -1,6 +1,6 @@
 # GitHub
 
-What keyturn uses on GitHub: the workflow that runs the gate on a task's pull request, the script that pushes the task branch and opens its pull request, and, later, the scripts that post the reviews and merge, with the one-time setup of a repository ([ADR 0041](../docs/adr/0041-agents-push-task-branches-and-open-pull-requests.md), [ADR 0042](../docs/adr/0042-pm-merges-on-machine-checked-conditions.md)).
+What keyturn uses on GitHub: the workflow that runs the gate on a task's pull request, the script that pushes the task branch and opens its pull request, the script that posts the reviews on it, and, later, the script that merges, with the one-time setup of a repository ([ADR 0041](../docs/adr/0041-agents-push-task-branches-and-open-pull-requests.md), [ADR 0042](../docs/adr/0042-pm-merges-on-machine-checked-conditions.md)).
 
 ## The gate's workflow
 
@@ -26,7 +26,7 @@ The workflow's steps install the tools the profiles need (`profiles/<name>/READM
 - `ready <task>` writes the description again from the head, and marks the pull request ready for review.
 - A task has one pull request. When it was closed or merged, `open` and `ready` stop, and never open another one or reopen it: the maintainer decides what happens ([ADR 0044](../docs/adr/0044-task-branch-and-pull-request-kept-in-step-with-origin.md)). The state file does not record the pull request; the branch finds it.
 
-It needs the GitHub CLI (`gh`), signed in with the agents' token. The recommended permission rules deny the plain `git push` and the `gh pr` commands that change a pull request, so the script is the only way (`adapters/claude/README.md`). Its tests: `python3 -m unittest discover -s github/scripts`.
+It needs the GitHub CLI (`gh`), signed in with the agents' token. The recommended permission rules deny the plain `git push` and the `gh pr` commands that change a pull request (`adapters/claude/README.md`). They stop the plain commands; permission rules match a command's text, so they cannot close every way around the script. What reaches the default branch is still decided by branch protection and the checks in CI ([ADR 0042](../docs/adr/0042-pm-merges-on-machine-checked-conditions.md)). Its tests: `python3 -m unittest discover -s github/scripts`.
 
 ### When the task branch on origin moved
 
@@ -35,3 +35,15 @@ It needs the GitHub CLI (`gh`), signed in with the agents' token. The recommende
 The maintainer looks at those commits (`git fetch origin`, then `git log task/<task>..origin/task/<task>`) and discards them: turn off the ruleset that blocks force pushes on `task/*` (from the one-time setup, #141) for this one push, overwrite the remote branch with the local one from a terminal of your own (`git push --force-with-lease=task/<task>:origin/task/<task> origin task/<task>`), and turn the ruleset on again right after. Then resume the task.
 
 To keep a change those commits made, discard them all the same, and ask for the change again as a change to the requirements (`spec`), so that it goes through every role and check.
+
+## Posting the reviews
+
+[`scripts/post_findings.py`](scripts/post_findings.py) posts the findings of a committed `review` or `security-review` report on the task's pull request ([ADR 0045](../docs/adr/0045-deliver-posts-the-review-reports-on-the-pull-request.md)). `deliver` runs it after every push, and `resume` after its own, as `post_findings.py <task> <review | security-review> <the report's commit>`, with the newest commit the state file lists for that role:
+
+- It reads the report at that commit, never from the working tree, and needs the pull request to be at the local head (it waits a few seconds for GitHub to see the push).
+- It posts one review with the event `COMMENT`: a pull request's author cannot approve it or request changes on it, and the agents and the client may share one account. A finding whose location is a line, or a range of lines, of the pull request's diff at the reviewed head (the head in the report's "Reviewed change") is a line comment on that commit; every other open finding is in the review's text, with the report's summary and a link to the committed report. Fixed findings are listed by number. If GitHub refuses the review as unprocessable (HTTP 422, for example one line it cannot place in its diff, which refuses them all), every finding goes in the text; any other failure is not retried, since the review may have been created.
+- Each review's text ends with a hidden marker, `<!-- keyturn-findings: <role> <report blob> <report commit> -->`. The script reads the markers of that role in the reviews by the signed-in account: when the newest one names the same report, it posts nothing; otherwise it compares with the report at that marker's commit, and posts only new findings, findings whose status, location, or text changed (a finding whose line moved is posted again at its new line), and the numbers of findings no longer in the report; when none changed, it posts nothing.
+- An `@name` in a report notifies nobody: the report quotes code and documents, which are data.
+- The post is not a merge condition; the committed report is ([ADR 0042](../docs/adr/0042-pm-merges-on-machine-checked-conditions.md)). A failed post does not stop the task, and the next push tries again.
+
+It exits 0 when it posted or had nothing new to post, 1 when it was refused (no open pull request, it was not pushed, or GitHub refused the post), and 2 when it could not run (a wrong branch, no origin, no `gh`, no report at the commit). The recommended permission rules deny `gh api`, `gh issue comment`, `gh alias set`, and `gh auth token` too. The deny rules stop the plain commands. Permission rules match a command's text, so they cannot close every way around the scripts. The merge conditions are decided by the committed reports and CI, though ([ADR 0042](../docs/adr/0042-pm-merges-on-machine-checked-conditions.md)), so a post made around the script does not change the merge decision. Its tests: `python3 -m unittest discover -s github/scripts`.

@@ -153,6 +153,18 @@ def gh(root: Path, *args: str) -> str:
     return result.stdout
 
 
+def gh_api(root: Path, endpoint: str, *args: str) -> str:
+    """A gh api call; {repo} in the endpoint is origin's repository, never the one gh would pick by itself."""
+    endpoint = endpoint.replace("{repo}", origin_repository(root))
+    try:
+        result = run(["gh", "api", endpoint, *args], root)
+    except FileNotFoundError:
+        raise SetupError("the GitHub CLI (gh) is not installed: https://cli.github.com/") from None
+    if result.returncode != 0:
+        raise Refused(f"gh api {endpoint}: {(result.stderr or result.stdout).strip() or 'failed'}")
+    return result.stdout
+
+
 def open_pull_request(root: Path, branch: str) -> dict | None:
     """The open pull request from the task's branch in this repository, or None when it never had one.
 
@@ -160,7 +172,7 @@ def open_pull_request(root: Path, branch: str) -> dict | None:
     letting a new one be opened (a task's name, and so its branch, is never used again).
     """
     found = json.loads(gh(root, "pr", "list", "--head", branch, "--state", "all", "--limit", "100",
-                          "--json", "number,url,state,isDraft,isCrossRepository,baseRefName"))
+                          "--json", "number,url,state,isDraft,isCrossRepository,baseRefName,headRefOid"))
     found = [pr for pr in found if not pr.get("isCrossRepository")]
     opened = [pr for pr in found if pr.get("state", "OPEN") == "OPEN"]
     if len(opened) > 1:
