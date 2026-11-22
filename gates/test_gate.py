@@ -635,8 +635,9 @@ class TaskRangeTest(unittest.TestCase):
     """The gate finds a task's base and the other roles' commits itself, as in CI (ADR 0043)."""
 
     # The repository and its helpers are GateTest's; its tests are not run again here.
-    tearDown, write_profile, git, put, commit, assert_fails = (GateTest.tearDown, GateTest.write_profile, GateTest.git,
-                                                               GateTest.put, GateTest.commit, GateTest.assert_fails)
+    tearDown, write_profile, git, put, commit, gate, assert_fails = (
+        GateTest.tearDown, GateTest.write_profile, GateTest.git, GateTest.put, GateTest.commit, GateTest.gate,
+        GateTest.assert_fails)
 
     STEPS = ("spec", "design", "conventions", "implement", "qa", "security-review", "review", "deliver")
 
@@ -760,6 +761,71 @@ class TaskRangeTest(unittest.TestCase):
                                  "--profiles", str(self.profiles)], cwd=self.root, env=self.env, capture_output=True, text=True)
         self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
         self.assertIn("whose parent is not where the task branch left", result.stderr)
+
+    def outcome(self, result: subprocess.CompletedProcess) -> tuple[int, list[str]]:
+        lines = [line for line in result.stdout.splitlines() if line.startswith(("PASS ", "FAIL "))]
+        return result.returncode, lines
+
+    def test_the_task_mode_gives_the_same_result_as_deliver_s_call(self):
+        self.put("app/src/main.py", "print('task')\n")
+        self.step("implement")
+        self.put("app/qa/test_more.txt", "")
+        self.step("qa")
+        self.put("app/BROKEN", "")  # the fake profile's build fails while it exists
+        self.step("implement")
+        others = []
+        for commit in self.git("rev-list", "--reverse", f"{self.base}..HEAD").split():
+            role = self.roles.get(commit, "deliver")
+            if role != "implement":
+                others += ["--others", f"{role}:{commit}"]
+        by_task = self.task_gate()
+        by_deliver = self.gate(*others)
+        self.assertEqual(by_task.returncode, 1, by_task.stdout + by_task.stderr)
+        self.assertEqual(self.outcome(by_task), self.outcome(by_deliver))
+
+    def test_a_commit_named_as_two_roles_at_the_head_stops_the_gate(self):
+        qa = self.commit("qa")
+        self.roles[qa] = "qa"
+        self.record()
+        self.lines.append(f"- `{qa[:7]}`: review, round 1")
+        self.record()
+        result = self.task_gate()
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("and as qa's before", result.stderr)
+
+    def test_a_listed_commit_that_is_not_in_the_range_stops_the_gate(self):
+        self.lines.append(f"- `{self.base[:7]}`: qa, round 1")
+        self.record()
+        result = self.task_gate()
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("is not commit in the range", result.stderr)
+
+    def test_an_unknown_step_stops_the_gate(self):
+        qa = self.commit("qa")
+        self.roles[qa] = "build"
+        self.record()
+        result = self.task_gate()
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("build is not a step of the task state file", result.stderr)
+
+    def test_a_state_file_deleted_at_the_head_stops_the_gate(self):
+        self.git("rm", "-q", "keyturn/internal/state/t1.md")
+        self.commit("delete the state file")
+        result = self.task_gate()
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("missing at the head", result.stderr)
+
+    def test_a_task_name_that_is_not_one_stops_the_gate(self):
+        for name in ("A", "a/b", "-x"):
+            result = subprocess.run([sys.executable, str(GATE), f"--task={name}", "--default-branch", "main",
+                                     "--profiles", str(self.profiles)], cwd=self.root, env=self.env, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 2, name + result.stdout + result.stderr)
+            self.assertIn("not a task name", result.stderr)
+
+    def test_an_unlisted_role_commit_at_the_head_is_checked_as_the_developer_s(self):
+        self.put("app/qa/test_more.txt", "")
+        self.commit("a qa commit no state commit lists yet")
+        self.assert_fails(self.task_gate(), "FAIL protected-paths: app/qa/test_more.txt")
 
     def test_others_with_task_is_refused(self):
         result = self.task_gate("--others", f"qa:{self.base}")
