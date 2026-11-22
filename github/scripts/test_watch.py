@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -249,6 +250,26 @@ class WatchTest(unittest.TestCase):
         self.assertEqual(self.watch(), [])
         self.github.checks[head][0]["id"], self.github.checks[head][1]["id"] = 3, 2
         self.assert_found(self.watch(), "did not pass")
+
+    def test_a_draft_s_gate_run_is_passed_over(self):
+        # A draft's run names its jobs "... (draft, not checked)" (ADR 0051): newer or older, it does not count.
+        merge, head = self.task_merge()
+        draft = self.gate_run(head, ("failure", "failure"), id=9)
+        draft["jobs"] = [{"name": f"{name} (draft, not checked)", "conclusion": "failure"} for name in watch.CHECKS]
+        self.github.checks[head] = [self.gate_run(head, id=5), draft]
+        self.assertEqual(self.watch(), [])
+        self.github.checks[head] = [self.gate_run(head, ("success", "failure"), id=5), draft]
+        self.assert_found(self.watch(), "did not pass (failure)")
+        self.github.checks[head] = [draft]
+        self.assert_found(self.watch(), "has no run from its pull request on #1's head")
+        self.assert_found(self.watch(), "that is not a draft's")
+
+    def test_a_gate_run_with_no_jobs_is_not_passed_over(self):
+        merge, head = self.task_merge()
+        empty = self.gate_run(head, id=9, conclusion="failure")
+        empty["conclusion"], empty["jobs"] = "startup_failure", []
+        self.github.checks[head] = [self.gate_run(head, id=5), empty]
+        self.assert_found(self.watch(), "did not pass (startup_failure)")
 
     def test_a_head_that_changes_a_workflow_fails(self):
         self.git("switch", "-q", "-c", "task/delivery-1")
@@ -503,10 +524,23 @@ class WorkflowTest(unittest.TestCase):
         self.assertNotIn("concurrency:", text)
         self.assertNotIn("checks:", text)  # a fine-grained token has no Checks permission; the runs are read instead  # a pending run replaced by a later one would leave a tip unchecked
 
-    def test_gate_workflow_skips_drafts(self):
+    def test_gate_workflow_fails_drafts_under_other_names(self):
+        # No job-level condition, since a skipped required check counts as passed (ADR 0043, ADR 0051); on a draft,
+        # each job takes another name and fails in its first step.
         text = self.read("keyturn-gate.yml")
-        self.assertEqual(text.count("if: github.event.pull_request.draft == false"), 2)
         self.assertIn("ready_for_review", text)
+        jobs = text.split("\njobs:\n", 1)[1]
+        blocks = [block for block in re.split(r"\n(?=  [a-z][a-z0-9_-]*:\n)", "\n" + jobs) if block.strip()]
+        self.assertEqual(len(blocks), 2)
+        for block, check in zip(blocks, watch.CHECKS):
+            with self.subTest(check=check):
+                self.assertIsNone(re.search(r"^    if:", block, re.M))
+                self.assertIn(f"    name: ${{{{ github.event.pull_request.draft && '{check} (draft, not checked)' "
+                              f"|| '{check}' }}}}\n", block)
+                steps = block.split("    steps:\n", 1)[1]
+                first = steps.split("\n      - ", 1)[0]
+                self.assertIn("- name: Refuse a draft\n        if: github.event.pull_request.draft\n", first)
+                self.assertIn("exit 1", first)
 
 
 if __name__ == "__main__":

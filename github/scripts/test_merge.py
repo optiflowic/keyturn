@@ -184,6 +184,12 @@ class MergeTest(unittest.TestCase):
         item.update(changes)
         return item
 
+    def draft_run(self, conclusion: str | None = "failure") -> dict:
+        """A run of the gate's workflow on a draft: its jobs take other names and fail (ADR 0051)."""
+        return self.workflow_run(".github/workflows/keyturn-gate.yml", self.head, conclusion,
+                                 {"keyturn gate (draft, not checked)": conclusion,
+                                  "keyturn conditions (draft, not checked)": conclusion})
+
     def set_gate(self, *runs: dict) -> None:
         self.head_runs = list(runs)
         self.write_checks()
@@ -304,6 +310,30 @@ class MergeTest(unittest.TestCase):
     def test_the_newest_run_counts(self):
         self.set_gate(self.gate_run("failure"), self.gate_run("success"))
         self.assertEqual(self.merge().returncode, 0)
+
+    def test_a_draft_s_run_newer_than_a_passing_one_is_passed_over(self):
+        # A draft's run newer than the one on the ready pull request hides nothing (ADR 0051).
+        self.set_gate(self.gate_run("success"), self.draft_run())
+        self.assertEqual(self.merge().returncode, 0)
+
+    def test_a_draft_s_run_that_has_not_finished_is_passed_over(self):
+        self.set_gate(self.gate_run("success"), self.draft_run(None))
+        self.assertEqual(self.merge().returncode, 0)
+
+    def test_a_draft_s_run_does_not_hide_a_failed_one(self):
+        self.set_gate(self.gate_run("failure"), self.draft_run())
+        self.assert_refused(self.merge(), "did not pass (failure")
+        self.set_gate(self.draft_run(), self.gate_run("failure"))
+        self.assert_refused(self.merge(), "did not pass (failure")
+
+    def test_only_a_draft_s_run_is_no_run(self):
+        self.set_gate(self.draft_run())
+        self.assert_pending(self.merge(), "have not finished (or not started)")
+
+    def test_a_run_with_no_jobs_yet_is_waited_for(self):
+        # A queued run lists no jobs yet, so it cannot be told from a draft's: it is waited for, not passed over.
+        self.set_gate(self.gate_run("success"), self.workflow_run(".github/workflows/keyturn-gate.yml", self.head, None, {}))
+        self.assert_pending(self.merge(), "keyturn-gate.yml has not finished")
 
     def test_a_task_branch_that_changes_a_workflow_is_refused(self):
         (self.root / ".github" / "workflows" / "keyturn-gate.yml").write_text("changed\n", encoding="utf-8")

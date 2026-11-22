@@ -18,8 +18,9 @@ It refuses (exit 1), and never merges, unless all of these hold, in this order:
   - that head changes nothing under .github/workflows/, so the gate's run on its pull request is the default branch's
     workflow, not one the branch brought (ADR 0049);
   - the newest run of the workflow .github/workflows/keyturn-gate.yml for that head, from a pull_request event in this
-    repository, has finished and passed, and so have its jobs "keyturn gate" and "keyturn conditions" (read through
-    GitHub Actions' API, which the agents' token reads with Actions: Read, ADR 0049);
+    repository, among those with a job named "keyturn gate" or "keyturn conditions" (a draft's run names its jobs
+    "... (draft, not checked)", ADR 0051), has finished and passed, and so have its jobs "keyturn gate" and "keyturn
+    conditions" (read through GitHub Actions' API, which the agents' token reads with Actions: Read, ADR 0049);
   - the newest run of .github/workflows/keyturn-watch.yml for the default branch's tip, among those that started after
     the last push to the default branch in the repository's activity, passed, and so did its job "keyturn watch", so
     that an old success on a commit the branch was reset to does not count (ADR 0048). When the workflow is not on the
@@ -102,7 +103,14 @@ def workflow_runs(root: Path, workflow: str, sha: str) -> list[dict]:
     return sorted(found, key=lambda item: item.get("id", 0), reverse=True)
 
 
-def run_state(root: Path, item: dict | None, jobs: tuple[str, ...]) -> tuple[str, str]:
+def run_jobs(root: Path, item: dict) -> dict[str, dict]:
+    """A run's jobs by name."""
+    data = json.loads(task_branch.gh_api(root, f"repos/{{repo}}/actions/runs/{item['id']}/jobs?per_page=100"))
+    return {job.get("name"): job for job in (data.get("jobs", []) if isinstance(data, dict) else [])}
+
+
+def run_state(root: Path, item: dict | None, jobs: tuple[str, ...],
+              by_name: dict[str, dict] | None = None) -> tuple[str, str]:
     """('passed' | 'pending' | 'failed', why) for a workflow run and the jobs it must have passed."""
     if item is None:
         return "pending", "no run"
@@ -111,8 +119,8 @@ def run_state(root: Path, item: dict | None, jobs: tuple[str, ...]) -> tuple[str
         return "pending", f"has not finished ({url})"
     if item.get("conclusion") != "success":
         return "failed", f"did not pass ({item.get('conclusion')}, {url})"
-    data = json.loads(task_branch.gh_api(root, f"repos/{{repo}}/actions/runs/{item['id']}/jobs?per_page=100"))
-    by_name = {job.get("name"): job for job in (data.get("jobs", []) if isinstance(data, dict) else [])}
+    if by_name is None:
+        by_name = run_jobs(root, item)
     missing = [name for name in jobs if (by_name.get(name) or {}).get("conclusion") != "success"]
     if missing:
         return "failed", (f"the job{'s' if len(missing) > 1 else ''} {', '.join(missing)} did not pass "
@@ -202,11 +210,19 @@ def fetch_default(root: Path, default: str) -> str:
 
 
 def gate_state(root: Path, head: str) -> tuple[str, str]:
-    """The newest run of the gate's workflow for the head, from a pull_request event in this repository."""
+    """The newest run of the gate's workflow for the head, from a pull_request event in this repository, that has a job
+    named as one of the checks. A draft's run names its jobs "... (draft, not checked)" and fails them (ADR 0051): it is
+    passed over, so that it neither counts as the checks nor hides the run on the ready pull request. A run that lists
+    no jobs yet (queued) or none at all is not passed over."""
     repository = task_branch.origin_repository(root)
     runs = [item for item in workflow_runs(root, GATE_WORKFLOW, head)
             if item.get("event") == "pull_request" and (item.get("head_repository") or {}).get("full_name") == repository]
-    return run_state(root, runs[0] if runs else None, CHECKS)
+    for item in runs:
+        by_name = run_jobs(root, item)
+        if by_name and not set(CHECKS) & set(by_name):
+            continue
+        return run_state(root, item, CHECKS, by_name)
+    return run_state(root, None, CHECKS)
 
 
 def head_watch_state(root: Path, head: str) -> tuple[str, str]:
