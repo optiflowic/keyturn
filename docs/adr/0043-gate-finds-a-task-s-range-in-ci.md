@@ -45,4 +45,5 @@ Option 4. The gate gets a second way to be called, `gate.sh --task <task> --defa
 - `github/` holds the workflow template and how a person adds it; #141 adds the rest of the one-time setup (branch protection, the agents' token).
 - The gate fails in CI on every push before the `conventions` step is recorded, which only means that the pull request cannot be merged yet.
 - ADR 0029's known gap is unchanged, and closed by the sandbox (#119).
+- **Not covered yet**: a pull request from a fork runs the fork's version of the workflow, which the agents' token does not bind, so its `keyturn gate` check can pass without the gate having run. Until that is decided, the check means nothing on a fork's pull request: the PM merges only pull requests whose branch is in the repository itself, and a person who merges a fork's pull request does so without the gate.
 - When #141 adds the `merge` role's commits ([ADR 0042](0042-pm-merges-on-machine-checked-conditions.md)), they are later roles, read from the head the same way.
