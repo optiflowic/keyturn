@@ -48,9 +48,13 @@ class FakeGitHub(watch.GitHub):
         self.issue_comments: dict[int, list[dict]] = {}
         self.created: list[tuple[str, str]] = []
         self.commented: list[tuple[int, str]] = []
+        self.on_main: set[str] = set()  # commits on main as GitHub has it now, beyond the clone
 
     def default_branch(self) -> str:
         return "main"
+
+    def on_branch(self, sha, branch):
+        return sha in self.on_main
 
     def pulls_of(self, sha):
         return self.pulls.get(sha, [])
@@ -319,6 +323,12 @@ class WatchTest(unittest.TestCase):
     def test_a_commit_pushed_and_removed_again_fails(self):
         self.push("refs/heads/main", "3" * 40, "push")
         self.assert_found(self.watch(), "which is no longer on main")
+
+    def test_a_push_after_the_clone_that_is_still_on_the_branch_passes(self):
+        # A task's merge pushed between the clone and the activity read: GitHub has it on main, the clone does not.
+        self.push("refs/heads/main", "3" * 40, "pr_merge", minutes_ago=1)
+        self.github.on_main = {"3" * 40}
+        self.assertEqual(self.watch(), [])
 
     def test_a_reset_to_an_older_commit_fails(self):
         merge, _ = self.task_merge()

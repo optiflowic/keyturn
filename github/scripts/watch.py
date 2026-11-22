@@ -129,6 +129,14 @@ class GitHub:
     def default_branch(self) -> str:
         return str(self.get("repos/{repo}").get("default_branch") or "")
 
+    def on_branch(self, sha: str, branch: str) -> bool:
+        """Whether the commit is on the branch as GitHub has it now (the branch may have moved after the clone)."""
+        try:
+            status = self.get(f"repos/{{repo}}/compare/{sha}...{branch}?per_page=1").get("status")
+        except SetupError:
+            return False
+        return status in ("identical", "ahead")
+
     def pulls_of(self, sha: str) -> list[dict]:
         return self.get(f"repos/{{repo}}/commits/{sha}/pulls?per_page=100")
 
@@ -381,7 +389,9 @@ class Watch:
             if ref == default_ref:
                 if kind in ("force_push", "branch_deletion"):
                     self.find(where, f"a {kind.replace('_', ' ')} of the default branch")
-                elif after != ZERO and not (has_commit(self.root, after) and is_ancestor(self.root, after, self.tip)):
+                elif after != ZERO and not (has_commit(self.root, after) and is_ancestor(self.root, after, self.tip)) \
+                        and not self.github.on_branch(after, self.default):
+                    # A push after the clone is still on the branch as GitHub has it: the run it started checks it.
                     self.find(where, f"a {kind.replace('_', ' ')} of {short(after)}, which is no longer on {self.default}")
             elif ref.startswith("refs/heads/task/"):
                 if kind == "force_push":
