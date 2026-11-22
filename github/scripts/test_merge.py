@@ -51,6 +51,9 @@ class MergeTest(unittest.TestCase):
         for name in ("merge.py", "task_branch.py"):
             shutil.copy(HERE / name, scripts / name)
         self.script = scripts / "merge.py"
+        # No wait for GitHub to show a push: the fake answers at once.
+        self.script.write_text(self.script.read_text(encoding="utf-8").replace("HEAD_WAIT_SECONDS = 30", "HEAD_WAIT_SECONDS = 0"),
+                               encoding="utf-8")
         (tmp / "keyturn" / "gates").mkdir()
         conditions = tmp / "keyturn" / "gates" / "conditions.sh"
         conditions.write_text(FAKE_CONDITIONS, encoding="utf-8")
@@ -129,6 +132,11 @@ class MergeTest(unittest.TestCase):
         self.assertIn(text, result.stderr)
         self.assertEqual(self.merged(), [])
 
+    def assert_pending(self, result: subprocess.CompletedProcess, text: str) -> None:
+        self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
+        self.assertIn(text, result.stderr)
+        self.assertEqual(self.merged(), [])
+
     def test_merges_with_a_squash_that_names_the_head(self):
         result = self.merge()
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -159,13 +167,13 @@ class MergeTest(unittest.TestCase):
         self.set_checks(("keyturn gate", "success"), ("keyturn conditions", "failure"))
         self.assert_refused(self.merge(), "did not pass: keyturn conditions (failure")
         self.set_checks(("keyturn gate", "success"), ("keyturn conditions", None))
-        self.assert_refused(self.merge(), "keyturn conditions on")
+        self.assert_pending(self.merge(), "keyturn conditions on")
         self.set_checks(("keyturn gate", "success"))
-        self.assert_refused(self.merge(), "have not finished (or not started)")
+        self.assert_pending(self.merge(), "have not finished (or not started)")
 
     def test_a_check_from_another_app_does_not_count(self):
         self.set_checks(("keyturn gate", "success"), ("keyturn conditions", "success"), app="someone-else")
-        self.assert_refused(self.merge(), "have not finished (or not started)")
+        self.assert_pending(self.merge(), "have not finished (or not started)")
 
     def test_the_newest_run_of_a_check_counts(self):
         self.set_checks(("keyturn gate", "success"), ("keyturn conditions", "failure"), ("keyturn conditions", "success"))

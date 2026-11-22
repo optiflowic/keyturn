@@ -146,6 +146,19 @@ class ConditionsTest(unittest.TestCase):
         self.acceptance(self.documents())
         self.assert_fails(self.conditions(), "FAIL findings [security-review]: keyturn/internal/security-review.md: missing")
 
+    def test_a_report_whose_findings_cannot_be_read_fails(self):
+        good = report("Review", self.base, self.developer, ("high", "open"))
+        for broken in (good.replace("## Findings", "## Issues"), good.replace("### F-1:", "#### F-1:"),
+                       good.replace("### F-1: finding 1", "### Finding 1"), good.replace("### F-1: finding 1\n", "")):
+            with self.subTest(broken=broken[:0]):
+                self.put("keyturn/internal/security-review.md", report("Security review", self.base, self.developer))
+                self.put("keyturn/internal/review.md", broken)
+                self.step("review")
+                self.assert_fails(self.conditions_now(), "FAIL findings [review]: keyturn/internal/review.md: its \"Findings\" section cannot be read")
+
+    def conditions_now(self) -> subprocess.CompletedProcess:
+        return self.conditions()
+
     # Acceptance
 
     def test_no_acceptance_row_fails(self):

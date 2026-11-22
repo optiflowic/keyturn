@@ -56,11 +56,11 @@ It exits 0 when it posted or had nothing new to post, 1 when it was refused (no 
 [`scripts/merge.py`](scripts/merge.py) is the only way `deliver` and `resume` merge a task's pull request, in the `merge` step, after the client's acceptance is recorded ([ADR 0046](../docs/adr/0046-acceptance-record-conditions-check-and-merge-script.md)). `merge.py <task>`, on `task/<task>`:
 
 - refuses a pull request that is not open, still a draft, goes to another branch than the default one, or comes from a fork (a fork's pull request runs the fork's workflow, [ADR 0043](../docs/adr/0043-gate-finds-a-task-s-range-in-ci.md)), and one whose head is not the local `HEAD` and `task/<task>` on `origin`;
-- waits up to an hour (`--wait-minutes`) for `keyturn gate` and `keyturn conditions` from GitHub Actions to finish on that head, since the push right before starts them ([ADR 0044](../docs/adr/0044-task-branch-and-pull-request-kept-in-step-with-origin.md)), and refuses unless both passed;
+- waits up to 9 minutes (`--wait-minutes`) for `keyturn gate` and `keyturn conditions` from GitHub Actions to finish on that head, since the push right before starts them ([ADR 0044](../docs/adr/0044-task-branch-and-pull-request-kept-in-step-with-origin.md)), exits 3 when they have not (`deliver` then runs it again, up to about an hour), and refuses unless both passed;
 - runs `gates/conditions.sh` of its own keyturn copy on that head;
 - squash-merges naming that head (`sha`), so that GitHub refuses the merge if the head moved meanwhile, and the branch protection refuses it without the required checks. A merge GitHub refused is never tried again.
 
-It exits 0 when it merged, 1 when it refused (the message says why), and 2 when it could not run. The recommended permission rules deny `gh pr merge` and `gh api`; what reaches the default branch is still decided by the branch protection below, not by the rules. Its tests: `python3 -m unittest discover -s github/scripts`.
+It exits 0 when it merged, 1 when it refused (the message says why), 2 when it could not run, and 3 when the checks have not finished. The recommended permission rules deny `gh pr merge` and `gh api`; what reaches the default branch is still decided by the branch protection below, not by the rules. Its tests: `python3 -m unittest discover -s github/scripts`.
 
 ## One-time setup
 

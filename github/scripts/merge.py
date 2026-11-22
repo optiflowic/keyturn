@@ -2,19 +2,20 @@
 """Merge a task's pull request when its conditions hold, and nothing else (ADR 0042, ADR 0046).
 
 Usage (from inside the project's repository, on the branch task/TASK):
-  merge.py TASK [--wait-minutes N]
+  merge.py TASK [--wait-minutes N]   (deliver passes --wait-minutes 9, so that one call fits in a tool call)
 
 It refuses (exit 1), and never merges, unless all of these hold, in this order:
   - the task's pull request is open, ready for review, goes to the default branch, and its branch is in this repository
     itself (a fork's pull request runs the fork's workflow, ADR 0043);
   - its head is the local HEAD and the task branch on origin;
   - the checks "keyturn gate" and "keyturn conditions" from GitHub Actions on that head have finished and passed; it waits
-    for them up to N minutes (default 60), since a push starts them and the merge step comes right after one (ADR 0044);
+    for them up to N minutes (default 9), since a push starts them and the merge step comes right after one (ADR 0044);
   - keyturn's conditions check (gates/conditions.sh, next to this script's keyturn copy) passes on that head.
 Then it squash-merges the pull request naming that head, so that GitHub refuses the merge if the head moved meanwhile,
 and the branch protection refuses it without the required checks. A merge GitHub refused is never tried again.
 
-Exit codes: 0 merged; 1 refused (the message says why); 2 it could not run (a wrong branch, no origin, no gh).
+Exit codes: 0 merged; 1 refused (the message says why); 2 it could not run (a wrong branch, no origin, no gh);
+3 the checks have not finished yet (nothing else was wrong so far): run it again later.
 Needs Python 3.9 or later, Git, and the GitHub CLI (`gh`). Uses only the standard library.
 """
 
@@ -36,6 +37,13 @@ CONDITIONS = KEYTURN_ROOT / "gates" / "conditions.sh"
 CHECKS = ("keyturn gate", "keyturn conditions")
 CHECKS_APP = "github-actions"
 POLL_SECONDS = 30
+# GitHub may not show a push on the pull request at once: how long to wait for its head to be the local one.
+HEAD_WAIT_SECONDS = 30
+EXIT_PENDING = 3
+
+
+class Pending(Exception):
+    """The checks have not finished: not a refusal, the merge step runs again later."""
 
 
 def remote_head(root: Path, branch: str) -> str:
@@ -72,8 +80,8 @@ def wait_for_checks(root: Path, sha: str, wait_seconds: float) -> None:
         if not pending:
             break
         if time.monotonic() >= deadline:
-            raise Refused(f"the checks {', '.join(pending)} on {sha[:12]} have not finished (or not started) in "
-                          f"{wait_seconds / 60:g} minutes; run the merge step again later")
+            raise Pending(f"the checks {', '.join(pending)} on {sha[:12]} have not finished (or not started) in "
+                          f"{wait_seconds / 60:g} minutes; run merge.py again later")
         time.sleep(POLL_SECONDS)
     failed = [f"{name} ({runs[name].get('conclusion')}, {runs[name].get('html_url', '')})" for name in CHECKS
               if runs[name].get("conclusion") != "success"]
@@ -92,13 +100,18 @@ def run_conditions(root: Path, task: str, default: str, sha: str) -> None:
 def cmd_merge(root: Path, task: str, wait_seconds: float) -> None:
     branch = task_branch.check_task(root, task)
     default = task_branch.default_branch(root)
-    pr = task_branch.open_pull_request(root, branch)  # never a fork's: those are left out
+    head = git(root, "rev-parse", "HEAD")
+    deadline = time.monotonic() + HEAD_WAIT_SECONDS
+    while True:
+        pr = task_branch.open_pull_request(root, branch)  # never a fork's: those are left out
+        if pr is None or pr.get("headRefOid") == head or time.monotonic() >= deadline:
+            break
+        time.sleep(5)
     if pr is None:
         raise Refused(f"no open pull request from {branch}")
     task_branch.check_base(pr, default)
     if pr.get("isDraft"):
-        raise Refused(f"{pr['url']} is a draft; the merge step marks it ready first (task_branch.py ready)")
-    head = git(root, "rev-parse", "HEAD")
+        raise Refused(f"{pr['url']} is a draft; the deliver step marks it ready first (task_branch.py ready)")
     if pr.get("headRefOid") != head:
         raise Refused(f"{pr['url']} is at {str(pr.get('headRefOid'))[:12]}, not at the local HEAD {head[:12]}; push first")
     if remote_head(root, branch) != head:
@@ -114,13 +127,16 @@ def cmd_merge(root: Path, task: str, wait_seconds: float) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Merge a task's pull request when its conditions hold (ADR 0046).")
     parser.add_argument("task", help="the task's name; its branch is task/<task>")
-    parser.add_argument("--wait-minutes", type=float, default=60, help="how long to wait for the checks (default: 60)")
+    parser.add_argument("--wait-minutes", type=float, default=9, help="how long to wait for the checks (default: 9)")
     args = parser.parse_args()
     try:
         cmd_merge(task_branch.repo_root(), args.task, max(args.wait_minutes, 0) * 60)
     except SetupError as error:
         print(f"setup error: {error}", file=sys.stderr)
         return EXIT_SETUP
+    except Pending as error:
+        print(f"not yet: {error}", file=sys.stderr)
+        return EXIT_PENDING
     except Refused as error:
         print(f"refused: {error}", file=sys.stderr)
         return EXIT_REFUSED

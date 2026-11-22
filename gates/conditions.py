@@ -100,13 +100,22 @@ def without_fences_and_comments(text: str) -> list[str]:
     return lines
 
 
-def findings(text: str) -> list[tuple[str, dict[str, str]]]:
-    """The findings of the "Findings" section, as (number, {field: value}) with the fields before the text."""
+def findings(text: str) -> list[tuple[str, dict[str, str]]] | None:
+    """The findings of the "Findings" section, as (number, {field: value}) with the fields before the text.
+
+    None when the section cannot be read: no "## Findings" heading, or text in it that is neither "None." nor
+    findings under "### F-<n>" headings. A report that cannot be read never counts as one without findings.
+    """
     lines = without_fences_and_comments(text)
     start = next((i + 1 for i, line in enumerate(lines) if re.fullmatch(r"## Findings[ \t]*", line)), None)
     if start is None:
-        return []
+        return None
     end = next((i for i in range(start, len(lines)) if lines[i].startswith("## ")), len(lines))
+    body = [line.strip() for line in lines[start:end] if line.strip()]
+    if body == ["None."]:
+        return []
+    if not body or not FINDING_RE.match(body[0]) or any(line.startswith("#") and not FINDING_RE.match(line) for line in body):
+        return None
     found: list[tuple[str, dict[str, str]]] = []
     for line in lines[start:end]:
         head = FINDING_RE.match(line)
@@ -145,7 +154,12 @@ def check_report(root: Path, head: str, role: str, developer_last: str) -> Resul
     elif not developer_last.startswith(reviewed.group(2)):
         problems.append(f"{path}: reviews up to {reviewed.group(2)}, not the developer's last commit "
                         f"{developer_last[:12]}; the {role} step runs again on it")
-    for number, fields in findings(text):
+    found = findings(text)
+    if found is None:
+        problems.append(f"{path}: its \"Findings\" section cannot be read: it must be \"None.\" or findings under "
+                        "\"### F-<n>: <title>\" headings, as the template has them")
+        found = []
+    for number, fields in found:
         severity, status = fields.get("Severity", ""), fields.get("Status", "")
         if severity not in SEVERITIES:
             problems.append(f"{path}: {number}: the severity is {severity or '(missing)'!r}; use high, medium, or low")
