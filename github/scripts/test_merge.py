@@ -298,6 +298,33 @@ class MergeTest(unittest.TestCase):
         self.set_activity("1" * 40, PUSHED)
         self.assert_pending(self.merge(), "activity does not show main")
 
+    def test_an_activity_that_lists_no_push_is_refused(self):
+        self.activity.write_text("[]", encoding="utf-8")
+        self.assert_refused(self.merge(), "lists no push to main")
+
+    def test_it_keeps_polling_until_the_activity_and_the_checks_are_there(self):
+        # The activity lags the push, and the checks run: the first polls wait instead of exiting.
+        self.script.write_text(self.script.read_text(encoding="utf-8").replace("POLL_SECONDS = 30", "POLL_SECONDS = 0.2"),
+                               encoding="utf-8")
+        self.set_activity("1" * 40, PUSHED)
+        self.set_checks(("keyturn gate", "success"), ("keyturn conditions", None))
+        catch_up = textwrap.dedent(f"""\
+            import json, time
+            time.sleep(1)
+            open({str(self.activity)!r}, "w").write(json.dumps([{{"after": {self.tip!r}, "timestamp": {PUSHED!r}}}]))
+            runs = json.load(open({str(self.checks)!r}))
+            for run in runs:
+                run.update(status="completed", conclusion="success")
+            open({str(self.checks)!r}, "w").write(json.dumps(runs))
+        """)
+        writer = subprocess.Popen([sys.executable, "-c", catch_up])
+        try:
+            result = self.merge("--wait-minutes", "1")
+        finally:
+            writer.wait()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(len(self.merged()), 1)
+
     def test_without_the_watch_workflow_it_refuses_unless_the_branch_protection_requires_the_checks(self):
         self.git("switch", "-q", "main")
         self.git("rm", "-q", ".github/workflows/keyturn-watch.yml")

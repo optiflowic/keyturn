@@ -102,15 +102,20 @@ def when(text: str | None) -> datetime | None:
 
 
 def last_push(root: Path, default: str, tip: str) -> datetime | None:
-    """When the default branch last changed, from the repository's activity; None when it lists nothing."""
-    data = json.loads(task_branch.gh_api(
-        root, f"repos/{{repo}}/activity?ref=refs/heads/{default}&direction=desc&per_page=1"))
-    if not data:
-        return None
+    """When the default branch last changed to the tip, from the repository's activity; None when the activity does
+    not show the tip yet (it may lag a push). An activity that lists nothing is a refusal: without it, an old success
+    on a commit the branch was reset to cannot be told from a new one (ADR 0048)."""
+    try:
+        data = json.loads(task_branch.gh_api(
+            root, f"repos/{{repo}}/activity?ref=refs/heads/{default}&direction=desc&per_page=1"))
+    except ValueError:
+        raise Refused(f"the repository's activity for {default} is not JSON") from None
+    if not isinstance(data, list) or not data:
+        raise Refused(f"the repository's activity lists no push to {default}, so a run of {WATCH} after the last push "
+                      f"cannot be told from an old one; the maintainer looks at it (ADR 0048)")
     activity = data[0]
     if activity.get("after") != tip:
-        raise Pending(f"the repository's activity does not show {default} at {tip[:12]} yet (its last push is to "
-                      f"{str(activity.get('after'))[:12]}); run merge.py again later")
+        return None
     pushed = when(activity.get("timestamp"))
     if pushed is None:
         raise Refused(f"the repository's activity gives no time for the last push to {default}")
@@ -120,9 +125,11 @@ def last_push(root: Path, default: str, tip: str) -> datetime | None:
 def watch_state(root: Path, default: str, tip: str) -> tuple[str, str]:
     """('passed' | 'pending' | 'failed', why) for keyturn watch on the tip, counting only runs after the last push."""
     pushed = last_push(root, default, tip)
+    if pushed is None:
+        return "pending", f"the repository's activity does not show {default} at {tip[:12]} yet"
     runs = [check for check in check_runs(root, tip, (WATCH,))[WATCH]
-            if pushed is None or ((started := when(check.get("started_at"))) is not None and started >= pushed)]
-    since = f" since the last push to {default} ({pushed.isoformat()})" if pushed else ""
+            if (started := when(check.get("started_at"))) is not None and started >= pushed]
+    since = f" since the last push to {default} ({pushed.isoformat()})"
     if not runs:
         return "pending", (f"no run of {WATCH} on {default}'s tip {tip[:12]}{since}; a commit that skipped the workflow "
                            f"gets one at its next scheduled run, or when the maintainer starts it by hand")
