@@ -15,8 +15,8 @@ It refuses (exit 1), and never merges, unless all of these hold, in this order:
   - the checks "keyturn gate" and "keyturn conditions" from GitHub Actions on that head have finished and passed;
   - the check "keyturn watch" from GitHub Actions on the default branch's tip passed, in a run that started after the
     last push to the default branch in the repository's activity, so that an old success on a commit the branch was
-    reset to does not count (ADR 0048). When the workflow is not on the default branch, it refuses, unless the default
-    branch's protection requires both checks;
+    reset to does not count (ADR 0048). When the workflow is not on the default branch, it refuses, with branch
+    protection too: protection prevents, but does not find a reset or a deleted task branch;
   - keyturn's conditions check (gates/conditions.sh, next to this script's keyturn copy) passes on that head.
 It waits for the checks up to N minutes (default 9), since a push starts them and the merge step comes right after one
 (ADR 0044). Then it squash-merges the pull request naming that head, so that GitHub refuses the merge if the head moved
@@ -169,7 +169,7 @@ def fetch_default(root: Path, default: str) -> str:
     return git(root, "rev-parse", f"refs/remotes/origin/{default}")
 
 
-def wait_for_checks(root: Path, head: str, default: str, tip: str, watch: bool, wait_seconds: float) -> None:
+def wait_for_checks(root: Path, head: str, default: str, tip: str, wait_seconds: float) -> None:
     deadline = time.monotonic() + wait_seconds
     while True:
         runs = check_runs(root, head, CHECKS)
@@ -178,7 +178,7 @@ def wait_for_checks(root: Path, head: str, default: str, tip: str, watch: bool, 
                   for name in CHECKS if name not in pending and runs[name][0].get("conclusion") != "success"]
         if failed:
             raise Refused(f"the checks on {head[:12]} did not pass: {'; '.join(failed)}")
-        state, why = watch_state(root, default, tip) if watch else ("passed", "")
+        state, why = watch_state(root, default, tip)
         if state == "failed":
             raise Refused(why)
         if not pending and state == "passed":
@@ -243,13 +243,10 @@ def cmd_merge(root: Path, task: str, wait_seconds: float) -> None:
     if run(["git", "merge-base", "--is-ancestor", tip, head], root).returncode != 0:
         raise Refused(f"{branch} at {head[:12]} does not contain the tip {tip[:12]} of {default}: {default} moved after "
                       f"the task started, and a task branch is never updated from it (ADR 0031); the maintainer decides")
-    watch = run(["git", "cat-file", "-e", f"{tip}:{WATCH_WORKFLOW}"], root).returncode == 0
-    if not watch:
-        if not protected(root, default):
-            raise Refused(f"{WATCH_WORKFLOW} is not on {default}, and {default} has no branch protection that requires "
-                          f"{' and '.join(CHECKS)}: add the {WATCH} workflow as the one-time setup says (ADR 0048)")
-        print(f"note: {WATCH_WORKFLOW} is not on {default}; its branch protection requires the checks", file=sys.stderr)
-    wait_for_checks(root, head, default, tip, watch, wait_seconds)
+    if run(["git", "cat-file", "-e", f"{tip}:{WATCH_WORKFLOW}"], root).returncode != 0:
+        raise Refused(f"{WATCH_WORKFLOW} is not on {default}: add the {WATCH} workflow as the one-time setup says; it is "
+                      f"needed with branch protection too (ADR 0048)")
+    wait_for_checks(root, head, default, tip, wait_seconds)
     run_conditions(root, task, default, head)
     # The sha makes GitHub refuse the merge if the head moved after the checks above.
     try:

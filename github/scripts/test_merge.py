@@ -325,7 +325,7 @@ class MergeTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(len(self.merged()), 1)
 
-    def test_without_the_watch_workflow_it_refuses_unless_the_branch_protection_requires_the_checks(self):
+    def test_without_the_watch_workflow_it_refuses_with_branch_protection_too(self):
         self.git("switch", "-q", "main")
         self.git("rm", "-q", ".github/workflows/keyturn-watch.yml")
         self.tip = self.commit("remove the watch")
@@ -339,16 +339,10 @@ class MergeTest(unittest.TestCase):
         self.set_activity(self.tip, PUSHED)
         self.assert_refused(self.merge(), "keyturn-watch.yml is not on main")
         self.set_protection(rules=[{"type": "required_status_checks", "parameters": {
-            "strict_required_status_checks_policy": True, "required_status_checks": [{"context": "keyturn gate"}]}}],
-            branch={"protected": False})
-        self.assert_refused(self.merge(), "keyturn-watch.yml is not on main")  # one check is not both
-        self.set_protection(rules=[{"type": "required_status_checks", "parameters": {
             "strict_required_status_checks_policy": True,
             "required_status_checks": [{"context": "keyturn gate"}, {"context": "keyturn conditions"}]}}],
-            branch={"protected": False})
-        result = self.merge()
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("its branch protection requires the checks", result.stderr)
+            branch={"protected": True, "protection": {"enabled": True}})
+        self.assert_refused(self.merge(), "needed with branch protection too")
 
     def test_the_protection_option_reads_rulesets_and_classic_protection_and_merges_nothing(self):
         def protection() -> str:
