@@ -541,6 +541,12 @@ class WorkflowTest(unittest.TestCase):
                 first = steps.split("\n      - ", 1)[0]
                 self.assertIn("- name: Refuse a draft\n        if: github.event.pull_request.draft\n", first)
                 self.assertIn("exit 1", first)
+                # The second step refuses a branch that is not a task's, before any checkout or tool.
+                second = steps.split("\n      - ", 2)[1]
+                self.assertTrue(second.startswith("name: Check that it is a task's pull request\n"), second[:60])
+                self.assertIn('echo "not a task branch (task/<task>): $HEAD_REF" >&2; exit 1', second)
+                self.assertIn('if [ "$BASE_REF" != "$DEFAULT_BRANCH" ]; then', second)
+                self.assertNotIn("uses:", second)
 
 
 if __name__ == "__main__":
