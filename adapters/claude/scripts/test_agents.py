@@ -102,6 +102,13 @@ class PermissionSettings(unittest.TestCase):
     def test_every_push_is_denied(self):
         self.assertIn("Bash(git push *)", self.settings["permissions"]["deny"])
 
+    def test_the_pull_request_commands_are_denied_so_the_scripts_are_the_only_way(self):
+        # ADR 0041: agents push, open, and post only through keyturn's scripts in github/scripts/; and ADR 0044:
+        # a closed pull request is never reopened outside them.
+        deny = self.settings["permissions"]["deny"]
+        for command in ("merge", "create", "edit", "ready", "close", "review", "comment", "reopen", "update-branch", "lock"):
+            self.assertIn(f"Bash(gh pr {command} *)", deny)
+
 
 if __name__ == "__main__":
     unittest.main()

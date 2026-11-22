@@ -5,7 +5,7 @@ description: Resume a keyturn task that stopped (usage limit, closed session, cr
 
 # resume
 
-Continue a stopped task from the step where it stopped, using only what is in the repository. Everything this skill needs is in this file, the script next to it, and the files it names. For background, see keyturn's `docs/design/resuming-work.md` and ADRs 0009 and 0011; the procedure does not depend on them.
+Continue a stopped task from the step where it stopped, using only what is in the repository. Everything this skill needs is in this file, the script next to it, and the files it names. For background, see keyturn's `docs/design/resuming-work.md` and ADRs 0009, 0011, and 0044; the procedure does not depend on them.
 
 Paths below that start with `scripts/`, `../`, or `../../` are relative to the folder of this `SKILL.md` file. Paths that start with `keyturn/` are in the project's repository.
 
@@ -23,12 +23,13 @@ Paths below that start with `scripts/`, `../`, or `../../` are relative to the f
 - The project's Git repository, with its task branches `task/<task>` (local, or on a remote).
 - `../../templates/internal/state.md`: the fields and values of a state file. The script reads it; you need it only to edit the state file in step 5.
 - For a task waiting for the client: the decision card, `keyturn/client/design-summary.md`, or `keyturn/client/approvals.md` named in its "Open questions", and the scripts `../spec/scripts/approval.py` and `../project-config/scripts/project_config.py`.
+- To push what only the local branch has: `../../github/scripts/task_branch.py` (below, `task_branch.py` means its full path).
 - To continue: the `deliver` skill, `../deliver/SKILL.md`.
 
 ## Outputs
 
 - With no task: the list of tasks that can be resumed, for the person who asked.
-- With a task: the state file, updated for the resume and committed on the task branch, and the task continued from its step. Or, when it cannot continue, a short message saying why and, if known, when it can.
+- With a task: the task branch pushed to `origin` when it had commits that `origin` did not (step 3), the state file, updated for the resume and committed on the task branch, and the task continued from its step. Or, when it cannot continue, a short message saying why and, if known, when it can.
 
 ## Procedure
 
@@ -51,11 +52,16 @@ Run `task_state.py list`. Tell the person, in their language, which tasks can co
 1. Run `task_state.py list --task <task>`. Look only at this output; other tasks do not matter here.
    - Any `error:` line (indented under the task's heading): stop. Show the person every line, and say the task cannot be resumed until they are fixed. Do not fix the state file by guessing: it is fixed by hand, to what the task branch shows, by someone who can tell, and checked again. The lines you may see besides problems in the file itself:
      - `error: task/<task>: has no local or remote branch`: there is no such task.
-     - `error: task/<task>: should not have diverged: <branches>; ...`: the local and remote branches both have commits the other lacks. Ask the person how to merge them.
+     - `error: task/<task>: should not have diverged: <branches>; ...`: the local and remote branches both have commits the other lacks. Never merge, rebase, or overwrite either: the maintainer looks at the remote commits and discards them (a change they want kept is asked for again as a change to the requirements), as keyturn's `github/README.md` says ("When the task branch on origin moved"; ADR 0044).
      - `error: <branch>:keyturn/internal/state/<task>.md: is missing`: where the task stopped cannot be told; do not work it out from the outputs.
-   - `status: done`: there is nothing to resume. Say so, and stop.
+   - `status: done`: there is nothing to resume, but its last commits may not have reached `origin`: do items 2 to 4, then say that the task is done, and stop.
 2. Run `git status --porcelain`. If it prints anything, stop and ask the person what to do with those changes; never discard them.
 3. Run `git switch task/<task>` (this creates the local branch from the remote one when only the remote one exists). If `list` printed `note: task/<task> is behind <remote>/task/<task>; fast-forward it before resuming`, run `git merge --ff-only <remote>/task/<task>`.
+4. **Push what only this branch has** (ADR 0044), before anything else, so that the work is on `origin` whatever happens next: a push of the last step, or of the stop, may have failed, or the session may have ended before it. Run `git rev-parse --verify --quiet refs/remotes/origin/task/<task>`.
+   - It prints a commit, and `git rev-list --count refs/remotes/origin/task/<task>..HEAD` prints more than 0: run `task_branch.py push <task>`, and then, for a task that is not done, `task_branch.py open <task>` (a pull request that could not be opened earlier is opened now). The push is a fast-forward (`list` stopped on a branch that diverged), and the script never forces it.
+   - It prints nothing: `task/<task>` is not on `origin`. For a task that is not done (its first push failed), run the two commands as above. For a done task, push nothing: its branch may have been deleted after the merge; say that it is not on `origin`.
+   - Otherwise there is nothing to push.
+   - If a command exits other than 0, stop: record nothing, and tell the person, in their language, the script's message, that the work is committed on the local branch and nothing is lost, and that the maintainer settles it (no network or no `gh`: they fix it and resume the task again; a pull request that was closed or merged, or a task branch that moved on `origin`: as keyturn's `github/README.md` says). Never push with another command, and never with force.
 
 ### 4. Decide whether it can continue now
 
