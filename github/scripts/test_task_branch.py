@@ -45,7 +45,9 @@ class TaskBranchTest(unittest.TestCase):
         self.git("config", "user.name", "Test")
         self.put("README.md", "project\n")
         self.commit("first")
-        self.git("remote", "add", "origin", str(self.origin))
+        # origin looks like GitHub, and Git is sent to the bare repository instead (the test never reaches the network).
+        self.git("remote", "add", "origin", "https://github.com/owner/project.git")
+        self.git("config", f"url.{self.origin}.insteadOf", "https://github.com/owner/project.git")
         self.git("push", "-q", "origin", "main")
         self.git("remote", "set-head", "origin", "main")
         self.git("switch", "-q", "-c", "task/delivery-1")
@@ -152,15 +154,43 @@ class TaskBranchTest(unittest.TestCase):
         self.assertEqual(create[create.index("--base") + 1], "main")
         self.assertEqual(create[create.index("--head") + 1], "task/delivery-1")
         body = Path(str(self.log) + ".body").read_text(encoding="utf-8")
-        self.assertIn("- [Requirements](keyturn/client/requirements.md)", body)
+        head = self.git("rev-parse", "HEAD")
+        self.assertIn(f"- [Requirements](https://github.com/owner/project/blob/{head}/keyturn/client/requirements.md)", body)
+        self.assertEqual(create[create.index("--repo") + 1], "owner/project")
         self.assertNotIn("Acceptance guide", body)
+
+    def test_gh_is_given_origin_s_repository_whatever_the_environment_says(self):
+        self.env["GH_REPO"] = "other/repo"
+        self.set_prs([{"number": 7, "url": "u7", "isDraft": True, "isCrossRepository": False, "baseRefName": "main"}])
+        self.assertEqual(self.run_script("ready", "delivery-1").returncode, 0)
+        self.assertTrue(self.calls())
+        for call in self.calls():
+            self.assertEqual(call[call.index("--repo") + 1], "owner/project", call)
+
+    def test_an_origin_that_is_not_github_stops(self):
+        self.git("remote", "set-url", "origin", str(self.origin))
+        result = self.run_script("push", "delivery-1")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("not a GitHub repository", result.stderr)
+
+    def test_a_push_url_that_differs_from_origin_s_stops(self):
+        self.git("remote", "set-url", "--push", "origin", "https://github.com/other/repo.git")
+        result = self.run_script("push", "delivery-1")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("origin pushes to", result.stderr)
+
+    def test_tags_are_never_pushed(self):
+        self.git("config", "push.followTags", "true")
+        self.git("tag", "-a", "v1", "-m", "a tag")
+        self.assertEqual(self.run_script("push", "delivery-1").returncode, 0)
+        self.assertEqual(self.remote("refs/tags/v1"), "")
 
     def test_open_updates_the_existing_pull_request(self):
         self.set_prs([{"number": 7, "url": "u7", "isDraft": True, "isCrossRepository": False, "baseRefName": "main"}])
         result = self.run_script("open", "delivery-1")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertFalse(any(call[:2] == ["pr", "create"] for call in self.calls()))
-        self.assertTrue(any(call[:3] == ["pr", "edit", "7"] for call in self.calls()))
+        self.assertTrue(any(call[:2] == ["pr", "edit"] and call[-3] == "7" for call in self.calls()))
 
     def test_a_fork_s_pull_request_is_never_the_task_s(self):
         self.set_prs([{"number": 8, "url": "u8", "isDraft": True, "isCrossRepository": True, "baseRefName": "main"}])
@@ -177,7 +207,7 @@ class TaskBranchTest(unittest.TestCase):
     def test_ready_marks_the_draft_ready(self):
         self.set_prs([{"number": 7, "url": "u7", "isDraft": True, "isCrossRepository": False, "baseRefName": "main"}])
         self.assertEqual(self.run_script("ready", "delivery-1").returncode, 0)
-        self.assertTrue(any(call[:3] == ["pr", "ready", "7"] for call in self.calls()))
+        self.assertTrue(any(call[:2] == ["pr", "ready"] and call[-1] == "7" for call in self.calls()))
 
     def test_ready_without_a_pull_request_is_refused(self):
         result = self.run_script("ready", "delivery-1")
