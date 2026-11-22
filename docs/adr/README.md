@@ -58,3 +58,4 @@ See "Architecture decision records" in [`docs/design/documents.md`](../design/do
 | [0040](0040-profile-tools-at-conventions-versions.md) | The gate keeps a profile's tools at the versions `conventions` installed | accepted |
 | [0041](0041-agents-push-task-branches-and-open-pull-requests.md) | Agents push the task branch, open the pull request, and post the reviews on it, through scripts; never the default branch, never a force push | accepted |
 | [0042](0042-pm-merges-on-machine-checked-conditions.md) | The PM merges the pull request when machine-checked conditions hold, and the host's branch protection refuses a merge without them | accepted |
+| [0043](0043-gate-finds-a-task-s-range-in-ci.md) | In CI, the gate finds a task's base and the other roles' commits itself, as ADR 0032 says, and never trusts the state file at the head for the document roles | accepted |

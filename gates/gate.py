@@ -3,6 +3,9 @@
 
 Usage (from inside the project's repository; the base and the head are checked out in temporary worktrees, so only committed files count):
   gate.sh --base REV [--head REV] [--others ROLE:COMMIT ...] [--log FILE] [--profiles DIR] [--timeout-minutes N]
+  gate.sh --task TASK --default-branch REV [--head REV] [--log FILE] [--profiles DIR] [--timeout-minutes N]
+    (a task run by deliver, as in CI: the base and the other roles' commits are found from the branch and its state
+    file, ADR 0043)
 
 Checks, in this order, each reported as one PASS or FAIL line:
   protected-paths  no change in the range to a protected path ("Guardrails" 1)
@@ -705,6 +708,126 @@ def check_others(root: Path, base: str, head: str, others: dict[str, str], qa: l
         raise SetupError(["the commits named as other roles' do not match the range: " + problem for problem in problems])
 
 
+# --- A task's range, found by the gate itself (CI) -------------------------------------------------
+
+STATE_DIR = "keyturn/internal/state"
+TASK_RE = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
+STATE_COMMIT_RE = re.compile(r"- `([0-9a-f]{7,40})`: ([a-z-]+), round [1-9][0-9]*")
+# The steps of the task state file whose commits are another role's; "implement" is the developer's.
+LATER_ROLES = ("qa", "security-review", "review", "deliver")
+
+
+def state_section(text: str, name: str) -> list[str]:
+    """The lines of one "## " section of a task state file."""
+    lines, inside = [], False
+    for line in re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL).splitlines():
+        if line.startswith("## "):
+            inside = line[3:].strip() == name
+        elif inside:
+            lines.append(line.strip())
+    return lines
+
+
+def state_commits(text: str, where: str) -> list[tuple[str, str]]:
+    """The "Commits" lines of a task state file, as (short hash, step), oldest first."""
+    listed = []
+    for line in state_section(text, "Commits"):
+        if not line.startswith("- "):
+            continue
+        match = STATE_COMMIT_RE.fullmatch(line)
+        if match is None:
+            raise SetupError([f"{where}: a \"Commits\" line is not `- `<commit>`: <step>, round <n>`: {line}"])
+        listed.append((match.group(1), match.group(2)))
+    return listed
+
+
+def conventions_recorded(text: str) -> bool:
+    for line in state_section(text, "Steps"):
+        cells = [cell.strip() for cell in line.strip("|").split("|")]
+        if len(cells) >= 2 and cells[0] == "conventions":
+            return cells[1] == "done"
+    return False
+
+
+def task_range(root: Path, task: str, default_rev: str, head_rev: str) -> tuple[str, list[str]]:
+    """The base and the other roles' commits of a task's range, found as deliver finds them, without its session (ADR 0043).
+
+    The base is where the task branch left the default branch (ADR 0032). The commits of spec, design, and conventions
+    are read only from the state file as committed when the conventions step was recorded, never from a later version;
+    the later roles' commits are read from the state file at the head, as after a resume, and each is still checked
+    against what its role may write (ADR 0029).
+    """
+    if not TASK_RE.fullmatch(task):
+        raise SetupError([f"--task {task}: not a task name (lowercase letters and digits with single hyphens)"])
+    state = f"{STATE_DIR}/{task}.md"
+    head = commit_of(root, head_rev)
+    default = commit_of(root, default_rev)
+    merge_base = subprocess.run(["git", "-C", str(root), "merge-base", default, head], capture_output=True, text=True, env=ENV)
+    if merge_base.returncode != 0:
+        raise SetupError([f"{default_rev} and {head_rev} have no commit in common"])
+    base = merge_base.stdout.strip()
+    added = git(root, "log", "--diff-filter=A", "--reverse", "--format=%H", f"{base}..{head}", "--", state).split()
+    if not added:
+        raise SetupError([f"{state}: not added on the task branch after it left {default_rev}"])
+    first_parent = git(root, "rev-parse", f"{added[0]}^").strip()
+    if first_parent != base:
+        raise SetupError([f"{state} was added by {added[0][:12]}, whose parent is not where the task branch left "
+                          f"{default_rev} ({base[:12]}); a ref was moved"])
+    commits = [commit for commit, _ in range_commits(root, base, head)]
+
+    def resolve(short: str, where: str, among: list[str]) -> str:
+        """The commit a listed hash names, looked up only among the commits that version could list."""
+        found = [commit for commit in among if commit.startswith(short)]
+        if len(found) != 1:
+            raise SetupError([f"{where}: `{short}` is {'not a' if not found else 'more than one'} commit it could list"])
+        return found[0]
+
+    recorded = None
+    for commit in git(root, "log", "--reverse", "--format=%H", f"{base}..{head}", "--", state).split():
+        text = file_at(root, commit, state)
+        if text is not None and conventions_recorded(text):
+            recorded = (commit, text)
+            break
+    if recorded is None:
+        raise SetupError([f"{state}: the conventions step is not recorded yet, so the developer's work has not started; "
+                          "the gate runs once implement has"])
+    others: dict[str, str] = {}
+    where = f"{state} at {recorded[0][:12]}"
+    # The version at the record can list only the commits before it: a commit made later, whose hash a developer chose to
+    # start the same way, is never one of them.
+    before_record = commits[:commits.index(recorded[0])]
+    for short, step in state_commits(recorded[1], where):
+        if step in DOCUMENT_ROLES or step == "deliver":
+            others[resolve(short, where, before_record)] = step
+
+    text = file_at(root, head, state)
+    if text is None:
+        raise SetupError([f"{state}: missing at the head"])
+    where = f"{state} at the head"
+    listed: dict[str, str] = {}  # every listed commit's step, "implement" included
+    for short, step in state_commits(text, where):
+        commit = resolve(short, where, commits)
+        if listed.get(commit, step) != step:
+            raise SetupError([f"{where}: `{short}` is named as {step}'s, and as {listed[commit]}'s too"])
+        listed[commit] = step
+        if step in DOCUMENT_ROLES:
+            if others.get(commit) != step:
+                raise SetupError([f"{where}: `{short}` is named as {step}'s, which the state file did not say when "
+                                  "conventions was recorded; a later line naming a document role is never trusted"])
+        elif step in LATER_ROLES or step == "implement":
+            role = None if step == "implement" else step
+            if others.get(commit, role) != role:
+                raise SetupError([f"{where}: `{short}` is named as {step}'s, and as {others[commit]}'s before"])
+            if role is not None:
+                others[commit] = role
+        else:
+            raise SetupError([f"{where}: `{short}`: {step} is not a step of the task state file"])
+    # The newest state commit cannot list itself: the head, when no line lists it and it changes only the state file.
+    if head not in listed and head not in others and name_status(root, f"{head}^", head) == [state]:
+        others[head] = "deliver"
+    return base, [f"{role}:{commit}" for commit, role in others.items()]
+
+
 def gate(base_rev: str, head_rev: str, profiles_dir: Path, timeout: float,
          others_values: list[str]) -> tuple[str, str, list[Result], list[dict]]:
     root = repo_root()
@@ -736,7 +859,11 @@ def gate(base_rev: str, head_rev: str, profiles_dir: Path, timeout: float,
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run keyturn's gate on a Git range (ADR 0028).")
-    parser.add_argument("--base", required=True, help="the commit the change started from")
+    where = parser.add_mutually_exclusive_group(required=True)
+    where.add_argument("--base", help="the commit the change started from")
+    where.add_argument("--task", help="a task run by deliver: find the base and the other roles' commits from the branch and "
+                                      "its state file, as in CI (ADR 0043); needs --default-branch")
+    parser.add_argument("--default-branch", help="with --task: the default branch the task branch left (for example origin/main)")
     parser.add_argument("--head", default="HEAD", help="the last commit of the change (default: HEAD)")
     parser.add_argument("--log", type=Path, help="also write the result as JSON to this file")
     parser.add_argument("--profiles", type=Path, default=PLUGIN_ROOT / "profiles", help="the folder of stack profiles")
@@ -745,9 +872,16 @@ def main() -> int:
                         help="a commit in the range that is another role's (spec, design, conventions, qa, security-review, review, deliver); "
                              "repeat for each (ADR 0029, ADR 0032)")
     args = parser.parse_args()
+    if args.task is not None and (args.others or args.default_branch is None):
+        parser.error("--task needs --default-branch, and finds the other roles' commits itself (no --others)")
+    if args.task is None and args.default_branch is not None:
+        parser.error("--default-branch goes with --task")
 
     try:
-        base, head, results, versions = gate(args.base, args.head, args.profiles, args.timeout_minutes * 60, args.others)
+        base_rev, others = args.base, args.others
+        if args.task is not None:
+            base_rev, others = task_range(repo_root(), args.task, args.default_branch, args.head)
+        base, head, results, versions = gate(base_rev, args.head, args.profiles, args.timeout_minutes * 60, others)
     except SetupError as error:
         for problem in error.problems:
             print(f"setup error: {problem}", file=sys.stderr)
