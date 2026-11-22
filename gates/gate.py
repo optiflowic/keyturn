@@ -804,10 +804,12 @@ def task_range(root: Path, task: str, default_rev: str, head_rev: str) -> tuple[
     if text is None:
         raise SetupError([f"{state}: missing at the head"])
     where = f"{state} at the head"
-    listed = set()
+    listed: dict[str, str] = {}  # every listed commit's step, "implement" included
     for short, step in state_commits(text, where):
         commit = resolve(short, where, commits)
-        listed.add(commit)
+        if listed.get(commit, step) != step:
+            raise SetupError([f"{where}: `{short}` is named as {step}'s, and as {listed[commit]}'s too"])
+        listed[commit] = step
         if step in DOCUMENT_ROLES:
             if others.get(commit) != step:
                 raise SetupError([f"{where}: `{short}` is named as {step}'s, which the state file did not say when "

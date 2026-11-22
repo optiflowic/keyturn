@@ -791,7 +791,16 @@ class TaskRangeTest(unittest.TestCase):
         self.record()
         result = self.task_gate()
         self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
-        self.assertIn("and as qa's before", result.stderr)
+        self.assertIn("and as qa's too", result.stderr)
+
+    def test_a_developer_commit_also_named_as_qa_s_stops_the_gate(self):
+        self.put("app/qa/test_qa.txt", "changed by the developer")
+        developer = self.step("implement")
+        self.lines.append(f"- `{developer}`: qa, round 1")
+        self.record()
+        result = self.task_gate()
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("and as implement's too", result.stderr)
 
     def test_a_listed_commit_that_is_not_in_the_range_stops_the_gate(self):
         self.lines.append(f"- `{self.base[:7]}`: qa, round 1")
