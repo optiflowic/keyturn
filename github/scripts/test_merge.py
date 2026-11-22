@@ -30,6 +30,8 @@ FAKE_GH = textwrap.dedent("""\
             print("Head branch was modified. Review and try the merge again.", file=sys.stderr)
             sys.exit(1)
         print(json.dumps({"merged": True}))
+    elif sys.argv[1] == "api" and "/pulls/" in sys.argv[2]:
+        print(json.dumps({"merged": bool(os.environ.get("FAKE_GH_MERGED_ANYWAY"))}))
 """)
 
 # A stand-in for keyturn's conditions check, in the copy of keyturn the test runs merge.py from.
@@ -189,6 +191,13 @@ class MergeTest(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("Head branch was modified", result.stderr)
         self.assertEqual(len([call for call in self.calls() if call[1].endswith("/merge")]), 1)
+
+    def test_a_failed_merge_call_on_a_merged_pull_request_is_a_merge(self):
+        self.env["FAKE_GH_MERGE_FAILS"] = "1"
+        self.env["FAKE_GH_MERGED_ANYWAY"] = "1"
+        result = self.merge()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("but the pull request is merged", result.stderr)
 
     def test_from_another_branch_it_stops(self):
         self.git("switch", "-q", "main")

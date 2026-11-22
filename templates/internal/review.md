@@ -38,7 +38,7 @@ One heading per finding, numbered F-1, F-2, ... within this report.
 - Say what is wrong and what is expected, with the rule, requirement, ADR, or threat it is based on. Do not write the fix.
 - Status is updated when the developer has fixed it and the reviewer has checked the fix: open or fixed.
   A medium finding of the reviewer (never a high one, and never a security finding) may instead be "accepted: decision card <n>", set only by the reviewer,
-  when that card is answered, offered fixing it, and the client chose to leave it, and the finding is still as the card describes it (ADR 0042 in keyturn's docs/adr/).
+  when that card was already answered before the developer's first commit, offered fixing it, and the client chose to leave it, and the finding is still as the card describes it (ADR 0042 in keyturn's docs/adr/).
   Statuses are fixed English words, read by the merge conditions' check: open, fixed, or accepted: decision card <n>, and nothing else.
 Leave the section with "None." when there are no findings.
 -->

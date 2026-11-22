@@ -119,7 +119,7 @@ def findings(text: str) -> list[tuple[str, dict[str, str]]] | None:
     if not body or not FINDING_RE.match(body[0]) or any(line.startswith("#") and not FINDING_RE.match(line) for line in body):
         return None
     found: list[tuple[str, dict[str, str]]] = []
-    for line in lines[start:end]:
+    for line in body:  # stripped, as checked above: an indented heading or field still counts
         head = FINDING_RE.match(line)
         if head:
             found.append((head.group(1), {}))
@@ -150,9 +150,12 @@ def check_report(root: Path, head: str, role: str, developer_last: str, cards_at
     if text is None:
         return Result(f"findings [{role}]", [f"{path}: missing at the head; the {role} step writes it"])
     problems = []
-    reviewed = RANGE_RE.search(text)
+    # Read from what the report shows, never from a comment or a code block, and only when it says it once.
+    ranges = list(RANGE_RE.finditer("\n".join(line.strip() for line in without_fences_and_comments(text))))
+    reviewed = ranges[0] if len(ranges) == 1 else None
     if reviewed is None:
-        problems.append(f"{path}: no \"Reviewed change\" line of the form <base>..<head>")
+        problems.append(f"{path}: not exactly one \"Reviewed change\" line of the form <base>..<head> "
+                        f"({len(ranges)} found)")
     elif not developer_last.startswith(reviewed.group(2)):
         problems.append(f"{path}: reviews up to {reviewed.group(2)}, not the developer's last commit "
                         f"{developer_last[:12]}; the {role} step runs again on it")
@@ -207,6 +210,16 @@ def blob(root: Path, commit: str, path: str) -> bytes | None:
     return result.stdout if result.returncode == 0 else None
 
 
+def deliver_row_commit(state_text: str) -> str | None:
+    """The "Commit" of the deliver row of the state file's steps table, without its backticks."""
+    for line in gate.state_section(state_text, "Steps"):
+        cells = [cell.strip() for cell in line.strip("|").split("|")]
+        if len(cells) >= 4 and cells[0] == "deliver":
+            match = re.fullmatch(r"`([0-9a-f]{7,40})`", cells[3])
+            return match.group(1) if match else None
+    return None
+
+
 def check_acceptance(root: Path, head: str, task: str, commits: list[str], others: dict[str, str]) -> Result:
     approval = load_approval()
     if (approval.APPROVALS, approval.DELIVERY_DOCUMENTS) != (APPROVALS, DOCUMENTS):
@@ -219,6 +232,11 @@ def check_acceptance(root: Path, head: str, task: str, commits: list[str], other
         return Result("acceptance", [f"no commit on the task branch adds {DOCUMENTS[0]} or {DOCUMENTS[1]}; "
                                      "deliver's last step commits them"])
     documents = touching[-1]
+    recorded = deliver_row_commit(gate.file_at(root, head, state) or "")
+    if recorded is None or not documents.startswith(recorded):
+        problems.append(f"{state}: the deliver step's \"Commit\" is {recorded or '(none)'}, not the newest commit that "
+                        f"changed the acceptance guide or the delivery report, {documents[:12]}; the documents the client "
+                        "read are the ones the deliver step recorded")
     if others.get(documents) != "deliver":
         problems.append(f"{documents[:12]}: changes the acceptance guide or the delivery report, but is not deliver's")
     for commit in commits[commits.index(documents) + 1:]:
@@ -235,6 +253,10 @@ def check_acceptance(root: Path, head: str, task: str, commits: list[str], other
         problems.append(f"{APPROVALS}: no acceptance row for {task} at the head; the merge step records it")
         return Result("acceptance", problems)
     row = rows[-1]
+    if len(row) != approval.ACCEPTANCE_CELLS:
+        problems.append(f"{APPROVALS}: the newest acceptance row of {task} has {len(row)} cells, not "
+                        f"{approval.ACCEPTANCE_CELLS}; a row that cannot be read is never an acceptance")
+        return Result("acceptance", problems)
     answer, words = row[approval.ANSWER], row[approval.CLIENT_WORDS]
     if answer != "accepted":
         problems.append(f"{APPROVALS}: the newest acceptance row of {task} says {answer or '(empty)'!r}, not accepted; "

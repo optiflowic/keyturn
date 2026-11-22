@@ -372,13 +372,17 @@ def acceptance_rows(text: str, task: str) -> list[list[str]]:
         if not stripped.startswith("|"):
             continue
         cells = [cell.strip() for cell in CELL_SPLIT_RE.split(stripped.removeprefix("|").removesuffix("|"))]
-        if len(cells) >= ACCEPTANCE_CELLS and cells[0] == ACCEPTANCE_ROW and cells[1] == task:
+        # Every row of the task, whatever its length: a malformed newest row is reported, never skipped.
+        if len(cells) >= 2 and cells[0] == ACCEPTANCE_ROW and cells[1] == task:
             rows.append(cells)
     return rows
 
 
 def acceptance_problems(root: Path, task: str, row: list[str], lang: str | None) -> list[str]:
     """Whether the row is current: the documents commit, and the hashes of the two documents and their translations."""
+    if len(row) != ACCEPTANCE_CELLS:
+        return [f"{APPROVALS}: {task}: the newest acceptance row has {len(row)} cells, not {ACCEPTANCE_CELLS}; "
+                "write it as the template has it"]
     problems = []
     commit, answer, words = row[2], row[ANSWER], row[CLIENT_WORDS]
     if not COMMIT_RE.fullmatch(commit):

@@ -422,6 +422,11 @@ class AcceptanceTest(RepoTest):
         self.assertFails(self.repo.run("accept-status", "delivery-1"), "give its language with --lang")
         self.assertFails(self.repo.run("accept-status", "delivery-1", "--lang", "ja"), f"acceptance-guide.delivery-1.{self.commit[:12]}.accepted.md: missing")
 
+    def test_a_malformed_newest_row_is_reported_not_skipped(self):
+        self.record(acceptance_row(self.commit, sha(GUIDE), sha(REPORT), answer="accepted"),
+                    f"| acceptance-guide.md, delivery-report.md | delivery-1 | {self.commit} | not accepted |\n")
+        self.assertFails(self.repo.run("accept-status", "delivery-1"), "the newest acceptance row has 4 cells, not 12")
+
     def test_a_task_name_is_checked(self):
         result = self.repo.run("accept-status", "../x")
         self.assertEqual(result.returncode, 2)

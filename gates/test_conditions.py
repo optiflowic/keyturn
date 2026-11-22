@@ -41,9 +41,13 @@ class ConditionsTest(unittest.TestCase):
     tearDown, write_profile, git, put, commit, assert_fails = (
         test_gate.GateTest.tearDown, test_gate.GateTest.write_profile, test_gate.GateTest.git, test_gate.GateTest.put,
         test_gate.GateTest.commit, test_gate.GateTest.assert_fails)
-    state_text, record, roles, step = (
-        test_gate.TaskRangeTest.state_text, test_gate.TaskRangeTest.record, test_gate.TaskRangeTest.roles,
-        test_gate.TaskRangeTest.step)
+    record, roles, step = (test_gate.TaskRangeTest.record, test_gate.TaskRangeTest.roles, test_gate.TaskRangeTest.step)
+
+    def state_text(self) -> str:
+        """The gate test's state file, with the deliver row's "Commit" filled in, as deliver records it."""
+        text = test_gate.TaskRangeTest.state_text(self)
+        commit = getattr(self, "deliver_commit", None)
+        return text.replace("| deliver | done | | | |", f"| deliver | done | | `{commit}` | |") if commit else text
     STEPS = test_gate.TaskRangeTest.STEPS + ("merge",)
 
     def setUp(self):
@@ -75,7 +79,12 @@ class ConditionsTest(unittest.TestCase):
         self.put("keyturn/client/acceptance-guide.md", GUIDE)
         self.put("keyturn/client/delivery-report.md", REPORT)
         self.put("keyturn/internal/gate/t1.json", "{}\n")
-        return self.step("deliver")
+        commit = self.commit("deliver")
+        self.roles[commit] = "deliver"
+        self.done.add("deliver")
+        self.deliver_commit = commit
+        self.record()
+        return commit
 
     def acceptance(self, documents: str, answer: str = "accepted", words: str = "受け入れます。",
                    guide: str = GUIDE) -> None:
@@ -221,6 +230,40 @@ class ConditionsTest(unittest.TestCase):
         self.put("keyturn/internal/gate/t1.json", "{\"again\": true}\n")
         self.step("deliver")
         self.assert_fails(self.conditions(), "FAIL acceptance: ")
+
+    def test_documents_the_deliver_step_did_not_record_fail(self):
+        self.reports()
+        documents = self.documents()
+        self.put("keyturn/client/acceptance-guide.md", GUIDE + "edited later\n")
+        later = self.step("deliver")
+        self.acceptance(later, guide=GUIDE + "edited later\n")
+        self.assert_fails(self.conditions(), "FAIL acceptance: keyturn/internal/state/t1.md: the deliver step's \"Commit\" is")
+        self.assertTrue(documents)
+
+    def test_an_indented_heading_still_counts(self):
+        self.put("keyturn/internal/security-review.md", report("Security review", self.base, self.developer))
+        self.step("security-review")
+        self.put("keyturn/internal/review.md", report("Review", self.base, self.developer, ("high", "open")).replace("### F-1", " ### F-1"))
+        self.step("review")
+        self.acceptance(self.documents())
+        self.assert_fails(self.conditions(), "FAIL findings [review]: keyturn/internal/review.md: F-1: a high finding is open")
+
+    def test_a_reviewed_range_in_a_comment_does_not_count(self):
+        self.reports(head=self.base)
+        text = (self.root / "keyturn/internal/review.md").read_text()
+        self.put("keyturn/internal/review.md", text.replace("## Summary", f"<!--\n- Reviewed change: `{self.base[:7]}`..`{self.developer[:7]}`\n-->\n\n## Summary"))
+        self.step("review")
+        self.acceptance(self.documents())
+        self.assert_fails(self.conditions(), "FAIL findings [review]: keyturn/internal/review.md: reviews up to")
+
+    def test_a_malformed_newest_row_is_never_an_acceptance(self):
+        self.reports()
+        documents = self.documents()
+        self.acceptance(documents)
+        text = (self.root / APPROVALS).read_text()
+        self.put(APPROVALS, text + f"| acceptance-guide.md, delivery-report.md | t1 | {documents} | waiting |\n")
+        self.step("merge")
+        self.assert_fails(self.conditions(), "FAIL acceptance: keyturn/client/approvals.md: the newest acceptance row of t1 has 4 cells")
 
     # Setup
 

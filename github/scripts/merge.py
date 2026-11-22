@@ -14,7 +14,8 @@ It refuses (exit 1), and never merges, unless all of these hold, in this order:
 Then it squash-merges the pull request naming that head, so that GitHub refuses the merge if the head moved meanwhile,
 and the branch protection refuses it without the required checks. A merge GitHub refused is never tried again.
 
-Exit codes: 0 merged; 1 refused (the message says why); 2 it could not run (a wrong branch, no origin, no gh);
+Exit codes: 0 merged (also when the merge call failed but GitHub shows the pull request merged); 1 refused (the
+message says why; the pull request is not merged); 2 it could not run (a wrong branch, no origin, no gh);
 3 the checks have not finished yet (nothing else was wrong so far): run it again later.
 Needs Python 3.9 or later, Git, and the GitHub CLI (`gh`). Uses only the standard library.
 """
@@ -122,9 +123,27 @@ def cmd_merge(root: Path, task: str, wait_seconds: float) -> None:
     wait_for_checks(root, head, wait_seconds)
     run_conditions(root, task, default, head)
     # The sha makes GitHub refuse the merge if the head moved after the checks above.
-    task_branch.gh_api(root, f"repos/{{repo}}/pulls/{pr['number']}/merge", "-X", "PUT", "-f", "merge_method=squash",
-                       "-f", f"sha={head}", "-f", f"commit_title=keyturn: {task} (#{pr['number']})")
+    try:
+        task_branch.gh_api(root, f"repos/{{repo}}/pulls/{pr['number']}/merge", "-X", "PUT", "-f", "merge_method=squash",
+                           "-f", f"sha={head}", "-f", f"commit_title=keyturn: {task} (#{pr['number']})")
+    except (Refused, SetupError) as error:
+        # A failed answer (or none, on a timeout) does not prove that nothing was merged: look before saying so, so
+        # that a merged task is never recorded as stopped (a later state commit would be work not merged).
+        if not merged(root, pr["number"]):
+            raise
+        print(f"note: the merge call failed ({error}), but the pull request is merged", file=sys.stderr)
+    # Bring the local default branch up to the merge, so that `task_state.py unmerged` sees it at once.
+    run(["git", "fetch", "--quiet", "--no-tags", "origin", f"+refs/heads/{default}:refs/remotes/origin/{default}"], root)
     print(f"merged {pr['url']} at {head[:12]}")
+
+
+def merged(root: Path, number: int) -> bool:
+    """Whether the pull request is merged, as GitHub says now; a failed look is not merged."""
+    try:
+        data = json.loads(task_branch.gh_api(root, f"repos/{{repo}}/pulls/{number}"))
+    except (Refused, SetupError, ValueError):
+        return False
+    return bool(data.get("merged"))
 
 
 def main() -> int:
