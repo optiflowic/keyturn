@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Date: 2026-11-23
-- Supersedes: in [0048](0048-default-branch-guarded-in-three-layers.md), that the gate's workflow skips draft pull requests ("The gate's CI runs only on pull requests that are not drafts")
+- Supersedes: in [0048](0048-default-branch-guarded-in-three-layers.md), that the gate's workflow skips draft pull requests ("The gate's CI runs only on pull requests that are not drafts"); in [0049](0049-workflow-runs-read-instead-of-check-runs.md), that the newest run for the commit by run ID is the one read, for the gate's workflow: it is now the newest among the runs with a job named as one of the checks
 
 ## Context
 
@@ -24,7 +24,7 @@ So where the plan has branch protection, a draft's skipped check can satisfy the
 
 ## Decision
 
-Option 4. The gate's workflow has no job-level condition. Each job's name is `keyturn gate` or `keyturn conditions` on a pull request that is not a draft, and the same name followed by ` (draft, not checked)` on a draft, where its first step fails with a message that a draft is not checked. `merge.py` and `keyturn watch` read the newest run for the head among those with a job named `keyturn gate` or `keyturn conditions`, as ADR 0049 says otherwise; a run that lists no jobs yet (queued) or none at all is not passed over.
+Option 4. The gate's workflow has no job-level condition. Each job's name is `keyturn gate` or `keyturn conditions` on a pull request that is not a draft, and the same name followed by ` (draft, not checked)` on a draft, where its first step fails with a message that a draft is not checked. `merge.py` and `keyturn watch` read the newest run of the gate's workflow for the head among those with a job named `keyturn gate` or `keyturn conditions`, instead of the newest of all its runs, and read it as ADR 0049 says otherwise; a run that lists no jobs yet (queued) or none at all is not passed over.
 
 ## Reasons
 
