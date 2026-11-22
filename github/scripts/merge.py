@@ -25,6 +25,8 @@ It refuses (exit 1), and never merges, unless all of these hold, in this order:
     that an old success on a commit the branch was reset to does not count (ADR 0048). When the workflow is not on the
     default branch, it refuses, with branch protection too: protection prevents, but does not find a reset or a deleted
     task branch;
+  - the newest run of .github/workflows/keyturn-watch.yml for the head itself (the push of the task branch starts one)
+    passed, so that a force push to the task branch, which that run finds, stops the merge too (ADR 0050);
   - keyturn's conditions check (gates/conditions.sh, next to this script's keyturn copy) passes on that head.
 It waits for the checks up to N minutes (default 9), since a push starts them and the merge step comes right after one
 (ADR 0044). Then it squash-merges the pull request naming that head, so that GitHub refuses the merge if the head moved
@@ -207,6 +209,19 @@ def gate_state(root: Path, head: str) -> tuple[str, str]:
     return run_state(root, runs[0] if runs else None, CHECKS)
 
 
+def head_watch_state(root: Path, head: str) -> tuple[str, str]:
+    """The newest run of keyturn watch for the task's head, which the push of the task branch started (ADR 0050)."""
+    runs = workflow_runs(root, WATCH_WORKFLOW, head)
+    state, why = run_state(root, runs[0] if runs else None, (WATCH,))
+    if state == "failed":
+        return "failed", (f"{WATCH} on the task's head {head[:12]} {why}: a push rewrote what keyturn trusts (a force "
+                          f"push to a task branch, for example), and the maintainer puts it right first (ADR 0050)")
+    if state == "pending":
+        return "pending", (f"{WATCH} on the task's head {head[:12]}: {why}; the push of the task branch starts it, "
+                           f"unless the push skipped workflows")
+    return "passed", ""
+
+
 def wait_for_checks(root: Path, head: str, default: str, tip: str, wait_seconds: float) -> None:
     deadline = time.monotonic() + wait_seconds
     while True:
@@ -216,12 +231,16 @@ def wait_for_checks(root: Path, head: str, default: str, tip: str, wait_seconds:
         state, why = watch_state(root, default, tip)
         if state == "failed":
             raise Refused(why)
-        if gate == "passed" and state == "passed":
+        on_head, head_why = head_watch_state(root, head)
+        if on_head == "failed":
+            raise Refused(head_why)
+        if gate == "passed" and state == "passed" and on_head == "passed":
             return
         if time.monotonic() >= deadline:
             waiting = [f"the checks {', '.join(CHECKS)} on {head[:12]} have not finished (or not started): "
                        f"{GATE_WORKFLOW} {gate_why}"] if gate == "pending" else []
             waiting += [why] if state == "pending" else []
+            waiting += [head_why] if on_head == "pending" else []
             raise Pending(f"{'; '.join(waiting)}, in {wait_seconds / 60:g} minutes; run merge.py again later")
         time.sleep(POLL_SECONDS)
 

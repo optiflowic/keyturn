@@ -133,10 +133,12 @@ class MergeTest(unittest.TestCase):
         self.conditions_log = tmp / "conditions.log"
         self.set_prs([self.pr()])
         self.watch_runs: list[dict] = []
+        self.head_watch_runs: list[dict] = []
         self.run_ids = 0
         self.set_gate(self.gate_run())
         self.set_activity(self.tip, PUSHED)
         self.set_watch("success")
+        self.set_head_watch("success")
         self.set_protection(rules=[], branch={"protected": False, "protection": {"enabled": False}})
         self.env.update(PATH=f"{bin_dir}{os.pathsep}{self.env['PATH']}", FAKE_GH_LOG=str(self.log),
                         FAKE_GH_PRS=str(self.prs), FAKE_GH_CHECKS=str(self.checks), FAKE_GH_ACTIVITY=str(self.activity),
@@ -188,13 +190,22 @@ class MergeTest(unittest.TestCase):
 
     def set_watch(self, *conclusions: str | None, started: str = "2026-01-01T00:05:00Z", sha: str | None = None,
                   path: str = ".github/workflows/keyturn-watch.yml") -> None:
+        """keyturn watch on the default branch's tip (or on `sha`)."""
         self.watch_runs = [self.workflow_run(path, sha or self.tip, conclusion, {"keyturn watch": conclusion},
                                              event="schedule", run_started_at=started)
                            for conclusion in conclusions]
         self.write_checks()
 
+    def set_head_watch(self, *conclusions: str | None) -> None:
+        """keyturn watch on the task's head, started by the push of the task branch (ADR 0050)."""
+        self.head_watch_runs = [self.workflow_run(".github/workflows/keyturn-watch.yml", self.head, conclusion,
+                                                  {"keyturn watch": conclusion}, event="push")
+                                for conclusion in conclusions]
+        self.write_checks()
+
     def write_checks(self) -> None:
-        self.checks.write_text(json.dumps(self.head_runs + self.watch_runs), encoding="utf-8")
+        runs = self.head_runs + self.watch_runs + [dict(run, head_sha=self.head) for run in self.head_watch_runs]
+        self.checks.write_text(json.dumps(runs), encoding="utf-8")
 
     def set_activity(self, after: str, timestamp: str, kind: str = "push") -> None:
         self.activity.write_text(json.dumps([{"id": 1, "ref": "refs/heads/main", "before": "0" * 40, "after": after,
@@ -340,6 +351,15 @@ class MergeTest(unittest.TestCase):
         self.assert_refused(self.merge(), "the job keyturn watch did not pass")
         self.set_watch("success", sha=self.head)  # on the task's head, not on the tip
         self.assert_pending(self.merge(), "no run of keyturn watch")
+
+    def test_a_failed_watch_on_the_task_s_head_is_refused(self):
+        # A force push to the task branch: the push's own run of keyturn watch fails on the head (ADR 0050).
+        self.set_head_watch("success", "failure")
+        self.assert_refused(self.merge(), "keyturn watch on the task's head")
+        self.set_head_watch()
+        self.assert_pending(self.merge(), "keyturn watch on the task's head")
+        self.set_head_watch(None)
+        self.assert_pending(self.merge(), "has not finished")
 
     def test_an_old_success_before_the_last_push_does_not_count(self):
         # The branch was reset to a commit with an old passing run: the reset is a push after it.
