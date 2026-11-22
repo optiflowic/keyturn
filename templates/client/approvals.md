@@ -30,7 +30,7 @@ Template: approval record (client-facing). Kept by the PM in keyturn/client/appr
 
 # Approvals
 
-This file records which version of the requirements you approved, and exactly which text you read.
+This file records which version of the requirements you approved, whether you accepted each delivery, and exactly which text you read.
 
 ## Current status
 
@@ -54,3 +54,20 @@ Each row identifies the exact text you were sent by a fingerprint. If the requir
 | Document | Version | Language | Source SHA-256 | Translation SHA-256 | Date sent | Answer | Date answered |
 |---|---|---|---|---|---|---|---|
 | requirements.md | <n> | <language> <(translation) \| (original)> | <SHA-256> | <SHA-256 \| none> | <YYYY-MM-DD> | <waiting \| approved \| not approved: what to change> | <YYYY-MM-DD> |
+
+## Acceptance
+
+<!--
+One row each time a delivery's acceptance guide and delivery report are sent for the client's acceptance, newest last (ADR 0046 in keyturn's docs/adr/).
+The PM fills in everything but the answer from `approval.py accept-send <task>` (with --lang <language> when the client reads translations), at that moment, never later,
+and commits this file alone. Keep these cells exactly as the template has them, whatever the document language, since CI reads them:
+- the first cell is always `acceptance-guide.md, delivery-report.md`, and "Task" is the task's name;
+- "Documents commit" is the full hash `accept-send` prints;
+- "Answer" is one of `waiting`, `accepted`, or `not accepted: <what to change, in the client's words>`, in English.
+When the client answers, fill in "Answer" and "Date answered" in a commit of this file alone. Never change anything else in a row, and never delete a row.
+An acceptance is current only while the two documents and their commit are the ones in the row (`approval.py accept-status <task>`). No answer is not acceptance.
+-->
+
+| Documents | Task | Documents commit | Language | Acceptance guide SHA-256 | Delivery report SHA-256 | Acceptance guide translation SHA-256 | Delivery report translation SHA-256 | Date sent | Answer | Date answered |
+|---|---|---|---|---|---|---|---|---|---|---|
+| acceptance-guide.md, delivery-report.md | <task> | <full commit hash> | <language> <(translation) \| (original)> | <SHA-256> | <SHA-256> | <SHA-256 \| none> | <SHA-256 \| none> | <YYYY-MM-DD> | <waiting \| accepted \| not accepted: what to change> | <YYYY-MM-DD> |

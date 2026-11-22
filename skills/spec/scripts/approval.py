@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Check and record what the client approves: keyturn/client/requirements.md, by SHA-256. See ADR 0008 and ADR 0012.
+"""Check and record what the client approves: keyturn/client/requirements.md, and, at the end of a task, the acceptance
+guide and the delivery report the client accepts, by SHA-256. See ADR 0008, ADR 0012, and ADR 0046.
 
 Usage:
   approval.py attributes [--fix]       Check that client documents are checked out with LF.
@@ -12,6 +13,13 @@ Usage:
   approval.py status [--lang LANG]     Check the newest approvals.md row: whether requirements.md is still the
                                        version that was sent, the client's answer as written, and whether the kept
                                        translation is unchanged. "current" alone does not mean approved.
+  approval.py accept-send TASK [--lang LANG]
+                                       Check the acceptance guide and the delivery report before they are sent for
+                                       the client's acceptance, keep their translations, and print the values for
+                                       the acceptance row (ADR 0046).
+  approval.py accept-status TASK [--lang LANG]
+                                       Check the newest acceptance row of TASK: whether the two documents are still
+                                       the ones sent, at the same commit, and the client's answer.
 
 Every command prints its result, or every problem (one per line) and exits 1.
 Paths are resolved from the root of the Git repository, whatever the current folder.
@@ -31,6 +39,15 @@ from pathlib import Path
 CLIENT_DIR = "keyturn/client"
 REQUIREMENTS = f"{CLIENT_DIR}/requirements.md"
 APPROVALS = f"{CLIENT_DIR}/approvals.md"
+ACCEPTANCE_GUIDE = f"{CLIENT_DIR}/acceptance-guide.md"
+DELIVERY_REPORT = f"{CLIENT_DIR}/delivery-report.md"
+DELIVERY_DOCUMENTS = (ACCEPTANCE_GUIDE, DELIVERY_REPORT)
+# The first cell of an acceptance row, fixed whatever the document language, so that a script finds the row (ADR 0046).
+ACCEPTANCE_ROW = "acceptance-guide.md, delivery-report.md"
+# The answers of an acceptance row: fixed English words, read by CI in any document language (ADR 0046).
+ACCEPTANCE_ANSWER_RE = re.compile(r"waiting|accepted|not accepted: .+")
+TASK_RE = re.compile(r"[a-z0-9][a-z0-9-]*")
+COMMIT_RE = re.compile(r"[0-9a-f]{40}")
 ATTRIBUTES_LINE = f"{CLIENT_DIR}/*.md text eol=lf"
 KEYTURN_DIR = ".keyturn"
 
@@ -101,7 +118,7 @@ def kept_copy_path(lang: str, version: int) -> str:
 def attribute_problems(root: Path) -> list[str]:
     """Check the attributes Git actually applies, so a line that is overridden later in .gitattributes is caught too."""
     problems = []
-    for rel_path in (REQUIREMENTS, APPROVALS):
+    for rel_path in (REQUIREMENTS, APPROVALS, *DELIVERY_DOCUMENTS):
         output = git(root, "check-attr", "text", "eol", "--", rel_path).stdout.decode("utf-8")
         values = dict(line.split(": ")[1:3] for line in output.splitlines())
         if values.get("text") != "set" or values.get("eol") != "lf":
@@ -177,21 +194,22 @@ def source_problems(root: Path, version: int, source: bytes) -> list[str]:
     return problems
 
 
-def translation_problems(root: Path, lang: str, source_sha: str, rel_kept: str) -> tuple[bytes, list[str]]:
+def translation_problems(root: Path, lang: str, source_sha: str, rel_kept: str,
+                         source: str = REQUIREMENTS) -> tuple[bytes, list[str]]:
     """Read the translation the client will read, and return it with its problems.
 
     It must be fresh, stay outside Git, and match any copy already kept for this version.
     """
     problems = tracked_keyturn_problems(root)
-    rel_translation = translation_path(lang)
+    rel_translation = translation_path(lang, Path(source).name)
     try:
         translation = read_bytes(root, rel_translation)
     except ApprovalError as error:
-        problems += [f"{problem} (translate {REQUIREMENTS} with localize first)" for problem in error.problems]
+        problems += [f"{problem} (translate {source} with localize first)" for problem in error.problems]
         return b"", problems
     header = TRANSLATION_HEADER_RE.match(translation)
     if not header or header.group(1).decode() != source_sha:
-        problems.append(f"{rel_translation}: not a fresh translation of {REQUIREMENTS}; translate it with localize first")
+        problems.append(f"{rel_translation}: not a fresh translation of {source}; translate it with localize first")
     kept = root / rel_kept
     if os.path.lexists(kept) and (kept.is_symlink() or kept.read_bytes() != translation):
         problems.append(f"{rel_kept}: a different translation was already kept for this version")
@@ -278,6 +296,122 @@ def cmd_status(root: Path, lang: str | None) -> None:
         raise ApprovalError(problems)
 
 
+def accepted_copy_path(lang: str, task: str, rel_path: str) -> str:
+    """Where the translation sent for acceptance is kept, next to the current one (ADR 0046)."""
+    return translation_path(lang, f"{Path(rel_path).stem}.{task}.accepted.md")
+
+
+def documents_commit(root: Path) -> str | None:
+    """The newest commit that changed the acceptance guide or the delivery report: deliver's documents commit."""
+    result = git(root, "log", "-1", "--format=%H", "HEAD", "--", *DELIVERY_DOCUMENTS)
+    if result.returncode != 0:
+        return None
+    return result.stdout.decode("utf-8").strip() or None
+
+
+def delivery_document_problems(root: Path) -> tuple[dict[str, bytes], list[str]]:
+    """The two documents as sent, which must be committed, with LF, and unchanged since the documents commit."""
+    problems = attribute_problems(root)
+    documents: dict[str, bytes] = {}
+    for rel_path in DELIVERY_DOCUMENTS:
+        try:
+            data = read_bytes(root, rel_path)
+        except ApprovalError as error:
+            problems += error.problems
+            continue
+        documents[rel_path] = data
+        if b"\r" in data:
+            problems.append(f"{rel_path}: contains a carriage return (CR); save it with LF line endings and commit it")
+        committed = git(root, "show", f"HEAD:{rel_path}")
+        if committed.returncode != 0:
+            problems.append(f"{rel_path}: not committed; deliver's last step commits it")
+        elif sha256(committed.stdout) != sha256(data):
+            problems.append(f"{rel_path}: differs from the committed version; it is not the version deliver committed")
+    return documents, problems
+
+
+def cmd_accept_send(root: Path, task: str, lang: str | None) -> None:
+    documents, problems = delivery_document_problems(root)
+    commit = documents_commit(root)
+    if commit is None:
+        problems.append(f"no commit adds {ACCEPTANCE_GUIDE} or {DELIVERY_REPORT}; deliver's last step commits them")
+    translations: dict[str, tuple[str, bytes]] = {}
+    if lang:
+        for rel_path, data in documents.items():
+            kept = accepted_copy_path(lang, task, rel_path)
+            translation, issues = translation_problems(root, lang, sha256(data), kept, rel_path)
+            problems += [issue for issue in issues if issue not in problems]
+            translations[rel_path] = (kept, translation)
+    if problems:
+        raise ApprovalError(problems)
+    print(f"documents-commit: {commit}")
+    for rel_path, data in documents.items():
+        print(f"{Path(rel_path).stem}-sha256: {sha256(data)}")
+    for rel_path in DELIVERY_DOCUMENTS:
+        if not lang:
+            print(f"{Path(rel_path).stem}-translation-sha256: none")
+            continue
+        kept, translation = translations[rel_path]
+        keep_translation(root, kept, translation)
+        print(f"{Path(rel_path).stem}-translation-sha256: {sha256(translation)}")
+        print(f"kept: {kept}")
+
+
+def acceptance_rows(text: str, task: str) -> list[list[str]]:
+    """The acceptance rows of a task, in file order (newest last), found by their fixed first cell (ADR 0046)."""
+    rows = []
+    for line in text.splitlines():
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if line.lstrip().startswith("|") and len(cells) >= 10 and cells[0] == ACCEPTANCE_ROW and cells[1] == task:
+            rows.append(cells)
+    return rows
+
+
+def acceptance_problems(root: Path, task: str, row: list[str], lang: str | None) -> list[str]:
+    """Whether the row is current: the documents commit, and the hashes of the two documents and their translations."""
+    problems = []
+    commit, answer = row[2], row[9]
+    if not COMMIT_RE.fullmatch(commit):
+        problems.append(f"{APPROVALS}: {task}: the documents commit is not a full commit hash")
+    elif commit != documents_commit(root):
+        problems.append(f"{task}: stale (the acceptance guide or the delivery report changed after {commit[:12]})")
+    if not ACCEPTANCE_ANSWER_RE.fullmatch(answer):
+        problems.append(f"{APPROVALS}: {task}: the answer is {answer or '(empty)'!r}; use waiting, accepted, "
+                        "or not accepted: <what to change>")
+    for rel_path, sha_cell, translation_cell in zip(DELIVERY_DOCUMENTS, row[4:6], row[6:8]):
+        if not SHA_RE.fullmatch(sha_cell):
+            problems.append(f"{APPROVALS}: {task}: the SHA-256 of {Path(rel_path).name} is not a SHA-256")
+        elif sha256(read_bytes(root, rel_path)) != sha_cell:
+            problems.append(f"{task}: stale ({rel_path} changed since it was sent)")
+        if not SHA_RE.fullmatch(translation_cell):
+            continue
+        if not lang:
+            problems.append(f"{task}: the client read a translation of {Path(rel_path).name}; give its language with --lang")
+            continue
+        kept = accepted_copy_path(lang, task, rel_path)
+        if not (root / kept).is_file():
+            problems.append(f"{kept}: missing; the text the client read cannot be shown again")
+        elif sha256((root / kept).read_bytes()) != translation_cell:
+            problems.append(f"{kept}: changed since it was sent; it is not the text the client read")
+    return problems
+
+
+def cmd_accept_status(root: Path, task: str, lang: str | None) -> None:
+    rows = acceptance_rows(read_bytes(root, APPROVALS).decode("utf-8", errors="replace"), task)
+    if not rows:
+        raise ApprovalError([f"{APPROVALS}: no acceptance row for {task}"])
+    problems = acceptance_problems(root, task, rows[-1], lang)
+    if problems:
+        raise ApprovalError(problems)
+    print(f"{task}: current, answer: {rows[-1][9]}")
+
+
+def check_task(task: str) -> str:
+    if not TASK_RE.fullmatch(task):
+        raise argparse.ArgumentTypeError(f"not a task name: {task!r} (lowercase letters, digits, and hyphens)")
+    return task
+
+
 def check_lang(lang: str) -> str:
     """Accept only language codes, so the code is safe to use as a folder name."""
     if not LANG_RE.fullmatch(lang):
@@ -301,6 +435,11 @@ def main() -> int:
     send.add_argument("--lang", type=check_lang)
     status = commands.add_parser("status", help="check the newest approval row")
     status.add_argument("--lang", type=check_lang)
+    for name, text in (("accept-send", "check the delivery documents before sending them, and keep the translations"),
+                       ("accept-status", "check the newest acceptance row of a task")):
+        command = commands.add_parser(name, help=text)
+        command.add_argument("task", type=check_task)
+        command.add_argument("--lang", type=check_lang)
     args = parser.parse_args()
 
     try:
@@ -309,6 +448,10 @@ def main() -> int:
             cmd_attributes(root, args.fix)
         elif args.command == "send":
             cmd_send(root, args.version, args.lang)
+        elif args.command == "accept-send":
+            cmd_accept_send(root, args.task, args.lang)
+        elif args.command == "accept-status":
+            cmd_accept_status(root, args.task, args.lang)
         else:
             cmd_status(root, args.lang)
     except ApprovalError as error:
