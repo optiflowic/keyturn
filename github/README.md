@@ -30,7 +30,8 @@ It needs the GitHub CLI (`gh`), signed in with the agents' token. The recommende
 
 ### When the task branch on origin moved
 
-`task/<task>` on `origin` may have commits the local branch does not (pushed from another machine, or by a person). The push is then refused, since it is never forced, and the task stops, waiting for the maintainer; `resume` reports the branches as diverged ([ADR 0044](../docs/adr/0044-task-branch-and-pull-request-kept-in-step-with-origin.md)). The maintainer looks at those commits (`git fetch origin`, then `git log task/<task>..origin/task/<task>`) and chooses:
+`task/<task>` on `origin` may have commits the local branch does not (pushed from another machine, or by a person). The push is then refused, since it is never forced, and the task stops, waiting for the maintainer; `resume` reports the branches as diverged ([ADR 0044](../docs/adr/0044-task-branch-and-pull-request-kept-in-step-with-origin.md)). Agents push only through the push script, and the client never touches the code, so in keyturn's flow this does not happen; when it does, the commits are discarded. The commits are never taken into the task branch.
 
-- **Discard them.** Turn off the ruleset that blocks force pushes on `task/*` (from the one-time setup, #141) for this one push, overwrite the remote branch with the local one from a terminal of your own (`git push --force-with-lease=task/<task>:origin/task/<task> origin task/<task>`), and turn the ruleset on again right after. Then resume the task.
-- **Take them in.** `deliver` takes them into the task branch, and the gate checks them as the developer's commits, since they are no role's. This is built in #141; until then, discard them, or set the task aside.
+The maintainer looks at those commits (`git fetch origin`, then `git log task/<task>..origin/task/<task>`) and discards them: turn off the ruleset that blocks force pushes on `task/*` (from the one-time setup, #141) for this one push, overwrite the remote branch with the local one from a terminal of your own (`git push --force-with-lease=task/<task>:origin/task/<task> origin task/<task>`), and turn the ruleset on again right after. Then resume the task.
+
+To keep a change those commits made, discard them all the same, and ask for the change again as a change to the requirements (`spec`), so that it goes through every role and check.

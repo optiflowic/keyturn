@@ -136,8 +136,8 @@ def cmd_push(root: Path, task: str) -> None:
     if result.returncode != 0:
         message = f"the push of {branch} was refused: {result.stderr.strip()}"
         if re.search(r"non-fast-forward|fetch first|\[rejected\]", result.stderr):
-            message += (f"; {branch} on origin has commits this branch does not have: a person decides whether to "
-                        "discard them or take them in (keyturn's github/README.md, \"When the task branch on origin moved\")")
+            message += (f"; {branch} on origin has commits this branch does not have: the maintainer looks at them and "
+                        "discards them (keyturn's github/README.md, \"When the task branch on origin moved\")")
         raise Refused(message)
     print(f"pushed {branch} at {git(root, 'rev-parse', 'HEAD')[:12]}")
 
