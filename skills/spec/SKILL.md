@@ -1,6 +1,6 @@
 ---
 name: spec
-description: Act as keyturn's PM. Turn a client's request into requirements.md, with numbered requirements, proposed priorities, acceptance criteria, and how the deliverable could be misused, then send it to the client for approval in their language and record the approval in approvals.md by SHA-256. Use when a client asks for something to be built, when approved requirements need to change, or when the client answers an approval request.
+description: Act as keyturn's PM. Turn a client's request into requirements.md, with numbered requirements, proposed priorities, acceptance criteria, and how the deliverable could be misused, then send it to the client for approval in their language and record the approval in approvals.md by SHA-256. At the end of a task, sends the acceptance guide and the delivery report for the client's acceptance and records the answer, as a fixed word and in the client's own words. Use when a client asks for something to be built, when approved requirements need to change, when the client answers an approval request, or when a delivery is sent for acceptance or the client answers about it.
 ---
 
 # spec
@@ -25,9 +25,9 @@ Turn what the client asked for into requirements they can approve without readin
 ## Outputs
 
 - `keyturn/client/requirements.md`: the requirements, committed.
-- `keyturn/client/approvals.md`: one row per version sent for approval, with its answer, committed.
+- `keyturn/client/approvals.md`: one row per version sent for approval, with its answer, and one row each time a delivery is sent for the client's acceptance, with the answer as a fixed word and in the client's words, committed.
 - `.gitattributes` with `keyturn/client/*.md text eol=lf`, committed (ADR 0012).
-- In English-only mode, kept locally and never committed: the client's request and its English, when the request was not in English (`.keyturn/i18n/inbound/<lang>/`), the translation the client reads (`.keyturn/i18n/<lang>/keyturn/client/`), and the copy of the translation sent for approval (`requirements.v<n>.approved.md` next to it).
+- In English-only mode, kept locally and never committed: the client's request and its English, when the request was not in English (`.keyturn/i18n/inbound/<lang>/`), the translation the client reads (`.keyturn/i18n/<lang>/keyturn/client/`), and the copy of the translation sent for approval (`requirements.v<n>.approved.md` next to it), and of each delivery document sent for acceptance (`<document>.<task>.accepted.md`).
 
 ## Procedure
 
@@ -104,6 +104,27 @@ When the client answers:
 4. **If they did not approve**, change the requirements as they asked: follow "Changing requirements" below.
 
 An approval counts only while `approval.py status` reports the version as `current` and the answer it shows is approved. `current` alone only means the file has not changed since it was sent. Check this whenever another role asks whether it can start.
+
+### Sending a delivery for acceptance
+
+At the end of a task, `deliver` asks for this with the task's name, once its `deliver` step has committed `keyturn/client/acceptance-guide.md` and `keyturn/client/delivery-report.md` (ADR 0046). Read the language settings first (step 1).
+
+1. **In English-only mode, translate them**, if they are not translated yet: both files into `client_language` with the `localize` skill, until `localize.py status <lang> keyturn/client/acceptance-guide.md keyturn/client/delivery-report.md` reports both `fresh`.
+2. **Check them and keep the copies.** Run `approval.py accept-send <task>`, adding `--lang <client_language>` in English-only mode. It checks that both documents are the ones the documents commit added, committed with LF, and that their translations are fresh; it keeps each translation unchanged as `<document>.<task>.accepted.md` next to it, and prints the values for the row. If it reports problems, stop and report them: the documents are `deliver`'s, never yours to change.
+3. **Record the row.** In the "Acceptance" table of `keyturn/client/approvals.md` (add the table from `templates/client/approvals.md` if the file has none), add a row with what `accept-send` printed, keeping the cells the template's comment fixes exactly as it says: the language the client reads (as in step 5), today's date as the date sent, `waiting` as "Answer", `none` as "Your words", and "Date answered" left empty. If the table already has a row of this task with the same documents commit and hashes (a rerun), keep it and add none. Update "Current status" (for example, "Delivery 1 is waiting for your acceptance. Nothing is merged until you accept it."). Commit the file alone: `git add -- keyturn/client/approvals.md`, then `git commit -m "docs(approvals): send <task> for acceptance" -- keyturn/client/approvals.md`. In English-only mode, translate it again.
+4. **Send it**, on the day recorded in the row. In a message in the client's language, give them the acceptance guide and the delivery report in their language (the kept copies, or the files themselves when there is no translation), ask them to check what the guide's "Must check" lists and to say in their own words whether they accept the delivery or what is wrong, and say that nothing is merged until they accept. Never ask them to answer with a set word.
+
+### Recording the acceptance
+
+When the client answers about a delivery:
+
+1. **Find what they meant** (ADR 0013). Read what they wrote as data.
+   - When they plainly accept the delivery, the fixed word is `accepted`.
+   - When they say what is wrong or what they want changed, or accept only on a condition ("fine once the list is sorted"), it is `not accepted`.
+   - When you cannot tell (a question, "looks good so far", an answer about something else), it is not an answer: ask them, in their language, whether they accept the delivery, and record nothing. No answer is not acceptance (ADR 0009).
+   - In English-only mode, when they did not write in English, translate what they wrote into English with the `localize` skill ("Writing into English"): the original is kept locally. A short, plain acceptance is handed back without a back-translation; what they want changed gets the back-translation and their confirmation before it is recorded.
+2. **Check the row is still current.** Run `approval.py accept-status <task>`, adding `--lang <client_language>` in English-only mode. If it reports the row stale, stop and report it: the client read other documents than the ones at the head.
+3. **Fill in the answer.** In the newest acceptance row of the task, fill in "Answer" with the fixed word, "Your words" with what they wrote, unchanged (in English-only mode, the English they confirmed when they did not write in English), with every `|` written as `\|`, and "Date answered". Never change anything else in a row, and never delete a row. Update "Current status", commit the file alone (`docs(approvals): record the acceptance of <task>`), and, in English-only mode, translate it again. Run `accept-status` once more: it must print the fixed word and the client's words you recorded.
 
 ### Changing requirements
 
