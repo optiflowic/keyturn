@@ -128,7 +128,9 @@ class PermissionSettings(unittest.TestCase):
     def test_the_os_credential_store_is_denied(self):
         # The maintainer reads the agents' token from the credential store before starting the session; the agents never
         # need it, and the maintainer's own credentials are there too (#119). It stops the plain command only.
-        self.assertIn("Bash(security:*)", self.settings["permissions"]["deny"])
+        patterns = [rule[len("Bash("):-1] for rule in self.settings["permissions"]["deny"]]
+        for command in ("security", "security find-generic-password -s keyturn -w", "security dump-keychain"):
+            self.assertTrue(any(fnmatch.fnmatchcase(command, pattern) for pattern in patterns), command)
 
 
 if __name__ == "__main__":

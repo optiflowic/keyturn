@@ -55,7 +55,7 @@
       "Bash(gh secret*)",
       "Bash(gh workflow*)",
       "Bash(gh run*)",
-      "Bash(security:*)"
+      "Bash(security*)"
     ]
   }
 }
