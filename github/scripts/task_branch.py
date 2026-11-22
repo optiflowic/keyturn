@@ -4,12 +4,14 @@
 Usage (from inside the project's repository):
   task_branch.py push TASK    push HEAD to refs/heads/task/TASK on origin; never with force
   task_branch.py open TASK    open the task's pull request as a draft, to the default branch, or update its description
-  task_branch.py ready TASK   mark the task's pull request ready for review
+  task_branch.py ready TASK   write its description again, from the head, and mark it ready for review
 
 `push` checks that the current branch is task/TASK and that it is not the default branch, and pushes only that branch,
 without a "+" or --force, so a push that would rewrite the remote branch is refused by Git. `open` and `ready` use the
-GitHub CLI (`gh`) and act only on the open pull request whose branch is task/TASK in this repository (never a fork's).
-The description lists the client's documents on the branch; the files stay the source of truth.
+GitHub CLI (`gh`) and act only on the open pull request whose branch is task/TASK in this repository (never a fork's);
+when that pull request was closed or merged, they stop instead of opening another. The description carries the delivery
+report's first two sections (its summary and what the client needs to do) and links the client's documents on the
+branch; the files stay the source of truth.
 
 Exit codes: 0 done; 1 the push or the pull request was refused (the message says why); 2 it could not run (a wrong
 branch, no origin, no default branch, no gh).
@@ -36,6 +38,10 @@ DOCUMENTS = [
     ("Acceptance guide", "keyturn/client/acceptance-guide.md"),
     ("Delivery report", "keyturn/client/delivery-report.md"),
 ]
+# The delivery report's sections the description carries, by their place in the template (the headings are in the
+# client's language): "Summary" and "What you need to do".
+REPORT = "keyturn/client/delivery-report.md"
+REPORT_SECTIONS = 2
 EXIT_DONE, EXIT_REFUSED, EXIT_SETUP = 0, 1, 2
 # The variables that would point git at another repository, or gh at another repository or host, are dropped; the ones
 # that authenticate (GIT_ASKPASS, GIT_SSH_COMMAND, GH_TOKEN, ...) are kept. Nothing may wait for a terminal prompt.
@@ -128,7 +134,11 @@ def cmd_push(root: Path, task: str) -> None:
     result = run(["git", "-c", "push.followTags=false", "-c", "push.recurseSubmodules=no", "push", "--no-verify",
                   "--no-follow-tags", "--recurse-submodules=no", "origin", f"HEAD:refs/heads/{branch}"], root)
     if result.returncode != 0:
-        raise Refused(f"the push of {branch} was refused: {result.stderr.strip()}")
+        message = f"the push of {branch} was refused: {result.stderr.strip()}"
+        if re.search(r"non-fast-forward|fetch first|\[rejected\]", result.stderr):
+            message += (f"; {branch} on origin has commits this branch does not have: a person decides whether to "
+                        "discard them or take them in (keyturn's github/README.md, \"When the task branch on origin moved\")")
+        raise Refused(message)
     print(f"pushed {branch} at {git(root, 'rev-parse', 'HEAD')[:12]}")
 
 
@@ -144,13 +154,33 @@ def gh(root: Path, *args: str) -> str:
 
 
 def open_pull_request(root: Path, branch: str) -> dict | None:
-    """The open pull request from the task's branch in this repository, or None."""
-    found = json.loads(gh(root, "pr", "list", "--head", branch, "--state", "open",
-                          "--json", "number,url,isDraft,isCrossRepository,baseRefName"))
+    """The open pull request from the task's branch in this repository, or None when it never had one.
+
+    A task has one pull request: when it was closed or merged, a person decides what happens, so this stops instead of
+    letting a new one be opened (a task's name, and so its branch, is never used again).
+    """
+    found = json.loads(gh(root, "pr", "list", "--head", branch, "--state", "all", "--limit", "100",
+                          "--json", "number,url,state,isDraft,isCrossRepository,baseRefName"))
     found = [pr for pr in found if not pr.get("isCrossRepository")]
-    if len(found) > 1:
-        raise Refused(f"more than one open pull request from {branch}: " + ", ".join(pr["url"] for pr in found))
-    return found[0] if found else None
+    opened = [pr for pr in found if pr.get("state", "OPEN") == "OPEN"]
+    if len(opened) > 1:
+        raise Refused(f"more than one open pull request from {branch}: " + ", ".join(pr["url"] for pr in opened))
+    if opened:
+        return opened[0]
+    if found:
+        raise Refused(f"the pull request from {branch} was " + ", ".join(f"{pr['state'].lower()} ({pr['url']})" for pr in found)
+                      + ": it is never opened again by this script; ask the maintainer what to do")
+    return None
+
+
+def report_sections(root: Path) -> list[str]:
+    """The delivery report's first sections at HEAD, without comments, or nothing before the report exists."""
+    result = run(["git", "show", f"HEAD:{REPORT}"], root)
+    if result.returncode != 0:
+        return []
+    text = re.sub(r"<!--.*?-->", "", result.stdout, flags=re.DOTALL)
+    sections = re.split(r"^(?=## )", text, flags=re.MULTILINE)[1:1 + REPORT_SECTIONS]
+    return [re.sub(r"\n{3,}", "\n\n", section).strip() for section in sections]
 
 
 def description(root: Path, task: str) -> str:
@@ -160,6 +190,8 @@ def description(root: Path, task: str) -> str:
     blob = f"https://github.com/{origin_repository(root)}/blob/{head}"
     lines = [f"Delivery of the task `{task}` by keyturn.", "",
              "The client decides from these documents; the code is here for the reviews and the record.", ""]
+    for section in report_sections(root):
+        lines += [section.replace("## ", "### ", 1), ""]
     for name, path in DOCUMENTS:
         if run(["git", "cat-file", "-e", f"HEAD:{path}"], root).returncode == 0:
             lines.append(f"- [{name}]({blob}/{path})")
@@ -167,24 +199,37 @@ def description(root: Path, task: str) -> str:
     return "\n".join(lines) + "\n"
 
 
+def with_description(root: Path, task: str, act) -> None:
+    """Write the description to a file, and give its path to act."""
+    with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False, encoding="utf-8") as body:
+        body.write(description(root, task))
+    try:
+        act(body.name)
+    finally:
+        os.unlink(body.name)
+
+
+def check_base(existing: dict, base: str) -> None:
+    if existing["baseRefName"] != base:
+        raise Refused(f"{existing['url']} goes to {existing['baseRefName']}, not to the default branch {base}")
+
+
 def cmd_open(root: Path, task: str) -> None:
     branch = check_task(root, task)
     base = default_branch(root)
     existing = open_pull_request(root, branch)
-    with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False, encoding="utf-8") as body:
-        body.write(description(root, task))
-    try:
+
+    def act(body: str) -> None:
         if existing is None:
             url = gh(root, "pr", "create", "--draft", "--base", base, "--head", branch,
-                     "--title", f"keyturn: {task}", "--body-file", body.name).strip()
+                     "--title", f"keyturn: {task}", "--body-file", body).strip()
             print(f"opened {url}")
         else:
-            if existing["baseRefName"] != base:
-                raise Refused(f"{existing['url']} goes to {existing['baseRefName']}, not to the default branch {base}")
-            gh(root, "pr", "edit", str(existing["number"]), "--body-file", body.name)
+            check_base(existing, base)
+            gh(root, "pr", "edit", str(existing["number"]), "--body-file", body)
             print(f"updated {existing['url']}")
-    finally:
-        os.unlink(body.name)
+
+    with_description(root, task, act)
 
 
 def cmd_ready(root: Path, task: str) -> None:
@@ -192,6 +237,9 @@ def cmd_ready(root: Path, task: str) -> None:
     existing = open_pull_request(root, branch)
     if existing is None:
         raise Refused(f"no open pull request from {branch}: open it first")
+    check_base(existing, default_branch(root))
+    # Written again from the head, so that what the client reads first is the delivery that is ready.
+    with_description(root, task, lambda body: gh(root, "pr", "edit", str(existing["number"]), "--body-file", body))
     if existing["isDraft"]:
         gh(root, "pr", "ready", str(existing["number"]))
     print(f"ready {existing['url']}")

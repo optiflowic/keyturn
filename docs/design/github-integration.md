@@ -11,7 +11,7 @@ Tasks are managed on GitHub so the client can follow progress without opening a 
 | Stage of a task | Labels and Project status |
 | Delivery unit | Pull request |
 | Gates | GitHub Actions running `gate.sh` |
-| Client-facing reports | PR description (delivery report summary and acceptance guide) |
+| Client-facing reports | PR description (the delivery report's summary and what the client needs to do, with links to the acceptance guide and the other documents) |
 | Questions to the client | Issue comments that mention the client. Work that depends on the answer waits; the task pauses only when nothing else can be done |
 
 ## Flow
@@ -21,7 +21,7 @@ Tasks are managed on GitHub so the client can follow progress without opening a 
 3. The architect posts the design summary. Major decisions can be confirmed by the client if needed.
 4. Agents work on the task branch, push it, and open a pull request. They push only the task branch, through keyturn's scripts, never the default branch and never with force ([ADR 0041](../adr/0041-agents-push-task-branches-and-open-pull-requests.md)).
 5. GitHub Actions runs the gates. Failures send work back to the developer, up to the rework limit. The review roles post their findings on the pull request.
-6. When the gates pass, the PR description contains the delivery report summary and the acceptance guide.
+6. When the gates pass, the PR description contains the delivery report's summary and what the client needs to do, and links the acceptance guide and the other documents; it is written again when the pull request is marked ready. A task has one pull request: a closed or merged one is never reopened or replaced, and a task branch that moved on `origin` stops the task until the maintainer decides ([ADR 0044](../adr/0044-task-branch-and-pull-request-kept-in-step-with-origin.md)).
 7. The client does the hands-on check and accepts the delivery (or asks for changes).
 8. The PM merges, only when the gate passes in CI, no high or medium finding is open (except a medium finding of the reviewer, not a security one, that the client accepted on a decision card), and the client's acceptance is recorded for the documents at the head. Branch protection makes the same checks required, so a merge without them is refused ([ADR 0042](../adr/0042-pm-merges-on-machine-checked-conditions.md)).
 

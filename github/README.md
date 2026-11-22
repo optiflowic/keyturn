@@ -22,7 +22,15 @@ The workflow's steps install the tools the profiles need (`profiles/<name>/READM
 [`scripts/task_branch.py`](scripts/task_branch.py) is how `deliver` reaches GitHub ([ADR 0041](../docs/adr/0041-agents-push-task-branches-and-open-pull-requests.md)):
 
 - `push <task>` pushes `HEAD` to `refs/heads/task/<task>` on `origin`, only when the current branch is `task/<task>` and is not the default branch, without force and without running Git's hooks, so a push that would rewrite the remote branch is refused.
-- `open <task>` opens the task's pull request as a draft, to the default branch, with a description that links the client's documents on the branch, or updates the description of the one that is open. It never acts on a pull request from a fork.
-- `ready <task>` marks it ready for review.
+- `open <task>` opens the task's pull request as a draft, to the default branch, or updates the description of the one that is open. The description carries the delivery report's "Summary" and "What you need to do" once the report is committed, and links the client's documents on the branch at the pushed commit; it never copies the acceptance guide. It never acts on a pull request from a fork.
+- `ready <task>` writes the description again from the head, and marks the pull request ready for review.
+- A task has one pull request. When it was closed or merged, `open` and `ready` stop, and never open another one or reopen it: the maintainer decides what happens ([ADR 0044](../docs/adr/0044-task-branch-and-pull-request-kept-in-step-with-origin.md)). The state file does not record the pull request; the branch finds it.
 
 It needs the GitHub CLI (`gh`), signed in with the agents' token. The recommended permission rules deny the plain `git push` and the `gh pr` commands that change a pull request, so the script is the only way (`adapters/claude/README.md`). Its tests: `python3 -m unittest discover -s github/scripts`.
+
+### When the task branch on origin moved
+
+`task/<task>` on `origin` may have commits the local branch does not (pushed from another machine, or by a person). The push is then refused, since it is never forced, and the task stops, waiting for the maintainer; `resume` reports the branches as diverged ([ADR 0044](../docs/adr/0044-task-branch-and-pull-request-kept-in-step-with-origin.md)). The maintainer looks at those commits (`git fetch origin`, then `git log task/<task>..origin/task/<task>`) and chooses:
+
+- **Discard them.** Turn off the ruleset that blocks force pushes on `task/*` (from the one-time setup, #141) for this one push, overwrite the remote branch with the local one from a terminal of your own (`git push --force-with-lease=task/<task>:origin/task/<task> origin task/<task>`), and turn the ruleset on again right after. Then resume the task.
+- **Take them in.** `deliver` takes them into the task branch, and the gate checks them as the developer's commits, since they are no role's. This is built in #141; until then, discard them, or set the task aside.

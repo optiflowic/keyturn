@@ -22,11 +22,12 @@ FAKE_GH = textwrap.dedent("""\
         f.write(json.dumps(sys.argv[1:]) + "\\n")
     if sys.argv[1:3] == ["pr", "list"]:
         print(open(os.environ["FAKE_GH_PRS"], encoding="utf-8").read())
-    elif sys.argv[1:3] == ["pr", "create"]:
+    elif sys.argv[1:3] in (["pr", "create"], ["pr", "edit"]):
         body = open(sys.argv[sys.argv.index("--body-file") + 1], encoding="utf-8").read()
         with open(log + ".body", "w", encoding="utf-8") as f:
             f.write(body)
-        print("https://github.com/owner/project/pull/7")
+        if sys.argv[2] == "create":
+            print("https://github.com/owner/project/pull/7")
 """)
 
 
@@ -213,6 +214,70 @@ class TaskBranchTest(unittest.TestCase):
         result = self.run_script("ready", "delivery-1")
         self.assertEqual(result.returncode, 1)
         self.assertIn("open it first", result.stderr)
+
+    def body(self) -> str:
+        return Path(str(self.log) + ".body").read_text(encoding="utf-8")
+
+    def test_the_description_carries_the_delivery_report_s_summary_and_what_to_do(self):
+        # The headings are in the client's language: the sections are found by their place, not their names.
+        self.put("keyturn/client/delivery-report.md", "# 納品レポート\n\n本文。\n\n## 要約\n\n<!-- a comment -->\n\n"
+                 "納品 1 ができました。\n\n## あなたがすること\n\n> [!IMPORTANT]\n> - 確かめてください。\n\n"
+                 "## 納品したもの\n\n表。\n")
+        self.put("keyturn/client/acceptance-guide.md", "# 受け入れガイド\n\n全文。\n")
+        self.commit("docs(delivery): add the documents")
+        self.assertEqual(self.run_script("open", "delivery-1").returncode, 0)
+        body = self.body()
+        self.assertIn("### 要約\n\n納品 1 ができました。", body)
+        self.assertIn("### あなたがすること\n\n> [!IMPORTANT]\n> - 確かめてください。", body)
+        self.assertNotIn("納品したもの", body)
+        self.assertNotIn("a comment", body)
+        self.assertNotIn("全文", body)  # the acceptance guide is linked, never copied
+        self.assertIn("- [Acceptance guide](", body)
+
+    def test_ready_writes_the_description_again_from_the_head(self):
+        self.set_prs([{"number": 7, "url": "u7", "state": "OPEN", "isDraft": True, "isCrossRepository": False,
+                       "baseRefName": "main"}])
+        self.put("keyturn/client/delivery-report.md", "# Report\n\n## Summary\n\nDone.\n\n## What you need to do\n\nCheck.\n")
+        self.commit("docs(delivery): add the documents")
+        self.assertEqual(self.run_script("ready", "delivery-1").returncode, 0)
+        calls = [call[:2] for call in self.calls()]
+        self.assertLess(calls.index(["pr", "edit"]), calls.index(["pr", "ready"]))
+        self.assertIn("### Summary\n\nDone.", self.body())
+
+    def test_a_closed_or_merged_pull_request_is_never_replaced(self):
+        for state in ("CLOSED", "MERGED"):
+            self.log.unlink(missing_ok=True)
+            self.set_prs([{"number": 7, "url": "u7", "state": state, "isDraft": False, "isCrossRepository": False,
+                           "baseRefName": "main"}])
+            for command in ("open", "ready"):
+                result = self.run_script(command, "delivery-1")
+                self.assertEqual(result.returncode, 1, state + command)
+                self.assertIn(f"was {state.lower()} (u7)", result.stderr)
+                self.assertIn("ask the maintainer", result.stderr)
+            self.assertFalse(any(call[:2] in (["pr", "create"], ["pr", "edit"], ["pr", "ready"]) for call in self.calls()))
+
+    def test_the_open_pull_request_is_used_next_to_a_closed_one(self):
+        self.set_prs([{"number": 6, "url": "u6", "state": "CLOSED", "isDraft": False, "isCrossRepository": False,
+                       "baseRefName": "main"},
+                      {"number": 7, "url": "u7", "state": "OPEN", "isDraft": True, "isCrossRepository": False,
+                       "baseRefName": "main"}])
+        self.assertEqual(self.run_script("open", "delivery-1").returncode, 0)
+        self.assertTrue(any(call[:2] == ["pr", "edit"] and call[-3] == "7" for call in self.calls()))
+
+    def test_a_push_refused_because_the_remote_branch_moved_says_what_to_do(self):
+        self.assertEqual(self.run_script("push", "delivery-1").returncode, 0)
+        other = Path(self.tmp.name) / "other"
+        subprocess.run(["git", "clone", "-q", "-b", "task/delivery-1", str(self.origin), str(other)], check=True, env=self.env)
+        for args in (["config", "user.email", "o@example.com"], ["config", "user.name", "O"],
+                     ["commit", "-q", "--allow-empty", "-m", "from elsewhere"], ["push", "-q", "origin", "task/delivery-1"]):
+            subprocess.run(["git", *args], cwd=other, check=True, env=self.env)
+        moved = self.remote("refs/heads/task/delivery-1")
+        self.put("next.md", "next\n")
+        self.commit("next")
+        result = self.run_script("push", "delivery-1")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("When the task branch on origin moved", result.stderr)
+        self.assertEqual(self.remote("refs/heads/task/delivery-1"), moved)
 
     def test_open_from_another_branch_is_refused(self):
         self.git("switch", "-q", "main")
