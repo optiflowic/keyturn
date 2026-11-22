@@ -1,6 +1,6 @@
 # 0041. Agents push the task branch, open the pull request, and post the reviews on it, through scripts; never the default branch, never a force push
 
-- Status: accepted
+- Status: accepted; "the reviews post their findings on it" (who posts) superseded by [0045](0045-deliver-posts-the-review-reports-on-the-pull-request.md): `deliver` posts them
 - Date: 2026-11-22
 - Supersedes: [0036](0036-minimal-permission-rules.md); and the part of [0033](0033-delivery-documents-from-the-records.md) that says a person opens the pull request and merges it
 

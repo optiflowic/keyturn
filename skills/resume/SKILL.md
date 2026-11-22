@@ -23,7 +23,7 @@ Paths below that start with `scripts/`, `../`, or `../../` are relative to the f
 - The project's Git repository, with its task branches `task/<task>` (local, or on a remote).
 - `../../templates/internal/state.md`: the fields and values of a state file. The script reads it; you need it only to edit the state file in step 5.
 - For a task waiting for the client: the decision card, `keyturn/client/design-summary.md`, or `keyturn/client/approvals.md` named in its "Open questions", and the scripts `../spec/scripts/approval.py` and `../project-config/scripts/project_config.py`.
-- To push what only the local branch has: `../../github/scripts/task_branch.py` (below, `task_branch.py` means its full path).
+- To push what only the local branch has: `../../github/scripts/task_branch.py` (below, `task_branch.py` means its full path); to post the reviews: `../../github/scripts/post_findings.py`.
 - To continue: the `deliver` skill, `../deliver/SKILL.md`.
 
 ## Outputs
@@ -62,6 +62,7 @@ Run `task_state.py list`. Tell the person, in their language, which tasks can co
    - It prints nothing: `task/<task>` is not on `origin`. For a task that is not done (its first push failed), run the two commands as above. For a done task, push nothing: its branch may have been deleted after the merge; say that it is not on `origin`.
    - Otherwise there is nothing to push.
    - If a command exits other than 0, stop: record nothing, and tell the person, in their language, the script's message, that the work is committed on the local branch and nothing is lost, and that the maintainer settles it (no network or no `gh`: they fix it and resume the task again; a pull request that was closed or merged, or a task branch that moved on `origin`: as keyturn's `github/README.md` says). Never push with another command, and never with force.
+   - Then, unless a command above failed or the done task's branch is not on `origin`, post the reviews as `deliver`'s "Pushing" says ("Posting the reviews"), done or not, so that a post that failed earlier is made now. A failed post does not stop the resume: tell the person its message (ADR 0045).
 
 ### 4. Decide whether it can continue now
 
