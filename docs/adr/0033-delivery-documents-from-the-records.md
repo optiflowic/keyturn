@@ -1,6 +1,6 @@
 # 0033. `deliver`'s last step writes the acceptance guide and the delivery report from the committed records, in a context of its own
 
-- Status: accepted
+- Status: accepted; "a person opens the pull request and merges it" superseded by [0041](0041-agents-push-task-branches-and-open-pull-requests.md) and [0042](0042-pm-merges-on-machine-checked-conditions.md)
 - Date: 2026-11-21
 
 ## Context

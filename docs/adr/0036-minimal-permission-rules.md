@@ -1,6 +1,6 @@
 # 0036. During the MVP, the recommended permission rules deny pushes and the commands that discard work, in the person's local settings
 
-- Status: accepted
+- Status: superseded by [0041](0041-agents-push-task-branches-and-open-pull-requests.md)
 - Date: 2026-11-21
 
 ## Context

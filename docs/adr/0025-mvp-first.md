@@ -1,6 +1,6 @@
 # 0025. Build a minimum viable keyturn first, and move the rest to enhancements
 
-- Status: accepted
+- Status: accepted; the MVP's list, and merging as a later item, superseded by [0042](0042-pm-merges-on-machine-checked-conditions.md), which adds delivery through a pull request, the gate in CI, and the PM's merge on machine-checked conditions
 - Date: 2026-11-21
 
 ## Context
