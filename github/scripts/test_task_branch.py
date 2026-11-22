@@ -210,6 +210,21 @@ class TaskBranchTest(unittest.TestCase):
         self.assertEqual(self.run_script("ready", "delivery-1").returncode, 0)
         self.assertTrue(any(call[:2] == ["pr", "ready"] and call[-1] == "7" for call in self.calls()))
 
+    def test_close_closes_the_pull_request_of_a_closed_task_only(self):
+        self.set_prs([{"number": 7, "url": "u7", "isDraft": False, "isCrossRepository": False, "baseRefName": "main"}])
+        result = self.run_script("close", "delivery-1")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("does not say \"Status: closed\"", result.stderr)
+        self.put("keyturn/internal/state/delivery-1.md", "# Task state: delivery-1\n\n- Status: closed\n")
+        self.commit("chore(state): close delivery-1")
+        result = self.run_script("close", "delivery-1")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("push the closed state first", result.stderr)
+        self.assertEqual(self.run_script("push", "delivery-1").returncode, 0)
+        result = self.run_script("close", "delivery-1")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(any(call[:3] == ["pr", "close", "--repo"] and "7" in call for call in self.calls()))
+
     def test_ready_without_a_pull_request_is_refused(self):
         result = self.run_script("ready", "delivery-1")
         self.assertEqual(result.returncode, 1)

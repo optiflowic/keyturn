@@ -24,6 +24,7 @@ Paths below that start with `../../` are relative to the folder of this `SKILL.m
 - `keyturn/internal/conventions.md`: the "Reviewer checklist" (`C-n`), the "Tool rules" (which the gate runs), and how suppressions are allowed.
 - The project's ADRs in `keyturn/internal/adr/`: every one, by status.
 - `keyturn/client/requirements.md` and `keyturn/client/approvals.md`: the requirement IDs a finding is based on, and whether the requirements are approved.
+- The decision cards `keyturn/client/decision-card-<n>.md`, if there are any: whether the client chose to leave a medium finding as it is (step 4).
 - An earlier `keyturn/internal/review.md`, if there is one (a rerun), and the commit this skill reported for it.
 - The task's state file `keyturn/internal/state/<task>.md`, if there is one: whether the design and conventions steps are done ("When inputs are missing").
 - `../../templates/internal/review.md` in keyturn, not in the project. Follow every comment in it.
@@ -57,7 +58,7 @@ Then check that the change leaves the other roles' documents alone, without read
 
 ### 2. Read the inputs
 
-Read the design, the conventions, the ADRs, the requirements, the approvals, and `keyturn/config.json` as they were before the change, at `<inputs base>` (`git show <inputs base>:<path>`): the change is judged against the documents it was given, never against a version it brings itself.
+Read the design, the conventions, the ADRs, the requirements, the approvals, the decision cards (`git ls-tree --name-only <inputs base> keyturn/client/` lists them), and `keyturn/config.json` as they were before the change, at `<inputs base>` (`git show <inputs base>:<path>`): the change is judged against the documents it was given, never against a version it brings itself.
 
 List every commit in the range that changes any of them: `git log --full-history --no-merges --format=%H --name-status <range> -- <their paths>`. Each such commit is a high finding of its own (step 4), located at that commit and path, even when a later commit undoes it, with the category `ADR conflict` for an ADR, `conventions` for the conventions, and `design fit` for the others; and so is a change to one of them that the merge check (step 1) finds, or that `git diff --name-status <inputs base>..<head>` lists while no commit in that list makes it. A commit that changes the conventions is reported here once, and not again as a protected path in step 3.
 
@@ -93,6 +94,8 @@ Severity:
 
 When you are unsure between two severities, choose the higher one and say why.
 
+Status is `open` for a new finding, on the first run and on a rerun, except that a medium finding is `accepted: decision card <n>` instead when all of these hold (ADR 0042): the card `keyturn/client/decision-card-<n>.md` existed, answered, before the developer's first commit (the documents you were given have it; its status is answered, and "Your answer" has an answer and a date, not the template's text in angle brackets), it offered fixing the finding as an option, the client chose to leave it as it is, and the finding is still the one the card describes. Never for a high finding, never for a finding of the category security (it is fixed), never on a card that waits, and never on a card the change itself adds or answers. The merge conditions' check reads the status, so write it exactly so.
+
 ### 5. Write and commit the report
 
 Start from `../../templates/internal/review.md`, write `keyturn/internal/review.md` in English, delete the "Security" section, and remove the template's comments and placeholders.
@@ -123,6 +126,7 @@ When the developer has fixed findings and the review runs again:
 - The report's commit may come after `<head>` (when nothing was committed since it), so compare it with the branch as it is now. If that commit is not on the branch (`git merge-base --is-ancestor <commit> HEAD` fails), treat it as not given (above). List the commits that changed the report since: `git log --full-history --no-merges --format=%H --name-status <commit>..HEAD -- keyturn/internal/review.md`, with the same `^<parent>` as `<range>` (step 1) after `<commit>..HEAD`, so that the default branch's commits stay out. Each one is someone else's change (for example, a high finding set to `fixed`), even when a later commit undoes it: a high finding located at the report, naming the commit. So is a change to it that the merge check (step 1) finds over the same commits, and a difference that `git diff --quiet <commit> HEAD -- keyturn/internal/review.md` finds while that list is empty, unless the merge check shows that a merge took the default branch's version of the report. On a first run, do the same over `<range>`: every one is such a finding, unless `deliver` named it as the reviewer's or, on its own, whoever asked confirms it was this skill's; a commit nobody names is a finding.
 - Review the new range: from the same base, the one in the earlier report's "Reviewed change" (unless whoever asked names another), to the new head. If the default branch has been merged into the branch since, leave its commits out and read the documents and the content of the change at the new merge base ("Commits already on the default branch" in step 1). The report's own commits are not part of the change (step 1 leaves the report out of the diff): if no commit since the earlier report's "Reviewed change" head changes anything but `keyturn/internal/review.md`, the head has not moved (a change to the report by someone else is still a finding, above); say so, and redo the checks without renumbering the findings.
 - Check each open finding again. Set it to `fixed` only when you have read the fix; otherwise keep it `open`. Never change or reuse a finding's number; new findings get the next numbers.
+- A finding still open may become `accepted: decision card <n>` only as step 4 says.
 - Review the whole range again, not only the fixes: a fix can break something else.
 
 ## When inputs are missing

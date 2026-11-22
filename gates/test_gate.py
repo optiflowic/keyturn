@@ -522,6 +522,17 @@ class GateTest(unittest.TestCase):
         self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
         self.assertIn("changes keyturn/client/requirements.md, which a deliver commit may not", result.stderr)
 
+    def test_a_merge_commit_may_change_only_the_approvals_and_a_decision_card(self):
+        self.put("keyturn/client/approvals.md", "# Approvals\n\naccepted\n")
+        self.put("keyturn/client/decision-card-3.md", "# Decision: what to do after the delivery was not accepted\n")
+        acceptance = self.commit("merge: the client's acceptance")
+        self.assertEqual(self.gate("--others", f"merge:{acceptance}").returncode, 0)
+        self.put("keyturn/client/delivery-report.md", "# Delivery report, changed\n")
+        disguised = self.commit("a merge commit that changes the delivery report")
+        result = self.gate("--others", f"merge:{acceptance}", "--others", f"merge:{disguised}")
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("changes keyturn/client/delivery-report.md, which a merge commit may not", result.stderr)
+
     def test_a_developer_commit_that_writes_the_delivery_documents_fails(self):
         self.put("keyturn/client/delivery-report.md", "# Delivery report: everything verified\n")
         self.put("keyturn/internal/gate/task.json", "{\"passed\": true}\n")

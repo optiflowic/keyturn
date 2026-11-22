@@ -309,6 +309,130 @@ class StatusTest(RepoTest):
         self.assertFails(self.repo.run("status"), "is not a SHA-256")
 
 
+GUIDE = "# Acceptance guide: task manager\n\n## Must check\n"
+REPORT = "# Delivery report: task manager\n\n## Summary\n"
+
+
+def guide_translation(text: str = GUIDE, name: str = "acceptance-guide.md") -> str:
+    return f'<!-- localize source="keyturn/client/{name}" lang="ja" sha256="{sha(text)}" sections="1" -->\n# 受け入れガイド\n'
+
+
+def acceptance_row(commit: str, guide_sha: str, report_sha: str, translations: tuple[str, str] = ("none", "none"),
+                   answer: str = "waiting", task: str = "delivery-1", words: str | None = None) -> str:
+    if words is None:
+        words = "none" if answer == "waiting" else "問題ありません。受け入れます。"
+    return (f"| acceptance-guide.md, delivery-report.md | {task} | {commit} | Japanese (original) | {guide_sha} | "
+            f"{report_sha} | {translations[0]} | {translations[1]} | 2026-11-22 | {answer} | {words} | |\n")
+
+
+class AcceptanceTest(RepoTest):
+    def setUp(self):
+        super().setUp()
+        self.repo.write("keyturn/client/acceptance-guide.md", GUIDE)
+        self.repo.write("keyturn/client/delivery-report.md", REPORT)
+        self.repo.write("keyturn/internal/gate/delivery-1.json", "{}\n")
+        self.repo.commit("docs(delivery): add the acceptance guide and the delivery report of delivery-1")
+        self.commit = self.repo.git("rev-parse", "HEAD").stdout.strip()
+
+    def record(self, *rows: str) -> None:
+        self.repo.write("keyturn/client/approvals.md", approvals_with(row(1, sha(REQUIREMENTS_V1))) + "\n" + "".join(rows))
+        self.repo.commit("docs(approvals): record the acceptance")
+
+    def test_send_prints_the_commit_and_the_hashes(self):
+        result = self.repo.run("accept-send", "delivery-1")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.splitlines(), [
+            f"documents-commit: {self.commit}", f"acceptance-guide-sha256: {sha(GUIDE)}",
+            f"delivery-report-sha256: {sha(REPORT)}", "acceptance-guide-translation-sha256: none",
+            "delivery-report-translation-sha256: none"])
+
+    def test_send_keeps_the_translations(self):
+        self.repo.write(".keyturn/i18n/ja/keyturn/client/acceptance-guide.md", guide_translation())
+        self.assertFails(self.repo.run("accept-send", "delivery-1", "--lang", "ja"),
+                         ".keyturn/i18n/ja/keyturn/client/delivery-report.md: missing")
+        self.repo.write(".keyturn/i18n/ja/keyturn/client/delivery-report.md", guide_translation(REPORT, "delivery-report.md"))
+        result = self.repo.run("accept-send", "delivery-1", "--lang", "ja")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(f"acceptance-guide-translation-sha256: {sha(guide_translation())}", result.stdout)
+        self.assertEqual(self.repo.read(f".keyturn/i18n/ja/keyturn/client/acceptance-guide.delivery-1.{self.commit[:12]}.accepted.md").decode(),
+                         guide_translation())
+
+    def test_a_second_send_after_new_documents_keeps_a_copy_of_its_own(self):
+        guide_ja = ".keyturn/i18n/ja/keyturn/client/acceptance-guide.md"
+        report_ja = ".keyturn/i18n/ja/keyturn/client/delivery-report.md"
+        self.repo.write(guide_ja, guide_translation())
+        self.repo.write(report_ja, guide_translation(REPORT, "delivery-report.md"))
+        self.assertEqual(self.repo.run("accept-send", "delivery-1", "--lang", "ja").returncode, 0)
+        first = self.commit
+        self.repo.write("keyturn/client/acceptance-guide.md", GUIDE + "reworked\n")
+        self.repo.commit("docs(delivery): add the documents again after the rework")
+        second = self.repo.git("rev-parse", "HEAD").stdout.strip()
+        self.repo.write(guide_ja, guide_translation(GUIDE + "reworked\n"))
+        result = self.repo.run("accept-send", "delivery-1", "--lang", "ja")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        for commit in (first, second):
+            self.assertTrue((self.repo.root / f".keyturn/i18n/ja/keyturn/client/acceptance-guide.delivery-1.{commit[:12]}.accepted.md").is_file())
+
+    def test_send_refuses_a_stale_translation_or_an_uncommitted_document(self):
+        self.repo.write(".keyturn/i18n/ja/keyturn/client/acceptance-guide.md", guide_translation("# old\n"))
+        self.repo.write(".keyturn/i18n/ja/keyturn/client/delivery-report.md", guide_translation(REPORT, "delivery-report.md"))
+        self.assertFails(self.repo.run("accept-send", "delivery-1", "--lang", "ja"), "not a fresh translation")
+        self.repo.write("keyturn/client/delivery-report.md", REPORT + "edited\n")
+        self.assertFails(self.repo.run("accept-send", "delivery-1"), "differs from the committed version")
+
+    def test_status_reads_the_answer_of_the_newest_row_of_the_task(self):
+        self.record(acceptance_row(self.commit, sha(GUIDE), sha(REPORT)),
+                    acceptance_row(self.commit, sha(GUIDE), sha(REPORT), answer="accepted"),
+                    acceptance_row("0" * 40, sha(GUIDE), sha(REPORT), task="delivery-2"))
+        result = self.repo.run("accept-status", "delivery-1")
+        self.assertEqual((result.returncode, result.stdout),
+                         (0, "delivery-1: current, answer: accepted\nin the client's words: 問題ありません。受け入れます。\n"),
+                         result.stderr)
+
+    def test_status_keeps_an_escaped_pipe_in_the_client_s_words(self):
+        self.record(acceptance_row(self.commit, sha(GUIDE), sha(REPORT), answer="not accepted",
+                                   words=r"一覧の「完了 \| 未完了」の切り替えを直してください"))
+        result = self.repo.run("accept-status", "delivery-1")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("answer: not accepted\n", result.stdout)
+        self.assertIn(r"完了 \| 未完了", result.stdout)
+
+    def test_status_checks_the_client_s_words_against_the_answer(self):
+        self.record(acceptance_row(self.commit, sha(GUIDE), sha(REPORT), answer="accepted", words="none"))
+        self.assertFails(self.repo.run("accept-status", "delivery-1"), "the client's words are missing")
+        self.record(acceptance_row(self.commit, sha(GUIDE), sha(REPORT), answer="waiting", words="受け入れます"))
+        self.assertFails(self.repo.run("accept-status", "delivery-1"), "write none until the client answers")
+
+    def test_status_finds_a_changed_document_or_a_later_commit_of_them_stale(self):
+        self.record(acceptance_row(self.commit, sha(GUIDE), sha(REPORT), answer="accepted"))
+        self.repo.write("keyturn/client/delivery-report.md", REPORT + "edited\n")
+        self.assertFails(self.repo.run("accept-status", "delivery-1"), "keyturn/client/delivery-report.md changed since it was sent")
+        self.repo.commit("docs(delivery): change the report")
+        self.assertFails(self.repo.run("accept-status", "delivery-1"), "stale (the acceptance guide or the delivery report changed after")
+
+    def test_status_refuses_an_answer_that_is_not_one_of_the_words(self):
+        for answer in ("承認", "accepted（受け入れ）", "not accepted: fix R-3"):
+            self.record(acceptance_row(self.commit, sha(GUIDE), sha(REPORT), answer=answer))
+            self.assertFails(self.repo.run("accept-status", "delivery-1"), "use waiting, accepted, or not accepted")
+
+    def test_status_without_a_row_or_with_a_translation_and_no_lang(self):
+        self.record()
+        self.assertFails(self.repo.run("accept-status", "delivery-1"), "no acceptance row for delivery-1")
+        self.record(acceptance_row(self.commit, sha(GUIDE), sha(REPORT), (sha("a"), sha("b"))))
+        self.assertFails(self.repo.run("accept-status", "delivery-1"), "give its language with --lang")
+        self.assertFails(self.repo.run("accept-status", "delivery-1", "--lang", "ja"), f"acceptance-guide.delivery-1.{self.commit[:12]}.accepted.md: missing")
+
+    def test_a_malformed_newest_row_is_reported_not_skipped(self):
+        self.record(acceptance_row(self.commit, sha(GUIDE), sha(REPORT), answer="accepted"),
+                    f"| acceptance-guide.md, delivery-report.md | delivery-1 | {self.commit} | not accepted |\n")
+        self.assertFails(self.repo.run("accept-status", "delivery-1"), "the newest acceptance row has 4 cells, not 12")
+
+    def test_a_task_name_is_checked(self):
+        result = self.repo.run("accept-status", "../x")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("not a task name", result.stderr)
+
+
 class OutsideRepositoryTest(unittest.TestCase):
     def test_reports_it(self):
         with tempfile.TemporaryDirectory() as folder:

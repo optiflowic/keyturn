@@ -1,4 +1,4 @@
-# keyturn's gate, run on a task's pull request (ADR 0043 in keyturn's docs/adr/).
+# keyturn's gate and merge conditions, run on a task's pull request (ADR 0043 and ADR 0046 in keyturn's docs/adr/).
 #
 # A person copies this file into the project once, as .github/workflows/keyturn-gate.yml. GitHub runs it as the pull
 # request's branch has it; what keeps it unchanged is the agents' token, which has no Workflows permission, so GitHub
@@ -6,8 +6,8 @@
 #   - set KEYTURN_COMMIT to the full SHA of the keyturn commit whose gate and profiles check the project;
 #   - keep the tool steps of the profiles in the project's keyturn/config.json ("parts"), and remove the others;
 #   - for a go part, set go-version-file to that part's go.mod.
-# Then make the check "keyturn gate" required on the default branch, with GitHub Actions as its expected source
-# (github/README.md).
+# Then make the checks "keyturn gate" and "keyturn conditions" required on the default branch, with GitHub Actions as
+# their expected source (github/README.md). "keyturn conditions" fails until the client's acceptance is recorded.
 
 name: keyturn gate
 
@@ -79,3 +79,41 @@ jobs:
             exit 1
           fi
           .keyturn-ci/gates/gate.sh --task "${HEAD_REF#task/}" --default-branch "origin/$DEFAULT_BRANCH"
+
+  conditions:
+    # The merge conditions (ADR 0046): no open high or medium finding, and the client's acceptance of the documents at
+    # the head. Committed records only: it runs no project code, so it needs no stack tools.
+    name: keyturn conditions
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out the pull request
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check out keyturn
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: optiflowic/keyturn
+          ref: ${{ env.KEYTURN_COMMIT }}
+          path: .keyturn-ci
+          persist-credentials: false
+
+      - name: Check the merge conditions
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          case "$HEAD_REF" in
+            task/*) ;;
+            *) echo "not a task branch (task/<task>): $HEAD_REF" >&2; exit 1 ;;
+          esac
+          if [ "$BASE_REF" != "$DEFAULT_BRANCH" ]; then
+            echo "a task's pull request goes to the default branch ($DEFAULT_BRANCH), not to $BASE_REF" >&2
+            exit 1
+          fi
+          .keyturn-ci/gates/conditions.sh --task "${HEAD_REF#task/}" --default-branch "origin/$DEFAULT_BRANCH"

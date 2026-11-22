@@ -30,7 +30,7 @@ Template: approval record (client-facing). Kept by the PM in keyturn/client/appr
 
 # Approvals
 
-This file records which version of the requirements you approved, and exactly which text you read.
+This file records which version of the requirements you approved, whether you accepted each delivery, and exactly which text you read.
 
 ## Current status
 
@@ -54,3 +54,29 @@ Each row identifies the exact text you were sent by a fingerprint. If the requir
 | Document | Version | Language | Source SHA-256 | Translation SHA-256 | Date sent | Answer | Date answered |
 |---|---|---|---|---|---|---|---|
 | requirements.md | <n> | <language> <(translation) \| (original)> | <SHA-256> | <SHA-256 \| none> | <YYYY-MM-DD> | <waiting \| approved \| not approved: what to change> | <YYYY-MM-DD> |
+
+## Acceptance
+
+<!--
+One row each time a delivery's acceptance guide and delivery report are sent for the client's acceptance, newest last (ADR 0046 in keyturn's docs/adr/).
+The PM fills in everything but the answer from `approval.py accept-send <task>` (with --lang <language> when the client reads translations), at that moment, never later,
+and commits this file alone. Keep these cells exactly as the template has them, whatever the document language, since CI reads them:
+- the first cell is always `acceptance-guide.md, delivery-report.md`, and "Task" is the task's name;
+- "Documents commit" is the full hash `accept-send` prints;
+- "Answer" is one of three fixed English words: `waiting`, `accepted`, or `not accepted`. Nothing else goes in this cell.
+The client answers in their own words; never ask them to type these words. Before you record an answer, make sure of what the client meant (ADR 0013):
+- write `accepted` only when the client's words plainly say that they accept the delivery. An answer with a condition ("fine once R-3 is fixed") is `not accepted`;
+  an answer you cannot place, or no answer, is not acceptance (ADR 0009): ask the client again, and leave the row at `waiting`;
+- when the client wrote in another language than this file's, translate their answer into English and have the client confirm the meaning
+  with a back-translation before you record it, a short acceptance included, since an acceptance leads to the merge (the localize skill, "Writing into English").
+"Your words" keeps what the client wrote, unchanged, with every `|` written as `\|`: `none` while the answer is `waiting`.
+When this file is in English (English-only mode) and the client wrote in another language, write the English they confirmed,
+and keep their original only in .keyturn/i18n/inbound/<lang>/ (never committed).
+When the client answers, fill in "Answer", "Your words", and "Date answered" in a commit of this file alone. Never change anything else in a row, and never delete a row.
+An acceptance is current only while the two documents and their commit are the ones in the row (`approval.py accept-status <task>`).
+The translation of this file (localize) shows each fixed word followed by its translation, for example `accepted (<translation>)`.
+-->
+
+| Documents | Task | Documents commit | Language | Acceptance guide SHA-256 | Delivery report SHA-256 | Acceptance guide translation SHA-256 | Delivery report translation SHA-256 | Date sent | Answer | Your words | Date answered |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| acceptance-guide.md, delivery-report.md | <task> | <full commit hash> | <language> <(translation) \| (original)> | <SHA-256> | <SHA-256> | <SHA-256 \| none> | <SHA-256 \| none> | <YYYY-MM-DD> | <waiting \| accepted \| not accepted> | <what you wrote, unchanged \| none> | <YYYY-MM-DD> |

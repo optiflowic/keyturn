@@ -58,7 +58,7 @@ NOT_PROTECTED = ("keyturn/internal/handoff.md",)
 
 # What a commit named as another role's may change (ADR 0029, ADR 0032, ADR 0033 for "deliver": the state file, and,
 # in its last step, the gate's log, the acceptance guide, and the delivery report, and ADR 0039 for the `.gitignore` files
-# "conventions" writes), by the step names of the task state file. QA's
+# "conventions" writes, and ADR 0046 for "merge": the client's acceptance), by the step names of the task state file. QA's
 # folders from the design are added for "qa", each profile's linter configs for "conventions", and a "security-review"
 # commit may change only the "Status" lines of the threat model.
 THREAT_MODEL = "keyturn/internal/threat-model.md"
@@ -72,6 +72,9 @@ ROLE_PATHS = {
     "review": ["keyturn/internal/review.md"],
     "deliver": ["keyturn/internal/state/**", "keyturn/internal/gate/**", "keyturn/client/acceptance-guide.md",
                 "keyturn/client/delivery-report.md"],
+    # The client's acceptance, recorded by the PM in the merge step (ADR 0042, ADR 0046), and the card that asks the
+    # client what to do after they did not accept (ADR 0047).
+    "merge": ["keyturn/client/approvals.md", "keyturn/client/decision-card-*.md"],
 }
 
 PROFILE_FIELDS = {"name", "tools", "setup", "checks", "count_tests", "versions", "pinned", "source_files", "suppressions", "protected"}
@@ -714,7 +717,7 @@ STATE_DIR = "keyturn/internal/state"
 TASK_RE = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
 STATE_COMMIT_RE = re.compile(r"- `([0-9a-f]{7,40})`: ([a-z-]+), round [1-9][0-9]*")
 # The steps of the task state file whose commits are another role's; "implement" is the developer's.
-LATER_ROLES = ("qa", "security-review", "review", "deliver")
+LATER_ROLES = ("qa", "security-review", "review", "deliver", "merge")
 
 
 def state_section(text: str, name: str) -> list[str]:

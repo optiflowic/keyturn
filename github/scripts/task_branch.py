@@ -5,6 +5,8 @@ Usage (from inside the project's repository):
   task_branch.py push TASK    push HEAD to refs/heads/task/TASK on origin; never with force
   task_branch.py open TASK    open the task's pull request as a draft, to the default branch, or update its description
   task_branch.py ready TASK   write its description again, from the head, and mark it ready for review
+  task_branch.py close TASK   close the task's pull request, with a comment, when the state file at HEAD says the task is
+                              closed (ADR 0047); the branch stays, as the record
 
 `push` checks that the current branch is task/TASK and that it is not the default branch, and pushes only that branch,
 without a "+" or --force, so a push that would rewrite the remote branch is refused by Git. `open` and `ready` use the
@@ -257,14 +259,31 @@ def cmd_ready(root: Path, task: str) -> None:
     print(f"ready {existing['url']}")
 
 
+def cmd_close(root: Path, task: str) -> None:
+    branch = check_task(root, task)
+    state = run(["git", "show", f"HEAD:keyturn/internal/state/{task}.md"], root)
+    if state.returncode != 0 or not re.search(r"^- Status: closed\s*$", state.stdout, re.MULTILINE):
+        raise Refused(f"keyturn/internal/state/{task}.md at HEAD does not say \"Status: closed\"; commit the closed state first")
+    remote = run(["git", "ls-remote", "--heads", "origin", f"refs/heads/{branch}"], root).stdout.split()
+    if not remote or remote[0] != git(root, "rev-parse", "HEAD"):
+        raise Refused(f"{branch} on origin is not at the local HEAD; push the closed state first")
+    existing = open_pull_request(root, branch)
+    if existing is None:
+        raise Refused(f"no open pull request from {branch}")
+    gh(root, "pr", "close", str(existing["number"]), "--comment",
+       f"keyturn closed the task `{task}`: the client chose to stop it. The branch is kept as the record; "
+       f"see `keyturn/internal/state/{task}.md`.")
+    print(f"closed {existing['url']}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Push a task's branch and open its pull request (ADR 0041).")
-    parser.add_argument("command", choices=["push", "open", "ready"])
+    parser.add_argument("command", choices=["push", "open", "ready", "close"])
     parser.add_argument("task", help="the task's name; its branch is task/<task>")
     args = parser.parse_args()
     try:
         root = repo_root()
-        {"push": cmd_push, "open": cmd_open, "ready": cmd_ready}[args.command](root, args.task)
+        {"push": cmd_push, "open": cmd_open, "ready": cmd_ready, "close": cmd_close}[args.command](root, args.task)
     except SetupError as error:
         print(f"setup error: {error}", file=sys.stderr)
         return EXIT_SETUP

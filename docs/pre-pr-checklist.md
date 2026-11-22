@@ -20,7 +20,7 @@ What the review before a pull request checks ([ADR 0019](adr/0019-pre-pull-reque
 
 ## Skills: `skills/**/SKILL.md`
 
-- [ ] If the work stops after any step and is started again, nothing is recorded twice, nothing is lost, and every check the skill runs still passes on what was already recorded, such as a decision the client has since agreed to ([Resuming Work](design/resuming-work.md)).
+- [ ] If the work stops after any step and is started again, nothing is recorded twice, nothing is lost, every command still works on what was already recorded (a `git commit` of a file that is already committed has nothing to commit, and fails), and every check the skill runs still passes on what was already recorded, such as a decision the client has since agreed to ([Resuming Work](design/resuming-work.md)).
 - [ ] Every way an answer can come in (for example, an answer to a card that stands for agreeing to a decision) moves each status it affects, and none is left waiting.
 - [ ] The skill says what to do when an input is missing ([Roles are usable on their own](design/roles.md#roles-are-usable-on-their-own)), and when the repository is in a state it did not create, such as another branch or files committed before keyturn.
 - [ ] A skill that works on a Git range reads the code at the range's head and the documents it judges the code by as they were before the range (at its base), never from a checkout at another commit; a change to those documents inside the range is a finding, found commit by commit, so that a change a later commit undoes is found too; and scripts that read the working tree run only on a checkout where those documents are as they were at the base.
@@ -29,12 +29,12 @@ What the review before a pull request checks ([ADR 0019](adr/0019-pre-pull-reque
 - [ ] Every command the skill gives works in each case the skill allows, and does all it is meant to (for example, `git restore` without `--staged` leaves a staged change in place): the first run (for example, a new file is not yet tracked, so it must be added before `git commit -- <path>`), and each missing input.
 - [ ] The skill allows nothing that the [Guardrails](design/guardrails.md) forbid or make wait for the client: what always needs the client's approval, even when a document lists it, and what fails the gate (such as a drop in the number of tests).
 
-## Scripts and their tests: `skills/**/scripts/**`, `scripts/**`
+## Scripts and their tests: `skills/**/scripts/**`, `scripts/**`, `gates/**`, `github/scripts/**`
 
 - [ ] An unexpected error (for example, `OSError` when a file cannot be written) ends with a clear message, not a traceback, and a failure never reports success.
 - [ ] The exit code of every subprocess is checked.
 - [ ] Environment variables (such as `GIT_DIR`, `GIT_WORK_TREE`, `GIT_INDEX_FILE`), symbolic links, and a file where a folder is expected cannot make the script read or write somewhere else.
-- [ ] Every free-form value read from a file is checked against the values it may take, and fields that contradict each other are rejected.
+- [ ] Every free-form value read from a file is checked against the values it may take, and fields that contradict each other are rejected. A record that cannot be read in full (a missing heading, a row with too few cells, an indented heading, a line inside a comment or a code block) fails the check instead of being skipped or read as empty.
 - [ ] A response from an external service is checked for errors before its data is used, and a result with a size limit is fetched page by page.
 - [ ] The tests do not depend on the operating system (line endings, paths) or on the developer's setup (global Git configuration, `GIT_*` variables).
 - [ ] The tests cover the edge cases the change handles.
