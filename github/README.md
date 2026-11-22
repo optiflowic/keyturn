@@ -26,7 +26,7 @@ The workflow's steps install the tools the profiles need (`profiles/<name>/READM
 - `ready <task>` writes the description again from the head, and marks the pull request ready for review.
 - A task has one pull request. When it was closed or merged, `open` and `ready` stop, and never open another one or reopen it: the maintainer decides what happens ([ADR 0044](../docs/adr/0044-task-branch-and-pull-request-kept-in-step-with-origin.md)). The state file does not record the pull request; the branch finds it.
 
-It needs the GitHub CLI (`gh`), signed in with the agents' token. The recommended permission rules deny the plain `git push` and the `gh pr` commands that change a pull request, so the script is the only way (`adapters/claude/README.md`). Its tests: `python3 -m unittest discover -s github/scripts`.
+It needs the GitHub CLI (`gh`), signed in with the agents' token. The recommended permission rules deny the plain `git push` and the `gh pr` commands that change a pull request (`adapters/claude/README.md`). They stop the plain commands; permission rules match a command's text, so they cannot close every way around the script. What reaches the default branch is still decided by branch protection and the checks in CI ([ADR 0042](../docs/adr/0042-pm-merges-on-machine-checked-conditions.md)). Its tests: `python3 -m unittest discover -s github/scripts`.
 
 ### When the task branch on origin moved
 
