@@ -437,7 +437,8 @@ class ActivityPagesTest(unittest.TestCase):
 
 class SettingsTest(unittest.TestCase):
     def env(self, **values):
-        base = {"GITHUB_REPOSITORY": REPO, "GITHUB_RUN_ID": "12", "GITHUB_EVENT_NAME": "schedule"}
+        base = {"GITHUB_REPOSITORY": REPO, "GITHUB_RUN_ID": "12", "GITHUB_EVENT_NAME": "schedule",
+                "KEYTURN_MAINTAINER": "maintainer"}
         base.update(values)
         return mock.patch.dict(os.environ, base, clear=True)
 
@@ -456,10 +457,24 @@ class SettingsTest(unittest.TestCase):
                                     ("a" * 40, {"KEYTURN_VOUCHED": "abc1234"}, "KEYTURN_VOUCHED"),
                                     ("a" * 40, {"KEYTURN_CHECKED_UNTIL": "yesterday"}, "KEYTURN_CHECKED_UNTIL"),
                                     ("a" * 40, {"KEYTURN_MAINTAINER": "a b"}, "KEYTURN_MAINTAINER"),
+                                    ("a" * 40, {"KEYTURN_MAINTAINER": ""}, "KEYTURN_MAINTAINER is not set"),
+                                    ("a" * 40, {"KEYTURN_MAINTAINER": " @ "}, "KEYTURN_MAINTAINER is not set"),
                                     ("a" * 40, {"GITHUB_REPOSITORY": ""}, "GITHUB_REPOSITORY")):
             with self.subTest(text=text), self.env(**values), self.assertRaises(watch.SetupError) as raised:
                 watch.settings_from_env(start, 5)
             self.assertIn(text, str(raised.exception))
+
+
+class MainTest(unittest.TestCase):
+    """watch.py as the workflow runs it: a missing KEYTURN_MAINTAINER fails the run before anything is read."""
+
+    def test_without_the_maintainer_the_run_fails_as_a_setup_error(self):
+        env = {"GITHUB_REPOSITORY": REPO, "GITHUB_EVENT_NAME": "schedule", "PATH": os.environ.get("PATH", "")}
+        with tempfile.TemporaryDirectory() as tmp:
+            result = subprocess.run([sys.executable, str(HERE / "watch.py"), "--start", "a" * 40], cwd=tmp, env=env,
+                                    capture_output=True, text=True)
+        self.assertEqual(result.returncode, watch.EXIT_SETUP, result.stdout + result.stderr)
+        self.assertIn("KEYTURN_MAINTAINER is not set", result.stderr)
 
 
 class WorkflowTest(unittest.TestCase):

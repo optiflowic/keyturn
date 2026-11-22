@@ -10,7 +10,7 @@ GITHUB_EVENT_PATH, GITHUB_RUN_ID, GITHUB_SERVER_URL, GH_TOKEN (the workflow's GI
 variables the workflow passes on, which the agents' token cannot change: KEYTURN_VOUCHED (the full SHAs of the
 maintainer's own commits on the default branch, separated by spaces, commas, or new lines), KEYTURN_CHECKED_UNTIL (an
 ISO 8601 time; the activity up to it was looked at by the maintainer), and KEYTURN_MAINTAINER (the GitHub account the
-issue mentions).
+issue mentions; a run without it fails, since what it found would reach nobody).
 
 Each run checks, and fails on any of these:
   - every commit on the default branch's first-parent history after SHA, up to the tip: each passes only when it is
@@ -440,7 +440,11 @@ def settings_from_env(start: str, wait_minutes: float) -> Settings:
         if (checked_until := when(text)) is None:
             raise SetupError(f"KEYTURN_CHECKED_UNTIL is not an ISO 8601 time (for example 2026-11-22T10:00:00Z): {text!r}")
     maintainer = env.get("KEYTURN_MAINTAINER", "").strip().lstrip("@") or None
-    if maintainer and not LOGIN_RE.fullmatch(maintainer):
+    if maintainer is None:
+        # A run that finds something must tell someone: without the maintainer's account, the issue would mention
+        # nobody, so the watch fails instead, and merge.py merges nothing until it is set.
+        raise SetupError("KEYTURN_MAINTAINER is not set: set it to the maintainer's GitHub account (github/README.md)")
+    if not LOGIN_RE.fullmatch(maintainer):
         raise SetupError(f"KEYTURN_MAINTAINER is not a GitHub account name: {maintainer!r}")
     event: dict = {}
     if path := env.get("GITHUB_EVENT_PATH"):
