@@ -365,6 +365,16 @@ class MergeTest(unittest.TestCase):
         self.assertIn("not the checked tip", result.stderr)
         self.assertEqual(len(self.merged()), 1)
 
+    def test_a_merge_commit_that_cannot_be_read_after_the_merge_is_exit_4_not_2(self):
+        # A fetch after the merge that fails or times out: the pull request is merged all the same.
+        self.script.write_text(self.script.read_text(encoding="utf-8").replace(
+            "        run([\"git\", \"fetch\", \"--quiet\", \"--no-tags\", \"origin\", f\"+refs/heads/{default}:refs/remotes/origin/{default}\"], root)\n        if run(",
+            "        raise SetupError(\"git fetch: no answer in 5 minutes\")\n        if run("), encoding="utf-8")
+        result = self.merge()
+        self.assertEqual(result.returncode, 4, result.stderr)
+        self.assertIn("could not be read", result.stderr)
+        self.assertEqual(len(self.merged()), 1)
+
     def test_a_merge_commit_with_another_tree_stops_for_the_maintainer(self):
         self.env["FAKE_GH_MERGE_TREE"] = self.git("rev-parse", "main^{tree}")
         (self.root / "file").write_text("x", encoding="utf-8")

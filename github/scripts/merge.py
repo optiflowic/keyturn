@@ -201,10 +201,11 @@ def check_merge_commit(root: Path, default: str, merge_sha: str | None, head: st
     """The merge commit's only parent is the checked tip, and its tree is the head's (ADR 0048)."""
     if not merge_sha:
         raise MergedUnchecked("GitHub gave no merge commit to check")
-    run(["git", "fetch", "--quiet", "--no-tags", "origin", f"+refs/heads/{default}:refs/remotes/origin/{default}"], root)
-    if run(["git", "cat-file", "-e", f"{merge_sha}^{{commit}}"], root).returncode != 0:
-        run(["git", "fetch", "--quiet", "--no-tags", "origin", merge_sha], root)
     try:
+        # A fetch that times out raises SetupError too: the pull request is merged, so that is not "could not run".
+        run(["git", "fetch", "--quiet", "--no-tags", "origin", f"+refs/heads/{default}:refs/remotes/origin/{default}"], root)
+        if run(["git", "cat-file", "-e", f"{merge_sha}^{{commit}}"], root).returncode != 0:
+            run(["git", "fetch", "--quiet", "--no-tags", "origin", merge_sha], root)
         parents = git(root, "rev-list", "--parents", "-n", "1", merge_sha).split()[1:]
         same_tree = git(root, "rev-parse", f"{merge_sha}^{{tree}}") == git(root, "rev-parse", f"{head}^{{tree}}")
     except SetupError as error:
