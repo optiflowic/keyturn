@@ -6,8 +6,13 @@
 #   - set KEYTURN_COMMIT to the full SHA of the keyturn commit whose gate and profiles check the project;
 #   - keep the tool steps of the profiles in the project's keyturn/config.json ("parts"), and remove the others;
 #   - for a go part, set go-version-file to that part's go.mod.
-# Then make the checks "keyturn gate" and "keyturn conditions" required on the default branch, with GitHub Actions as
-# their expected source (github/README.md). "keyturn conditions" fails until the client's acceptance is recorded.
+# On a plan with branch protection, then make the checks "keyturn gate" and "keyturn conditions" required on the default
+# branch, with GitHub Actions as their expected source (github/README.md). "keyturn conditions" fails until the client's
+# acceptance is recorded.
+#
+# Both jobs skip a draft pull request (ADR 0048): a task's pull request is a draft until the deliver step commits the
+# delivery documents and marks it ready, deliver runs the gate locally on every round before that, and the merge
+# conditions need the checks only on the head that is merged. Marking it ready runs them on that head.
 
 name: keyturn gate
 
@@ -28,9 +33,11 @@ env:
 
 jobs:
   gate:
-    # No job-level condition: a required check that is skipped counts as passed, so a pull request from a branch
-    # that is not a task's fails instead (in the last step).
+    # The only job-level condition is the draft: GitHub does not merge a draft, and neither merge.py nor keyturn watch
+    # counts a skipped check as a pass. A required check that is skipped counts as passed on GitHub, so a pull request
+    # from a branch that is not a task's fails in the last step instead, not by a condition here.
     name: keyturn gate
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
@@ -84,6 +91,7 @@ jobs:
     # The merge conditions (ADR 0046): no open high or medium finding, and the client's acceptance of the documents at
     # the head. Committed records only: it runs no project code, so it needs no stack tools.
     name: keyturn conditions
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:

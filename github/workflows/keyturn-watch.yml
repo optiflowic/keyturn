@@ -1,0 +1,74 @@
+# keyturn watch: detects commits on the default branch that did not come from a task's pull request merged with its
+# conditions met, and force pushes and deletions of what keyturn trusts (ADR 0048 in keyturn's docs/adr/, layer 2).
+#
+# A person copies this file into the project once, as .github/workflows/keyturn-watch.yml, and commits it on the default
+# branch themselves (github/README.md, "One-time setup"). The agents' token has no Workflows permission, so GitHub
+# refuses their pushes that change it, and no Variables, Actions, or Issues permission, so they cannot vouch for a
+# commit, turn this workflow off, delete its runs, or close the issue it opens. Before committing it:
+#   - set KEYTURN_COMMIT to the full SHA of the keyturn commit to check with (the one keyturn-gate.yml names);
+#   - set KEYTURN_START to the full SHA of the default branch's tip before you add keyturn's workflows: every commit
+#     after it is checked;
+#   - change "main" under "push" to the default branch's name, if it is another one;
+#   - set the repository variables KEYTURN_MAINTAINER (your GitHub account, which the issue mentions) and
+#     KEYTURN_CHECKED_UNTIL (the time you add this workflow, for example 2026-11-22T10:00:00Z); KEYTURN_VOUCHED lists
+#     the full SHAs of commits of your own on the default branch.
+# Then start it once by hand (Actions, "keyturn watch", "Run workflow"), and check that it passes, before the first task.
+# merge.py merges a task only when this check passed on the default branch's tip after its last push.
+
+name: keyturn watch
+
+on:
+  push:
+    branches: [main, 'task/**']
+  # A deleted branch: GitHub runs this as the default branch has it.
+  delete:
+  # Finds what a push that skipped workflows ([skip ci], ...) brought; at least daily (ADR 0048).
+  schedule:
+    - cron: '23 */6 * * *'
+  workflow_dispatch:
+
+# The workflow's GITHUB_TOKEN: it reads the commits, the pull requests, their checks, this workflow's runs, and the
+# repository's activity, and opens or comments on an issue when a run fails.
+permissions:
+  contents: read
+  pull-requests: read
+  checks: read
+  actions: read
+  issues: write
+
+# No concurrency group: a pending run that a later one replaced would be cancelled, and a cancelled check on the
+# default branch's tip stops merge.py as a failed one does.
+
+env:
+  # Full commit SHAs, never a branch or a tag.
+  KEYTURN_COMMIT: 0000000000000000000000000000000000000000
+  KEYTURN_START: 0000000000000000000000000000000000000000
+
+jobs:
+  watch:
+    name: keyturn watch
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out the project
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Every branch and its history: the default branch, and the task branches the merged heads are on.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check out keyturn
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: optiflowic/keyturn
+          ref: ${{ env.KEYTURN_COMMIT }}
+          path: .keyturn-ci
+          persist-credentials: false
+
+      - name: Check the default branch and the activity
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KEYTURN_VOUCHED: ${{ vars.KEYTURN_VOUCHED }}
+          KEYTURN_CHECKED_UNTIL: ${{ vars.KEYTURN_CHECKED_UNTIL }}
+          KEYTURN_MAINTAINER: ${{ vars.KEYTURN_MAINTAINER }}
+        run: python3 .keyturn-ci/github/scripts/watch.py --start "$KEYTURN_START"
