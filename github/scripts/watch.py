@@ -158,7 +158,8 @@ class GitHub:
                 raise SetupError("the repository's activity is not JSON") from None
             found += page
             older = [item for item in page if (moment := when(item.get("timestamp"))) and moment <= since]
-            link = re.search(r'<https://[^>]*/(repos/[^>]*)>;\s*rel="next"', head)
+            # GitHub names the next page by the repository's ID (https://api.github.com/repositories/<id>/activity?...).
+            link = re.search(r'<https://[^/>]+/([^>]+)>;\s*rel="next"', head)
             endpoint = link.group(1) if link and page and not older else ""
         return found
 

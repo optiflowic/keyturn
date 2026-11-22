@@ -412,6 +412,29 @@ class ReportTest(unittest.TestCase):
         self.assertEqual(len(self.github.created), 2)
 
 
+class ActivityPagesTest(unittest.TestCase):
+    """GitHub.activity on gh's --include output, with the Link header as GitHub sent it on a private repository."""
+
+    def page(self, items: list[dict], cursor: str | None) -> str:
+        link = (f'Link: <https://api.github.com/repositories/1467637921/activity?direction=desc&per_page=100&after={cursor}>;'
+                f' rel="next"\r\n') if cursor else ""
+        return f"HTTP/2.0 200 OK\r\nContent-Type: application/json\r\n{link}\r\n" + json.dumps(items)
+
+    def test_it_follows_the_next_page_until_the_checkpoint(self):
+        since = NOW - timedelta(hours=1)
+        newer = [{"id": n, "timestamp": stamp(NOW - timedelta(minutes=n))} for n in range(1, 3)]
+        older = [{"id": 9, "timestamp": stamp(NOW - timedelta(minutes=30))},
+                 {"id": 10, "timestamp": stamp(NOW - timedelta(hours=2))}]
+        pages = [self.page(newer, "abc"), self.page(older, "def"), self.page([{"id": 99}], None)]
+        github = watch.GitHub(REPO)
+        with mock.patch.object(watch.GitHub, "call", side_effect=pages) as call:
+            found = github.activity(since)
+        self.assertEqual([item["id"] for item in found], [1, 2, 9, 10])
+        self.assertEqual(call.call_args_list[1].args[0],
+                         "repositories/1467637921/activity?direction=desc&per_page=100&after=abc")
+        self.assertEqual(call.call_count, 2)  # the second page reaches the checkpoint: no third request
+
+
 class SettingsTest(unittest.TestCase):
     def env(self, **values):
         base = {"GITHUB_REPOSITORY": REPO, "GITHUB_RUN_ID": "12", "GITHUB_EVENT_NAME": "schedule"}
