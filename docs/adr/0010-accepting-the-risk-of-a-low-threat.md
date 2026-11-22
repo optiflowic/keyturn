@@ -1,6 +1,6 @@
 # 0010. The client may accept the risk of a low threat, on a decision card
 
-- Status: accepted; that only the risk of a low threat may be accepted widened by [0042](0042-pm-merges-on-machine-checked-conditions.md), which lets the client accept a medium finding's risk under the same conditions
+- Status: accepted
 - Date: 2026-11-08
 
 ## Context

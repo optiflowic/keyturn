@@ -23,7 +23,7 @@ Tasks are managed on GitHub so the client can follow progress without opening a 
 5. GitHub Actions runs the gates. Failures send work back to the developer, up to the rework limit. The review roles post their findings on the pull request.
 6. When the gates pass, the PR description contains the delivery report summary and the acceptance guide.
 7. The client does the hands-on check and accepts the delivery (or asks for changes).
-8. The PM merges, only when the gate passes in CI, no high or medium finding is open (except a medium one whose risk the client accepted on a decision card), and the client's acceptance is recorded for the documents at the head. Branch protection makes the same checks required, so a merge without them is refused ([ADR 0042](../adr/0042-pm-merges-on-machine-checked-conditions.md)).
+8. The PM merges, only when the gate passes in CI, no high or medium finding is open (except a medium finding of the reviewer, not a security one, that the client accepted on a decision card), and the client's acceptance is recorded for the documents at the head. Branch protection makes the same checks required, so a merge without them is refused ([ADR 0042](../adr/0042-pm-merges-on-machine-checked-conditions.md)).
 
 Agents can run unattended (scheduled or triggered by issue events), and the Project board shows where every task is.
 
