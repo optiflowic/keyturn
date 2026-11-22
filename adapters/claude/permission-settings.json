@@ -47,7 +47,10 @@
       "Bash(gh pr reopen *)",
       "Bash(gh pr update-branch *)",
       "Bash(gh pr lock *)",
-      "Bash(gh api *)"
+      "Bash(gh api *)",
+      "Bash(gh issue comment *)",
+      "Bash(gh alias set *)",
+      "Bash(gh auth token*)"
     ]
   }
 }

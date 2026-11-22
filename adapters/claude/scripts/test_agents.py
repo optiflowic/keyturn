@@ -110,6 +110,9 @@ class PermissionSettings(unittest.TestCase):
             self.assertIn(f"Bash(gh pr {command} *)", deny)
         # ADR 0045: gh api would post on the pull request around post_findings.py.
         self.assertIn("Bash(gh api *)", deny)
+        # A pull request is also an issue, an alias could name gh api, and the token reaches the API without gh.
+        for rule in ("Bash(gh issue comment *)", "Bash(gh alias set *)", "Bash(gh auth token*)"):
+            self.assertIn(rule, deny)
 
 
 if __name__ == "__main__":
