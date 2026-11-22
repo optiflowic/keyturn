@@ -46,6 +46,10 @@ FAKE_GH = textwrap.dedent("""\
     elif sys.argv[1] == "api" and "/activity" in endpoint:
         print(read("FAKE_GH_ACTIVITY"))
     elif sys.argv[1] == "api" and "/rules/branches/" in endpoint:
+        if os.environ.get("FAKE_GH_RULES_FAIL"):
+            print("gh: Upgrade to GitHub Pro or make this repository public to enable this feature. (HTTP 403)",
+                  file=sys.stderr)
+            sys.exit(1)
         print(read("FAKE_GH_RULES"))
     elif sys.argv[1] == "api" and "/branches/" in endpoint:
         print(read("FAKE_GH_BRANCH"))
@@ -406,6 +410,15 @@ class MergeTest(unittest.TestCase):
         self.assertEqual(protection(), "protected")
         self.rules.write_text("not json", encoding="utf-8")
         self.assertEqual(protection(), "protected")
+
+    def test_the_protection_option_says_not_known_when_the_rules_cannot_be_read(self):
+        # On a private repository on GitHub Free, the rules answer 403, as they do for a token without a permission.
+        self.env["FAKE_GH_RULES_FAIL"] = "1"
+        result = self.merge("--protection")
+        self.assertEqual((result.returncode, result.stdout.strip()), (0, "not known"), result.stderr)
+        self.set_protection(rules=[], branch={"protected": True, "protection": {"enabled": True, "required_status_checks": {
+            "contexts": ["keyturn gate", "keyturn conditions"]}}})
+        self.assertEqual(self.merge("--protection").stdout.strip(), "protected")
         self.assertEqual(self.merged(), [])
 
     def test_a_merge_commit_that_is_not_the_checked_head_on_the_checked_tip_stops_for_the_maintainer(self):

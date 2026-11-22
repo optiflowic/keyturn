@@ -4,7 +4,10 @@
 Usage (from inside the project's repository, on the branch task/TASK):
   merge.py TASK [--wait-minutes N]   (deliver passes --wait-minutes 9, so that one call fits in a tool call)
   merge.py TASK --protection         prints "protected" when the default branch has branch protection (a ruleset or a
-                                     classic rule) that requires both checks, and "not protected" otherwise; merges nothing
+                                     classic rule) that requires both checks, "not protected" when GitHub showed both
+                                     and neither does, and "not known" when either could not be read (GitHub answers 403
+                                     both when the plan has no rulesets and when the token lacks a permission); merges
+                                     nothing
 
 It refuses (exit 1), and never merges, unless all of these hold, in this order:
   - the task's pull request is open, ready for review, goes to the default branch, and its branch is in this repository
@@ -164,25 +167,31 @@ def watch_state(root: Path, default: str, tip: str) -> tuple[str, str]:
     return "passed", ""
 
 
-def protected(root: Path, default: str) -> bool:
-    """Whether the default branch's protection (an active ruleset, or a classic rule) requires both checks."""
+def protection(root: Path, default: str) -> str:
+    """'protected' when an active ruleset or a classic rule requires both checks on the default branch; 'not protected'
+    when GitHub showed both and neither does; 'not known' when either could not be read. A 403 does not tell a plan
+    without rulesets from a token that lacks a permission, so it is never read as "not protected"."""
     contexts: set[str] = set()
+    known = True
     try:
-        for rule in json.loads(task_branch.gh_api(root, f"repos/{{repo}}/rules/branches/{default}")):
+        rules = json.loads(task_branch.gh_api(root, f"repos/{{repo}}/rules/branches/{default}"))
+        for rule in rules:
             if rule.get("type") == "required_status_checks":
                 contexts |= {check.get("context") for check in
                              (rule.get("parameters") or {}).get("required_status_checks", [])}
-    except (Refused, ValueError, AttributeError):
-        pass
+    except (Refused, SetupError, ValueError, AttributeError, TypeError):
+        known = False
     try:
         branch = json.loads(task_branch.gh_api(root, f"repos/{{repo}}/branches/{default}"))
         required = ((branch.get("protection") or {}).get("required_status_checks") or {})
         if branch.get("protected"):
             contexts |= set(required.get("contexts") or [])
             contexts |= {check.get("context") for check in required.get("checks") or []}
-    except (Refused, ValueError, AttributeError):
-        pass
-    return set(CHECKS) <= contexts
+    except (Refused, SetupError, ValueError, AttributeError, TypeError):
+        known = False
+    if set(CHECKS) <= contexts:
+        return "protected"
+    return "not protected" if known else "not known"
 
 
 def fetch_default(root: Path, default: str) -> str:
@@ -327,7 +336,7 @@ def main() -> int:
         root = task_branch.repo_root()
         if args.protection:
             task_branch.check_task(root, args.task)
-            print("protected" if protected(root, task_branch.default_branch(root)) else "not protected")
+            print(protection(root, task_branch.default_branch(root)))
             return EXIT_DONE
         cmd_merge(root, args.task, max(args.wait_minutes, 0) * 60)
     except SetupError as error:

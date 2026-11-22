@@ -66,6 +66,8 @@ Every acceptance criterion of a Must requirement that the test report marks "par
 While the gate has no dependency scan, list the components the chosen ones pull in (the indirect dependencies) here: nothing has checked them.
 When the repository has no branch protection, say so in plain words: a change put on the main version of the code
 without going through keyturn's checks is noticed afterwards and reported to the maintainer, not blocked.
+When it could not be checked whether the repository has branch protection, say that it could not be checked,
+and that the same then holds.
 Never leave this section empty: if everything listed in the stack profile ran, say what the profile itself cannot check.
 -->
 

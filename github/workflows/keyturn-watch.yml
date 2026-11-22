@@ -3,13 +3,13 @@
 #
 # A person copies this file into the project once, as .github/workflows/keyturn-watch.yml, and commits it on the default
 # branch themselves (github/README.md, "One-time setup"). The agents' token has no Workflows permission, so GitHub
-# refuses their pushes that change it, and no Variables, Actions, or Issues permission, so they cannot vouch for a
-# commit, turn this workflow off, delete its runs, or close the issue it opens. Before committing it:
+# refuses their pushes that change it, no Variables or Issues permission, and only reads Actions, so they cannot vouch
+# for a commit, turn this workflow off, delete its runs, or close the issue it opens. Before committing it:
 #   - set KEYTURN_COMMIT to the full SHA of the keyturn commit to check with (the one keyturn-gate.yml names);
 #   - set KEYTURN_START to the full SHA of the default branch's tip before you add keyturn's workflows: every commit
 #     after it is checked;
 #   - change "main" under "push" to the default branch's name, if it is another one;
-#   - set the repository variables KEYTURN_MAINTAINER (your GitHub account, which the issue mentions) and
+#   - first, set the repository variables KEYTURN_MAINTAINER (your GitHub account, which the issue mentions) and
 #     KEYTURN_CHECKED_UNTIL (the time you add this workflow, for example 2026-11-22T10:00:00Z); KEYTURN_VOUCHED lists
 #     the full SHAs of commits of your own on the default branch.
 # Then start it once by hand (Actions, "keyturn watch", "Run workflow"), and check that it passes, before the first task.
