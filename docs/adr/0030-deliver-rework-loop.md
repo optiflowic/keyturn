@@ -1,6 +1,6 @@
 # 0030. `deliver` sends work back on a failing gate, a failing test, and high or medium findings, up to a set number of rounds
 
-- Status: accepted
+- Status: accepted; an open medium finding whose risk the client accepted on a decision card no longer sends the work back, superseded by [0042](0042-pm-merges-on-machine-checked-conditions.md)
 - Date: 2026-11-21
 
 ## Context

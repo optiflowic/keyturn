@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Date: 2026-11-22
-- Supersedes: the MVP's list in [0025](0025-mvp-first.md), and "automatic merging" among its later items: delivery through a pull request, the gate in CI, and the PM's merge are part of the MVP
+- Supersedes: in [0010](0010-accepting-the-risk-of-a-low-threat.md), that only the risk of a low threat may be accepted (the client may also accept a medium finding's); in [0030](0030-deliver-rework-loop.md), that every open medium finding sends the work back (an accepted one does not); the MVP's list in [0025](0025-mvp-first.md), and "automatic merging" among its later items: delivery through a pull request, the gate in CI, and the PM's merge are part of the MVP
 
 ## Context
 
@@ -28,10 +28,16 @@ Option 3.
 **The conditions.** A task's pull request is merged only when all three hold for its head commit:
 
 1. **The gate passes in CI.** The gate runs on the pull request, finding the base and the other roles' commits itself as [ADR 0032](0032-gate-base-is-where-the-task-branch-left.md) says, without trusting the state file at the head for them (#138 records how in an ADR of its own).
-2. **No high or medium finding is open.** In `keyturn/internal/review.md` and `keyturn/internal/security-review.md`, no finding of high or medium severity has "Status: open". Low findings do not stop the merge; they are in the delivery report. A medium finding does not stop it when the report records that the client accepted its risk on an answered decision card, and that acceptance holds as [ADR 0010](0010-accepting-the-risk-of-a-low-threat.md) describes (the card is answered, the finding is as it was described on the card, and its harm is not one that may never be accepted). This ADR does not widen what may be accepted.
+2. **No high or medium finding is open.** In `keyturn/internal/review.md` and `keyturn/internal/security-review.md`, no finding of high or medium severity has "Status: open". Low findings do not stop the merge; they are in the delivery report. A medium finding does not stop it when the client accepted its risk on an answered decision card. This widens [ADR 0010](0010-accepting-the-risk-of-a-low-threat.md), which lets the client accept only the risk of a low threat: the client may now also accept the risk of a medium finding, of either review, on a card that also offers fixing it. Everything else in ADR 0010 still holds: only the client accepts, an unanswered card accepts nothing, a finding whose harm is getting in, getting more rights, or reading, changing, or deleting data, or that comes through a dependency or an external service, is never accepted, the acceptance holds only for the finding as the card described it, and every accepted risk is listed under "Remaining risks" in each delivery report. The report records it as "Status: accepted: decision card <n>"; only the role that wrote the report sets it, after checking those conditions, as it checks an accepted threat today. A finding with that status is not open: it sends no work back, which replaces [ADR 0030](0030-deliver-rework-loop.md)'s rule for it, and it does not stop the merge. A card asked for during a task follows "Questions for the maintainer" in `deliver` ([ADR 0031](0031-documents-fixed-once-implement-starts.md)).
 3. **The client accepted the delivery.** During the MVP, the acceptance is recorded in `keyturn/client/approvals.md` like the requirements' approval ([ADR 0008](0008-approval-records-in-a-separate-file.md), [ADR 0012](0012-stable-approval-hashes.md)): one row with the SHA-256 of the acceptance guide and the delivery report at the head (and of the translations the client read, in English-only mode), and the client's answer. A changed document makes the acceptance stale. No answer is not acceptance.
 
-**Who merges.** The PM role, as the last step of `deliver`, after the client's answer is recorded: it checks the three conditions, and merges with a keyturn script (a squash merge) that checks them again. If any does not hold, it does not merge, and the task stops as it would for any other open question.
+**Who merges, and in what order.** The PM role, in a new last step of `deliver`, `merge`, after the `deliver` step:
+
+1. The `deliver` step commits the acceptance guide, the delivery report, and the gate's log, as ADR 0033 says, and the state file records it. `deliver` pushes, and marks the pull request ready for the client with the pull request script ([ADR 0041](0041-agents-push-task-branches-and-open-pull-requests.md)).
+2. `merge` waits for the client: the task stops, waiting for the client, with the acceptance in "Open questions", as it waits for an approval of the requirements. No answer is not acceptance.
+3. When the client accepts, the PM records the answer in `approvals.md`, in a commit that changes only that file. The gate and the reviews name it as `merge`'s commit, like the other roles' commits (ADR 0029, ADR 0032), and a `merge` commit may change only `keyturn/client/approvals.md`. It changes neither document whose hash it records, so the acceptance still holds at the new head. If the client asks for changes instead, the task stops for the maintainer, as a change after `implement` does (ADR 0031).
+4. The PM sets the state file to done, with `merge` done, in the last commit, pushes, and waits for CI on that head.
+5. It checks the three conditions on that head, and merges with a keyturn script (a squash merge) that checks them again. If any does not hold, or the host refuses the merge, it records a stop (a new state commit, so the conditions are checked again on that head when the task resumes).
 
 **What the host enforces.** A person sets this up once per repository, before the first task, from steps in `github/`:
 
@@ -56,7 +62,7 @@ Option 3.
 ## Consequences
 
 - "Merging is the client's action" in `docs/design/github-integration.md` becomes "Merging needs the client's acceptance", with the PM merging on these conditions.
-- #138 runs the gate in CI; #141 records the acceptance, checks the conditions in CI, adds the merge step to `deliver`, and writes the setup steps. A finding's record of an accepted risk, and `deliver`'s rework rule for an accepted medium finding (ADR 0030), are settled there.
-- `task_state.py unmerged` ([ADR 0034](0034-new-task-waits-for-unmerged-task-branches.md)) keeps working only if the merge is the task's last action: the state file is set to done in the last commit before the merge, the squash merge carries it, and nothing is committed to the task branch after it.
+- #138 runs the gate in CI; #141 records the acceptance, checks the conditions in CI, adds the `merge` step and the `merge` role's commits to `deliver`, the state template, and the gate, adds `accepted: decision card <n>` to the review template, and writes the setup steps.
+- `task_state.py unmerged` ([ADR 0034](0034-new-task-waits-for-unmerged-task-branches.md)) keeps working, since the merge is the task's last action: the state file is set to done in the last commit before the merge, the squash merge carries it, and nothing is committed to the task branch after it.
 - A private repository on a free plan cannot be used for a task until it is public or on a paid plan.
 - The end-to-end run (#63) checks the setup before it starts.
