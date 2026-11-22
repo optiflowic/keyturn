@@ -6,6 +6,7 @@ preloaded skill is named the only way that loads keyturn's own skill, and that
 each subagent's tools are the ones ADR 0035 gives it.
 """
 
+import fnmatch
 import json
 import unittest
 from pathlib import Path
@@ -111,8 +112,18 @@ class PermissionSettings(unittest.TestCase):
         # ADR 0045: gh api would post on the pull request around post_findings.py.
         self.assertIn("Bash(gh api *)", deny)
         # A pull request is also an issue, an alias could name gh api, and the token reaches the API without gh.
-        for rule in ("Bash(gh issue comment *)", "Bash(gh alias set *)", "Bash(gh auth token*)"):
+        for rule in ("Bash(gh issue comment *)", "Bash(gh alias set *)"):
             self.assertIn(rule, deny)
+
+    def test_the_commands_that_change_credentials_variables_secrets_and_workflows_are_denied(self):
+        # ADR 0048: agents run with the agents' token alone, and the detecting workflow, its variables, and its runs
+        # stay out of their reach; gh auth token would also hand the token to a command that is not gh.
+        patterns = [rule[len("Bash("):-1] for rule in self.settings["permissions"]["deny"]]
+        for command in ("gh auth", "gh auth token", "gh auth login --with-token", "gh auth switch --user someone",
+                        "gh auth refresh -s workflow", "gh auth status", "gh variable set KEYTURN_VOUCHED --body x",
+                        "gh variable list", "gh secret set TOKEN", "gh workflow disable keyturn-watch.yml",
+                        "gh workflow run keyturn-watch.yml", "gh run delete 1", "gh run cancel 1", "gh run rerun 1"):
+            self.assertTrue(any(fnmatch.fnmatchcase(command, pattern) for pattern in patterns), command)
 
 
 if __name__ == "__main__":
