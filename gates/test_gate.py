@@ -798,7 +798,7 @@ class TaskRangeTest(unittest.TestCase):
         self.record()
         result = self.task_gate()
         self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
-        self.assertIn("is not commit in the range", result.stderr)
+        self.assertIn("is not a commit it could list", result.stderr)
 
     def test_an_unknown_step_stops_the_gate(self):
         qa = self.commit("qa")
@@ -826,6 +826,24 @@ class TaskRangeTest(unittest.TestCase):
         self.put("app/qa/test_more.txt", "")
         self.commit("a qa commit no state commit lists yet")
         self.assert_fails(self.task_gate(), "FAIL protected-paths: app/qa/test_more.txt")
+
+    def test_a_developer_commit_after_the_record_is_checked_as_the_developer_s(self):
+        recorded = self.state_text()
+        conventions = next(c for c, role in self.roles.items() if role == "conventions")
+        # A later developer commit whose hash starts like the conventions commit's is not taken for it: the record's
+        # line still names only the commit before it, so the developer's change to the linter config is checked.
+        self.put(".lintrc", "weaker rules\n")
+        developer = self.commit("the developer weakens the linter")
+        self.roles[developer] = "implement"
+        self.record()
+        self.assertIn(conventions[:7], recorded)
+        self.assert_fails(self.task_gate(), "FAIL protected-paths: .lintrc")
+
+    def test_full_hashes_are_read_too(self):
+        self.lines = [line.replace(line.split("`")[1], self.git("rev-parse", line.split("`")[1])) for line in self.lines]
+        self.put("app/src/main.py", "print('task')\n")
+        self.step("implement")
+        self.assertEqual(self.task_gate().returncode, 0)
 
     def test_others_with_task_is_refused(self):
         result = self.task_gate("--others", f"qa:{self.base}")

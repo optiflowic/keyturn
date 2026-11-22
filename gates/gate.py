@@ -775,10 +775,11 @@ def task_range(root: Path, task: str, default_rev: str, head_rev: str) -> tuple[
                           f"{default_rev} ({base[:12]}); a ref was moved"])
     commits = [commit for commit, _ in range_commits(root, base, head)]
 
-    def resolve(short: str, where: str) -> str:
-        found = [commit for commit in commits if commit.startswith(short)]
+    def resolve(short: str, where: str, among: list[str]) -> str:
+        """The commit a listed hash names, looked up only among the commits that version could list."""
+        found = [commit for commit in among if commit.startswith(short)]
         if len(found) != 1:
-            raise SetupError([f"{where}: `{short}` is {'not' if not found else 'more than one'} commit in the range"])
+            raise SetupError([f"{where}: `{short}` is {'not a' if not found else 'more than one'} commit it could list"])
         return found[0]
 
     recorded = None
@@ -792,9 +793,12 @@ def task_range(root: Path, task: str, default_rev: str, head_rev: str) -> tuple[
                           "the gate runs once implement has"])
     others: dict[str, str] = {}
     where = f"{state} at {recorded[0][:12]}"
+    # The version at the record can list only the commits before it: a commit made later, whose hash a developer chose to
+    # start the same way, is never one of them.
+    before_record = commits[:commits.index(recorded[0])]
     for short, step in state_commits(recorded[1], where):
         if step in DOCUMENT_ROLES or step == "deliver":
-            others[resolve(short, where)] = step
+            others[resolve(short, where, before_record)] = step
 
     text = file_at(root, head, state)
     if text is None:
@@ -802,7 +806,7 @@ def task_range(root: Path, task: str, default_rev: str, head_rev: str) -> tuple[
     where = f"{state} at the head"
     listed = set()
     for short, step in state_commits(text, where):
-        commit = resolve(short, where)
+        commit = resolve(short, where, commits)
         listed.add(commit)
         if step in DOCUMENT_ROLES:
             if others.get(commit) != step:

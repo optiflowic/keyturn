@@ -51,7 +51,7 @@ One row per step, in the order deliver runs them. Do not remove rows; a step tha
 ## Commits
 
 <!--
-Every commit made on the task branch since it left the default branch, oldest first, one line each: the commit, the step that made it, and the round (1 for the first round, one more for each rework). Commits made before spec (the configuration) are listed as "spec". deliver's own state commits are listed as "deliver"; since a commit cannot name itself, each one is listed by the next state commit. resume lists the state commit it resumes from (the one that recorded the stop), and its own resume commit is listed by deliver's next state commit.
+Every commit made on the task branch since it left the default branch, oldest first, one line each: the commit (its full hash, never a short one: ADR 0043 in keyturn's `docs/adr/`), the step that made it, and the round (1 for the first round, one more for each rework). Commits made before spec (the configuration) are listed as "spec". deliver's own state commits are listed as "deliver"; since a commit cannot name itself, each one is listed by the next state commit. resume lists the state commit it resumes from (the one that recorded the stop), and its own resume commit is listed by deliver's next state commit.
 deliver adds a step's lines when the step ends. The list is a record only: the gate's range starts where the task branch left the default branch (git merge-base), deliver passes the other roles' commits to the gate and the reviews, and the gate checks that each one changes only what its role may write (ADR 0029 and ADR 0032 in keyturn's `docs/adr/`).
 Leave the section with "None." only until the first state commit after "started" lists it.
 -->
