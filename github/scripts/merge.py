@@ -292,7 +292,10 @@ def cmd_merge(root: Path, task: str, wait_seconds: float) -> None:
     try:
         answer = task_branch.gh_api(root, f"repos/{{repo}}/pulls/{pr['number']}/merge", "-X", "PUT",
                                     "-f", "merge_method=squash", "-f", f"sha={head}",
-                                    "-f", f"commit_title=keyturn: {task} (#{pr['number']})")
+                                    "-f", f"commit_title=keyturn: {task} (#{pr['number']})",
+                                    # A message of its own, not GitHub's list of the task's commit messages: one with
+                                    # [skip ci] would keep keyturn watch from running on the merge (ADR 0048).
+                                    "-f", f"commit_message=Merged by keyturn's merge.py after its checks (task {task}).")
         try:
             merge_sha = json.loads(answer).get("sha")
         except (ValueError, AttributeError):

@@ -241,7 +241,8 @@ class MergeTest(unittest.TestCase):
         result = self.merge()
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.merged(), [["api", "repos/owner/project/pulls/7/merge", "-X", "PUT", "-f", "merge_method=squash",
-                                          "-f", f"sha={self.head}", "-f", "commit_title=keyturn: delivery-1 (#7)"]])
+                                          "-f", f"sha={self.head}", "-f", "commit_title=keyturn: delivery-1 (#7)",
+                                          "-f", "commit_message=Merged by keyturn's merge.py after its checks (task delivery-1)."]])
         self.assertEqual(self.conditions_log.read_text().split(),
                          ["--task", "delivery-1", "--default-branch", "origin/main", "--head", self.head])
 
