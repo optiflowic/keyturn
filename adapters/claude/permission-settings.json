@@ -43,7 +43,10 @@
       "Bash(gh pr ready *)",
       "Bash(gh pr close *)",
       "Bash(gh pr review *)",
-      "Bash(gh pr comment *)"
+      "Bash(gh pr comment *)",
+      "Bash(gh pr reopen *)",
+      "Bash(gh pr update-branch *)",
+      "Bash(gh pr lock *)"
     ]
   }
 }
