@@ -1,0 +1,48 @@
+# 0046. The client's acceptance is a row of its own in `approvals.md`, a check next to the gate's decides the merge conditions, and the PM merges through a script that runs it again
+
+- Status: accepted
+- Date: 2026-11-22
+
+## Context
+
+[ADR 0042](0042-pm-merges-on-machine-checked-conditions.md) fixed the three conditions for merging a task's pull request (the gate passes in CI, no high or medium finding is open, the client's acceptance is recorded for the documents at the head), the `merge` step of `deliver`, and what the host enforces. It left to #141 how the acceptance is written down, which code checks the conditions, and how the PM merges. ADR 0043 and ADR 0044 added what that code must refuse: a pull request whose branch is not in the repository, and a merge before CI has run on the head.
+
+What constrains the answer:
+
+- `approvals.md` is client-facing: its headings and text are in the client's language ([ADR 0008](0008-approval-records-in-a-separate-file.md)), so a script finds its rows by their cells, not by a heading. The requirements' rows have one source and one translation; the acceptance covers two documents, the acceptance guide and the delivery report, and the commit they were read at (ADR 0042).
+- The check runs in CI, without a person to read an answer written in another language. The requirements' answer is read by the PM, and may be written in the client's language.
+- The check must not trust what the agents can change. CI runs keyturn's code at a commit the workflow names, never a script from the pull request's head (ADR 0042), and the gate already finds a task's base and each role's commits without trusting the head's state file (ADR 0043).
+- A squash merge by the GitHub API can name the head it expects (`sha`); GitHub refuses the merge when the pull request's head is another commit.
+
+## Options considered
+
+1. **The acceptance as two rows of the requirements' table** (one per document), and the conditions checked by `deliver` alone, with branch protection requiring only the gate. Nothing new for the table, but the host would not refuse a merge without the conditions, which ADR 0042 requires.
+2. **The acceptance as one row of a table of its own, the conditions checked by a script next to the gate, run in CI as a second required check and by the merge script before it merges.** One more table and one more script; the host refuses a merge without either check.
+3. **The conditions checked inside the gate**, as more checks of `gate.sh`. One check in CI, but the gate fails on every push until the client accepts, so `deliver` could no longer use it to send work back.
+
+## Decision
+
+Option 2.
+
+- **The acceptance row.** `approvals.md` gets a second table, one row each time a delivery's documents are sent for acceptance, newest last: `acceptance-guide.md, delivery-report.md` (fixed, so that a script finds the row), the task, the documents commit (the full hash of `deliver`'s commit that added the two documents and the gate's log), the language, the SHA-256 of the acceptance guide and of the delivery report, the SHA-256 of each translation the client read (`none` when they read the documents themselves), the date sent, the answer, and the date answered. The answer is one of three fixed English words, whatever the document language, as a report's statuses are: `waiting`, `accepted`, or `not accepted: <what to change>`. A translation of `approvals.md` shows them in the client's language.
+- **Sending and recording.** `approval.py accept-send <task> [--lang <lang>]` checks that the two documents at the head are the ones the documents commit added, committed with LF ([ADR 0012](0012-stable-approval-hashes.md)), and, with `--lang`, that their translations are fresh; it keeps each translation unchanged as `.keyturn/i18n/<lang>/keyturn/client/<name>.<task>.accepted.md`, and prints the values for the row. `approval.py accept-status <task> [--lang <lang>]` says whether the newest row of that task is current and what the client answered. The PM writes the row, and later the answer, each in a commit that changes only `approvals.md`: the gate names these commits as `merge`'s, and a `merge` commit may change only that file.
+- **The conditions' check.** `gates/conditions.sh` (with its logic in `conditions.py`) takes `--task <task> --default-branch <ref> [--head <rev>]`, finds the base and the roles' commits as the gate does in CI (ADR 0043), and reads only committed records at the head:
+  - in `keyturn/internal/review.md` and `keyturn/internal/security-review.md`, no high or medium finding with `Status: open`, and a finding with `Status: accepted: decision card <n>` only when it is a medium finding of `review.md` and that card is answered; each report's "Reviewed change" ends at the developer's last commit;
+  - the newest acceptance row of the task says `accepted`, names the documents commit the state file lists for `deliver`'s last step, and has the hashes of the two documents at the head; every commit after the documents commit is `merge`'s or `deliver`'s and changes only `approvals.md` or the state file.
+  It exits 0 when all hold, 1 when one does not (each with a line saying why), and 2 when it cannot run. The workflow template runs it as a second job, `keyturn conditions`, from keyturn at the commit the workflow names; branch protection requires it with GitHub Actions as its source, next to `keyturn gate`. Until the client accepts, it fails, as it should. `deliver` keeps sending work back on the gate alone (ADR 0030), and runs the conditions' check only in the `merge` step.
+- **The merge script.** `github/scripts/merge.py <task>`, run by `deliver` and `resume` only, refuses (exit 1) a pull request that is not open, not at the local head and `origin`'s, or whose branch is not in the repository itself; waits for the checks `keyturn gate` and `keyturn conditions` on the head to finish, and refuses unless both passed; runs `conditions.sh` itself on the head; and merges with a squash merge that names that head, so that GitHub refuses it if the head moved. It never retries a merge GitHub refused. Like the other scripts, it goes through `task_branch.py`'s calls to `origin`'s repository; the plain `gh pr merge` and `gh api` stay denied.
+- **The `merge` step of `deliver`.** After the `deliver` step: mark the pull request ready, run `accept-send`, commit the row, push, and stop, waiting for the client (no answer is not acceptance, [ADR 0009](0009-no-answer-is-not-consent.md)). When the client answers, the PM records the answer; `not accepted` stops the task for the maintainer, as a change after `implement` does ([ADR 0031](0031-documents-fixed-once-implement-starts.md)). On `accepted`: set the state file to done, push, and run `merge.py`; a refusal is recorded as a stop in `merge`. `resume` continues a done task that `task_state.py unmerged` still lists with `merge.py` alone (ADR 0042).
+- **The one-time setup** is a section of `github/README.md`: the branch protection of ADR 0042 with both checks; a ruleset on `task/*` that blocks force pushes and deletion; approval before a workflow runs on an outside contributor's pull request; the agent's fine-grained token; copying the workflow; and how the maintainer merges a pull request of their own or discards commits on `origin`'s task branch, by turning the ruleset off for that one action and on again right after (ADR 0043, ADR 0044).
+
+## Reasons
+
+- A table of its own keeps each row's columns fixed, and the fixed first cell and fixed answers let CI read it in any document language, as a report's statuses are read.
+- A second check keeps the gate's meaning (the developer's work is sound), so `deliver` can still use it to send work back, while the host refuses a merge without the acceptance and the findings closed.
+- Running the same check in CI, and again in the merge script, with a merge that names its head, means the head GitHub merges is the head both checked (ADR 0042, "The conditions cover the head that is merged").
+
+## Consequences
+
+- `approval.py`, its tests, the approvals template, and the worked example get the acceptance; the review template gets `accepted: decision card <n>`; the state template gets the `merge` step.
+- `gates/` gets `conditions.sh`, `conditions.py`, and their tests; the gate names `merge`'s commits; the workflow template gets the second job.
+- `github/scripts/merge.py` and its tests; `deliver`, `resume`, and `github/README.md` change. Plugin version bump.
+- The acceptance's answer is in English in a client-facing document; its translation shows it in the client's language.
