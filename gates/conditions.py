@@ -181,6 +181,9 @@ def check_report(root: Path, head: str, role: str, developer_last: str) -> Resul
             problems.append(f"{path}: {number}: only a medium finding may be accepted on a decision card, "
                             f"not a {severity} one (ADR 0042)")
             continue
+        if fields.get("Category", "").strip().lower() == "security":
+            problems.append(f"{path}: {number}: a security finding is never accepted; it is fixed (ADR 0042)")
+            continue
         card = CARD.format(accepted.group(1))
         card_text = gate.file_at(root, head, card)
         if card_text is None:

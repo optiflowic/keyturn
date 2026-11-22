@@ -157,7 +157,7 @@ class MergeTest(unittest.TestCase):
 
     def test_a_head_that_is_not_the_local_one_or_origin_s_is_refused(self):
         self.set_prs([self.pr(headRefOid="0" * 40)])
-        self.assert_refused(self.merge(), "not at the local HEAD")
+        self.assert_pending(self.merge(), "still shows")
         self.set_prs([self.pr()])
         self.head = self.commit("not pushed")
         self.set_prs([self.pr()])

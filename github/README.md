@@ -60,7 +60,7 @@ It exits 0 when it posted or had nothing new to post, 1 when it was refused (no 
 - runs `gates/conditions.sh` of its own keyturn copy on that head;
 - squash-merges naming that head (`sha`), so that GitHub refuses the merge if the head moved meanwhile, and the branch protection refuses it without the required checks. A merge GitHub refused is never tried again.
 
-It exits 0 when it merged, 1 when it refused (the message says why), 2 when it could not run, and 3 when the checks have not finished. The recommended permission rules deny `gh pr merge` and `gh api`; what reaches the default branch is still decided by the branch protection below, not by the rules. Its tests: `python3 -m unittest discover -s github/scripts`.
+It exits 0 when it merged, 1 when it refused (the message says why), 2 when it could not run, and 3 when the checks have not finished, or GitHub does not show the pushed head on the pull request yet. The recommended permission rules deny `gh pr merge` and `gh api`; what reaches the default branch is still decided by the branch protection below, not by the rules. Its tests: `python3 -m unittest discover -s github/scripts`.
 
 ## One-time setup
 

@@ -302,9 +302,10 @@ def cmd_status(root: Path, lang: str | None) -> None:
         raise ApprovalError(problems)
 
 
-def accepted_copy_path(lang: str, task: str, rel_path: str) -> str:
-    """Where the translation sent for acceptance is kept, next to the current one (ADR 0046)."""
-    return translation_path(lang, f"{Path(rel_path).stem}.{task}.accepted.md")
+def accepted_copy_path(lang: str, task: str, rel_path: str, commit: str) -> str:
+    """Where the translation sent for acceptance is kept, next to the current one, one per documents commit (ADR 0046):
+    a task whose documents are sent again after a rework keeps the copy of each send."""
+    return translation_path(lang, f"{Path(rel_path).stem}.{task}.{commit[:12]}.accepted.md")
 
 
 def documents_commit(root: Path) -> str | None:
@@ -342,9 +343,9 @@ def cmd_accept_send(root: Path, task: str, lang: str | None) -> None:
     if commit is None:
         problems.append(f"no commit adds {ACCEPTANCE_GUIDE} or {DELIVERY_REPORT}; deliver's last step commits them")
     translations: dict[str, tuple[str, bytes]] = {}
-    if lang:
+    if lang and commit is not None:
         for rel_path, data in documents.items():
-            kept = accepted_copy_path(lang, task, rel_path)
+            kept = accepted_copy_path(lang, task, rel_path, commit)
             translation, issues = translation_problems(root, lang, sha256(data), kept, rel_path)
             problems += [issue for issue in issues if issue not in problems]
             translations[rel_path] = (kept, translation)
@@ -403,7 +404,9 @@ def acceptance_problems(root: Path, task: str, row: list[str], lang: str | None)
         if not lang:
             problems.append(f"{task}: the client read a translation of {Path(rel_path).name}; give its language with --lang")
             continue
-        kept = accepted_copy_path(lang, task, rel_path)
+        if not COMMIT_RE.fullmatch(commit):
+            continue
+        kept = accepted_copy_path(lang, task, rel_path, commit)
         if not (root / kept).is_file():
             problems.append(f"{kept}: missing; the text the client read cannot be shown again")
         elif sha256((root / kept).read_bytes()) != translation_cell:

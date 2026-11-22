@@ -113,6 +113,9 @@ def cmd_merge(root: Path, task: str, wait_seconds: float) -> None:
     if pr.get("isDraft"):
         raise Refused(f"{pr['url']} is a draft; the deliver step marks it ready first (task_branch.py ready)")
     if pr.get("headRefOid") != head:
+        if remote_head(root, branch) == head:  # pushed: GitHub has not shown it on the pull request yet
+            raise Pending(f"{branch} on origin is at {head[:12]}, but {pr['url']} still shows "
+                          f"{str(pr.get('headRefOid'))[:12]}; run merge.py again later")
         raise Refused(f"{pr['url']} is at {str(pr.get('headRefOid'))[:12]}, not at the local HEAD {head[:12]}; push first")
     if remote_head(root, branch) != head:
         raise Refused(f"{branch} on origin is not at the local HEAD {head[:12]}; push first")

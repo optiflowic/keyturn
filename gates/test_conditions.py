@@ -128,6 +128,14 @@ class ConditionsTest(unittest.TestCase):
         self.assert_fails(result, "FAIL findings [review]: keyturn/internal/review.md: F-1: only a medium finding")
         self.assertIn("FAIL findings [security-review]: keyturn/internal/security-review.md: F-1: a security finding is never accepted", result.stdout)
 
+    def test_a_security_finding_of_the_reviewer_is_never_accepted(self):
+        self.reports((("medium", "accepted: decision card 1"),))
+        text = (self.root / "keyturn/internal/review.md").read_text().replace("Category: design fit", "Category: security")
+        self.put("keyturn/internal/review.md", text)
+        self.step("review")
+        self.acceptance(self.documents())
+        self.assert_fails(self.conditions(), "FAIL findings [review]: keyturn/internal/review.md: F-1: a security finding is never accepted")
+
     def test_an_unknown_status_or_severity_fails(self):
         result = self.finished((("medium", "wontfix"), ("critical", "fixed")))
         self.assert_fails(result, "FAIL findings [review]: keyturn/internal/review.md: F-1: the status is 'wontfix'")

@@ -354,8 +354,24 @@ class AcceptanceTest(RepoTest):
         result = self.repo.run("accept-send", "delivery-1", "--lang", "ja")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn(f"acceptance-guide-translation-sha256: {sha(guide_translation())}", result.stdout)
-        self.assertEqual(self.repo.read(".keyturn/i18n/ja/keyturn/client/acceptance-guide.delivery-1.accepted.md").decode(),
+        self.assertEqual(self.repo.read(f".keyturn/i18n/ja/keyturn/client/acceptance-guide.delivery-1.{self.commit[:12]}.accepted.md").decode(),
                          guide_translation())
+
+    def test_a_second_send_after_new_documents_keeps_a_copy_of_its_own(self):
+        guide_ja = ".keyturn/i18n/ja/keyturn/client/acceptance-guide.md"
+        report_ja = ".keyturn/i18n/ja/keyturn/client/delivery-report.md"
+        self.repo.write(guide_ja, guide_translation())
+        self.repo.write(report_ja, guide_translation(REPORT, "delivery-report.md"))
+        self.assertEqual(self.repo.run("accept-send", "delivery-1", "--lang", "ja").returncode, 0)
+        first = self.commit
+        self.repo.write("keyturn/client/acceptance-guide.md", GUIDE + "reworked\n")
+        self.repo.commit("docs(delivery): add the documents again after the rework")
+        second = self.repo.git("rev-parse", "HEAD").stdout.strip()
+        self.repo.write(guide_ja, guide_translation(GUIDE + "reworked\n"))
+        result = self.repo.run("accept-send", "delivery-1", "--lang", "ja")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        for commit in (first, second):
+            self.assertTrue((self.repo.root / f".keyturn/i18n/ja/keyturn/client/acceptance-guide.delivery-1.{commit[:12]}.accepted.md").is_file())
 
     def test_send_refuses_a_stale_translation_or_an_uncommitted_document(self):
         self.repo.write(".keyturn/i18n/ja/keyturn/client/acceptance-guide.md", guide_translation("# old\n"))
@@ -404,7 +420,7 @@ class AcceptanceTest(RepoTest):
         self.assertFails(self.repo.run("accept-status", "delivery-1"), "no acceptance row for delivery-1")
         self.record(acceptance_row(self.commit, sha(GUIDE), sha(REPORT), (sha("a"), sha("b"))))
         self.assertFails(self.repo.run("accept-status", "delivery-1"), "give its language with --lang")
-        self.assertFails(self.repo.run("accept-status", "delivery-1", "--lang", "ja"), "acceptance-guide.delivery-1.accepted.md: missing")
+        self.assertFails(self.repo.run("accept-status", "delivery-1", "--lang", "ja"), f"acceptance-guide.delivery-1.{self.commit[:12]}.accepted.md: missing")
 
     def test_a_task_name_is_checked(self):
         result = self.repo.run("accept-status", "../x")
