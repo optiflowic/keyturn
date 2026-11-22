@@ -16,8 +16,10 @@ Each run checks, and fails on any of these:
   - every commit on the default branch's first-parent history after SHA, up to the tip: each passes only when it is
     listed in KEYTURN_VOUCHED, changes only files under .github/workflows/, or is the merge commit of a merged pull
     request from a task/<task> branch of this repository to the default branch, with one parent, the tree of that pull
-    request's head, a head that contains its parent, "keyturn gate" and "keyturn conditions" passed from GitHub Actions
-    on that head, and keyturn's conditions check (gates/conditions.sh, next to this script's keyturn copy) passing on it
+    request's head, a head that contains its parent and changes nothing under .github/workflows/ (so the gate ran as the
+    default branch's workflow, ADR 0049), the newest run of .github/workflows/keyturn-gate.yml for that head, from a
+    pull_request event in this repository, passed with its jobs "keyturn gate" and "keyturn conditions" (GitHub
+    Actions' API, ADR 0049), and keyturn's conditions check (gates/conditions.sh, next to this script's keyturn copy) passing on it
     again;
   - SHA is not an ancestor of the tip, and the default branch's tip of the newest earlier passing run is not either;
   - the repository's activity after the checkpoint (the later of KEYTURN_CHECKED_UNTIL and the start of the newest
@@ -51,9 +53,9 @@ from task_branch import TASK_RE, SetupError, run  # the same task names, and the
 KEYTURN_ROOT = Path(__file__).resolve().parent.parent.parent
 CONDITIONS = KEYTURN_ROOT / "gates" / "conditions.sh"
 WORKFLOW = "keyturn-watch.yml"
-CHECKS = ("keyturn gate", "keyturn conditions")
-CHECKS_APP = "github-actions"
 WORKFLOWS_DIR = ".github/workflows/"
+GATE_WORKFLOW = ".github/workflows/keyturn-gate.yml"
+CHECKS = ("keyturn gate", "keyturn conditions")
 ZERO = "0" * 40
 SHA_RE = re.compile(r"[0-9a-f]{40}")
 LOGIN_RE = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?")
@@ -130,14 +132,19 @@ class GitHub:
     def pulls_of(self, sha: str) -> list[dict]:
         return self.get(f"repos/{{repo}}/commits/{sha}/pulls?per_page=100")
 
-    def check_runs(self, sha: str) -> list[dict]:
+    def workflow_runs(self, workflow: str, sha: str) -> list[dict]:
+        """The runs of the workflow in that file (its path in the repository) for the commit."""
         runs, page = [], 1
         while True:
-            data = self.get(f"repos/{{repo}}/commits/{sha}/check-runs?per_page=100&page={page}")
-            runs += data.get("check_runs", [])
-            if len(data.get("check_runs", [])) < 100:
+            data = self.get(f"repos/{{repo}}/actions/workflows/{Path(workflow).name}/runs?head_sha={sha}"
+                            f"&per_page=100&page={page}")
+            runs += data.get("workflow_runs", [])
+            if len(data.get("workflow_runs", [])) < 100:
                 return runs
             page += 1
+
+    def jobs(self, run_id: int) -> list[dict]:
+        return self.get(f"repos/{{repo}}/actions/runs/{run_id}/jobs?per_page=100").get("jobs", [])
 
     def activity(self, since: datetime) -> list[dict]:
         """The repository's activity after `since`, newest first (the activity pages by a cursor, in the Link header)."""
@@ -269,24 +276,34 @@ class Watch:
         if not is_ancestor(self.root, parents[0], head_sha):
             self.find(where, f"{number}'s head {short(head_sha)} does not contain its parent {short(parents[0])}: the "
                              f"head was not up to date")
+        elif git(self.root, "diff", "--name-only", "--no-renames", parents[0], head_sha, "--", WORKFLOWS_DIR):
+            self.find(where, f"{number}'s head {short(head_sha)} changes files under {WORKFLOWS_DIR}, so the gate's "
+                             f"run on it was the branch's own workflow")
         self.check_head_checks(where, number, head_sha)
         self.check_conditions(where, number, task, parents[0], head_sha)
 
     def check_head_checks(self, where: str, number: str, head_sha: str) -> None:
         try:
-            runs = self.github.check_runs(head_sha)
+            runs = [item for item in self.github.workflow_runs(GATE_WORKFLOW, head_sha)
+                    if item.get("head_sha") == head_sha and str(item.get("path", "")).split("@")[0] == GATE_WORKFLOW
+                    and item.get("event") == "pull_request"
+                    and (item.get("head_repository") or {}).get("full_name") == self.settings.repository]
+            if not runs:
+                self.find(where, f"{GATE_WORKFLOW} has no run from its pull request on {number}'s head {short(head_sha)}")
+                return
+            newest = max(runs, key=lambda item: item.get("id", 0))
+            if newest.get("status") != "completed" or newest.get("conclusion") != "success":
+                self.find(where, f"{GATE_WORKFLOW} on {number}'s head {short(head_sha)} did not pass "
+                                 f"({newest.get('conclusion') or newest.get('status')})")
+                return
+            jobs = {job.get("name"): job for job in self.github.jobs(int(newest["id"]))}
         except SetupError as error:
             self.find(where, f"the checks on {number}'s head could not be read: {error}")
             return
         for name in CHECKS:
-            found = sorted((check for check in runs if check.get("name") == name
-                            and (check.get("app") or {}).get("slug") == CHECKS_APP),
-                           key=lambda check: check.get("id", 0), reverse=True)
-            if not found:
-                self.find(where, f"{name} from GitHub Actions has no run on {number}'s head {short(head_sha)}")
-            elif found[0].get("status") != "completed" or found[0].get("conclusion") != "success":
+            if (jobs.get(name) or {}).get("conclusion") != "success":
                 self.find(where, f"{name} on {number}'s head {short(head_sha)} did not pass "
-                                 f"({found[0].get('conclusion') or found[0].get('status')})")
+                                 f"({(jobs.get(name) or {}).get('conclusion', 'no job')})")
 
     def check_conditions(self, where: str, number: str, task: str, parent: str, head_sha: str) -> None:
         result = run([str(self.settings.conditions), "--task", task, "--default-branch", parent, "--head", head_sha],

@@ -36,7 +36,7 @@ FAKE_CONDITIONS = textwrap.dedent("""\
 
 
 class FakeGitHub(watch.GitHub):
-    """GitHub as the tests set it up: pull requests by merge commit, check runs by head, activity, runs, issues."""
+    """GitHub as the tests set it up: pull requests by merge commit, gate runs by head, activity, runs, issues."""
 
     def __init__(self):
         super().__init__(REPO)
@@ -55,8 +55,11 @@ class FakeGitHub(watch.GitHub):
     def pulls_of(self, sha):
         return self.pulls.get(sha, [])
 
-    def check_runs(self, sha):
-        return self.checks.get(sha, [])
+    def workflow_runs(self, workflow, sha):
+        return [item for item in self.checks.get(sha, []) if item["path"].split("@")[0].endswith("/" + Path(workflow).name)]
+
+    def jobs(self, run_id):
+        return next(item["jobs"] for runs in self.checks.values() for item in runs if item["id"] == run_id)
 
     def activity(self, since):
         return sorted(self.items, key=lambda item: item["timestamp"], reverse=True)
@@ -142,11 +145,18 @@ class WatchTest(unittest.TestCase):
         self.github.pulls[merge] = [{"number": self.number, "merged_at": stamp(NOW), "merge_commit_sha": merge,
                                      "base": {"ref": "main"},
                                      "head": {"ref": branch or f"task/{task}", "sha": head, "repo": {"full_name": repo}}}]
-        self.github.checks[head] = [{"id": n, "name": name, "app": {"slug": "github-actions"}, "status": "completed",
-                                     "conclusion": conclusion}
-                                    for n, (name, conclusion) in enumerate(zip(watch.CHECKS, checks), start=1)]
+        self.github.checks[head] = [self.gate_run(head, checks)]
         self.publish()
         return merge, head
+
+    def gate_run(self, head: str, checks=("success", "success"), conclusion: str = "success", **changes) -> dict:
+        """A run of the gate's workflow on the head, from its pull request, with the jobs concluding as `checks` says."""
+        item = {"id": 1000 + self.number * 10 + len(self.github.checks.get(head, [])), "path": watch.GATE_WORKFLOW,
+                "head_sha": head, "event": "pull_request", "head_repository": {"full_name": REPO},
+                "status": "completed", "conclusion": conclusion if all(c == "success" for c in checks) else "failure",
+                "jobs": [{"name": name, "conclusion": job} for name, job in zip(watch.CHECKS, checks)]}
+        item.update(changes)
+        return item
 
     def push(self, ref: str, after: str, kind: str = "push", minutes_ago: float = 10, login: str = "agent") -> None:
         self.github.items.append({"id": len(self.github.items) + 1, "ref": ref, "before": "1" * 40, "after": after,
@@ -210,18 +220,45 @@ class WatchTest(unittest.TestCase):
 
     def test_a_merge_without_the_checks_fails(self):
         self.task_merge(checks=("success", "failure"))
+        self.assert_found(self.watch(), "keyturn-gate.yml on #1's head")
+
+    def test_a_merge_with_a_job_missing_or_skipped_fails(self):
+        merge, head = self.task_merge()
+        self.github.checks[head][0]["jobs"].pop()
         self.assert_found(self.watch(), "keyturn conditions on #1's head")
+        self.github.checks[head] = [self.gate_run(head, ("skipped", "skipped"))]
+        self.github.checks[head][0]["conclusion"] = "success"
+        self.assert_found(self.watch(), "keyturn gate on #1's head")
 
-    def test_a_merge_with_a_check_missing_fails(self):
+    def test_a_run_of_another_workflow_event_or_repository_does_not_count(self):
         merge, head = self.task_merge()
-        self.github.checks[head] = [check for check in self.github.checks[head] if check["name"] == "keyturn gate"]
-        self.assert_found(self.watch(), "keyturn conditions from GitHub Actions has no run")
+        for changes in ({"path": ".github/workflows/other.yml"}, {"event": "push"},
+                        {"head_repository": {"full_name": "someone/project"}}):
+            with self.subTest(changes=changes):
+                self.github.checks[head] = [self.gate_run(head, **changes)]
+                self.assert_found(self.watch(), "has no run from its pull request")
 
-    def test_a_check_from_another_app_does_not_count(self):
+    def test_the_newest_gate_run_counts(self):
         merge, head = self.task_merge()
-        for check in self.github.checks[head]:
-            check["app"]["slug"] = "someone-else"
-        self.assert_found(self.watch(), "keyturn gate from GitHub Actions has no run")
+        self.github.checks[head] = [self.gate_run(head, ("success", "failure"), id=1),
+                                    self.gate_run(head, id=2, path=watch.GATE_WORKFLOW + "@refs/pull/1/merge")]
+        self.assertEqual(self.watch(), [])
+        self.github.checks[head][0]["id"], self.github.checks[head][1]["id"] = 3, 2
+        self.assert_found(self.watch(), "did not pass")
+
+    def test_a_head_that_changes_a_workflow_fails(self):
+        self.git("switch", "-q", "-c", "task/delivery-1")
+        self.commit("feat: x", path="src/x.txt", text="")
+        head = self.commit("ci: change it", path=".github/workflows/keyturn-gate.yml", text="")
+        self.git("switch", "-q", "main")
+        merge = self.git("commit-tree", self.git("rev-parse", f"{head}^{{tree}}"), "-p", "main", "-m", "keyturn")
+        self.git("update-ref", "refs/heads/main", merge)
+        self.git("reset", "-q", "--hard", "main")
+        self.github.pulls[merge] = [{"number": 1, "merged_at": stamp(NOW), "merge_commit_sha": merge, "base": {"ref": "main"},
+                                     "head": {"ref": "task/delivery-1", "sha": head, "repo": {"full_name": REPO}}}]
+        self.github.checks[head] = [self.gate_run(head)]
+        self.publish()
+        self.assert_found(self.watch(), "changes files under .github/workflows/")
 
     def test_a_merge_whose_conditions_do_not_hold_again_fails(self):
         self.task_merge()
@@ -411,11 +448,12 @@ class WorkflowTest(unittest.TestCase):
     def test_watch_workflow(self):
         text = self.read("keyturn-watch.yml")
         for needed in ("name: keyturn watch", "    name: keyturn watch", "  push:", "'task/**'", "  delete:",
-                       "  schedule:", "  workflow_dispatch:", "issues: write", "actions: read", "checks: read",
+                       "  schedule:", "  workflow_dispatch:", "issues: write", "actions: read",
                        "pull-requests: read", "fetch-depth: 0", "github/scripts/watch.py",
                        "vars.KEYTURN_VOUCHED", "vars.KEYTURN_CHECKED_UNTIL", "vars.KEYTURN_MAINTAINER"):
             self.assertIn(needed, text)
-        self.assertNotIn("concurrency:", text)  # a pending run replaced by a later one would leave a tip unchecked
+        self.assertNotIn("concurrency:", text)
+        self.assertNotIn("checks:", text)  # a fine-grained token has no Checks permission; the runs are read instead  # a pending run replaced by a later one would leave a tip unchecked
 
     def test_gate_workflow_skips_drafts(self):
         text = self.read("keyturn-gate.yml")

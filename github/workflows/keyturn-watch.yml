@@ -27,12 +27,11 @@ on:
     - cron: '23 */6 * * *'
   workflow_dispatch:
 
-# The workflow's GITHUB_TOKEN: it reads the commits, the pull requests, their checks, this workflow's runs, and the
-# repository's activity, and opens or comments on an issue when a run fails.
+# The workflow's GITHUB_TOKEN: it reads the commits, the pull requests, the runs of keyturn's workflows and their jobs,
+# and the repository's activity, and opens or comments on an issue when a run fails.
 permissions:
   contents: read
   pull-requests: read
-  checks: read
   actions: read
   issues: write
 
