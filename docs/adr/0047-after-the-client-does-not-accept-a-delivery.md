@@ -1,6 +1,6 @@
 # 0047. After the client does not accept a delivery, the PM sorts the answer into one of four cases, confirmed with the client on a decision card
 
-- Status: accepted
+- Status: accepted; that the ruleset on `task/*` blocks deleting a task branch superseded by [0048](0048-default-branch-guarded-in-three-layers.md) where the plan has no rulesets (a deletion is detected instead)
 - Date: 2026-11-22
 
 ## Context
