@@ -47,6 +47,8 @@ Two kinds of commits pass without a pull request: one that changes only files un
 
 The person starts the workflow once by hand after adding it, before the first task, so that the default branch's tip has a passing check.
 
+When a run fails, it opens an issue, with `GITHUB_TOKEN` and `issues: write`, that names each commit and why, and mentions the maintainer, whose account the repository variable `KEYTURN_MAINTAINER` names. The failed check on the default branch's tip also stops `merge.py` (layer 1), so no task merges on top of a commit nobody vouched for.
+
 **Recovering after a failed run.** A failure stays in the activity after it is put right, so without a new checkpoint every later run would fail and no task could merge. The maintainer, not an agent:
 
 1. looks at what the issue names: the commits, pushes, force pushes, or deletions, and who made them;
@@ -54,7 +56,7 @@ The person starts the workflow once by hand after adding it, before the first ta
 3. sets `KEYTURN_CHECKED_UNTIL` to the last activity they looked at, their own pushes of step 2 included, so that the runs read only what came after it;
 4. starts `keyturn watch` by hand, checks that it passes, and closes the issue.
 
-The commits on the default branch are still checked in full on every run; the checkpoint moves only where the activity is read from. When a run fails, it opens an issue, with `GITHUB_TOKEN` and `issues: write`, that names each commit and why, and mentions the maintainer, whose account the repository variable `KEYTURN_MAINTAINER` names. The failed check on the default branch's tip also stops `merge.py` (layer 1), so no task merges on top of a commit nobody vouched for.
+The commits on the default branch are still checked in full on every run; the checkpoint moves only where the activity is read from.
 
 **3. The host stops it, when the plan has it.** On a public repository, or a paid plan, the person also adds the rulesets of ADR 0046 ("The one-time setup"): on the default branch, a pull request, the checks `keyturn gate`, `keyturn conditions` as required checks from GitHub Actions, up to date, no force push or deletion; on `task/*`, no force push or deletion. They prevent what layer 2 only detects. Turning a ruleset off for a pull request of the maintainer's own (ADR 0043, ADR 0046) applies only there. Layers 1 and 2 stay on with it.
 
