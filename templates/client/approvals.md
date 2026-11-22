@@ -74,7 +74,7 @@ When this file is in English (English-only mode) and the client wrote in another
 and keep their original only in .keyturn/i18n/inbound/<lang>/ (never committed).
 When the client answers, fill in "Answer", "Your words", and "Date answered" in a commit of this file alone. Never change anything else in a row, and never delete a row.
 An acceptance is current only while the two documents and their commit are the ones in the row (`approval.py accept-status <task>`).
-The translation of this file (localize) shows each fixed word followed by its translation, for example `accepted (受け入れ)`.
+The translation of this file (localize) shows each fixed word followed by its translation, for example `accepted (<translation>)`.
 -->
 
 | Documents | Task | Documents commit | Language | Acceptance guide SHA-256 | Delivery report SHA-256 | Acceptance guide translation SHA-256 | Delivery report translation SHA-256 | Date sent | Answer | Your words | Date answered |

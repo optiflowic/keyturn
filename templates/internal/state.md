@@ -14,7 +14,7 @@ Template: task state file (internal). Written by `deliver` at every step boundar
 - Task: <task>
 - Requirements version: <n>
 - Branch: `task/<task>`
-- Status: <running | stopped | done>
+- Status: <running | stopped | done | closed>
 - Current step: <step name from the table below | none>
 - Stopped because: <none | usage limit | session ended | waiting for the client | waiting for the maintainer | rework limit | budget limit | error>
 - Can continue: <now | after YYYY-MM-DDTHH:MMZ | when the client approves: requirements version <n> | when the client answers: decision card <n> | when the client agrees: design summary | when the client accepts: <task> | when the maintainer decides: <what> | not applicable>
@@ -78,4 +78,4 @@ One line per stop and per resume, newest last. Never edit or remove a line.
 For a usage limit, say which window and when it resets.
 -->
 
-- <YYYY-MM-DDTHH:MMZ>: <started | stopped: reason, in the step | resumed: in the step, from which commit | done>
+- <YYYY-MM-DDTHH:MMZ>: <started | stopped: reason, in the step | resumed: in the step, from which commit | done | closed: why, in the step>

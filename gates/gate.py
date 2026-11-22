@@ -72,8 +72,9 @@ ROLE_PATHS = {
     "review": ["keyturn/internal/review.md"],
     "deliver": ["keyturn/internal/state/**", "keyturn/internal/gate/**", "keyturn/client/acceptance-guide.md",
                 "keyturn/client/delivery-report.md"],
-    # The client's acceptance, recorded by the PM in the merge step (ADR 0042, ADR 0046).
-    "merge": ["keyturn/client/approvals.md"],
+    # The client's acceptance, recorded by the PM in the merge step (ADR 0042, ADR 0046), and the card that asks the
+    # client what to do after they did not accept (ADR 0047).
+    "merge": ["keyturn/client/approvals.md", "keyturn/client/decision-card-*.md"],
 }
 
 PROFILE_FIELDS = {"name", "tools", "setup", "checks", "count_tests", "versions", "pinned", "source_files", "suppressions", "protected"}

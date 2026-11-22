@@ -16,7 +16,9 @@ Usage:
                                          when its head is an ancestor of DEFAULT (a merge or a fast-forward), or when
                                          DEFAULT has the task's state file exactly as the branch's head has it and
                                          the head is the commit that last changed it (a squash merge carries the
-                                         branch's last state commit; a later commit is work not merged). Prints "no unmerged
+                                         branch's last state commit; a later commit is work not merged). A closed
+                                         task (ADR 0047), whose head is the commit that last changed its state file
+                                         and says "Status: closed" there, is left out too. Prints "no unmerged
                                          task branches" and exits 0 when there are none; exits 1 when it lists any,
                                          and 2 when DEFAULT is not a commit.
 
@@ -69,7 +71,7 @@ PLACEHOLDER_KINDS = {
 
 # The values this script gives a meaning to. If the template drops one of them, the script must be updated with it.
 MEANINGFUL_VALUES = {
-    "Status": ["running", "stopped", "done"],
+    "Status": ["running", "stopped", "done", "closed"],
     "Current step": ["none"],
     "Stopped because": ["none", "usage limit", "waiting for the client", "waiting for the maintainer"],
     "Can continue": ["now", "not applicable"],
@@ -254,8 +256,8 @@ def template_problems(template: Template) -> list[str]:
     for status in MEANINGFUL_STEP_STATUSES:
         if status not in template.step_statuses:
             problems.append(f'step status "{status}" is no longer listed; update task_state.py')
-    if not {"started", "stopped", "resumed", "done"} <= set(template.history_kinds):
-        problems.append("the history line no longer lists started, stopped, resumed, and done; update task_state.py")
+    if not {"started", "stopped", "resumed", "done", "closed"} <= set(template.history_kinds):
+        problems.append("the history line no longer lists started, stopped, resumed, done, and closed; update task_state.py")
     return problems
 
 
@@ -511,6 +513,13 @@ def consistency_problems(state: StateFile, file_name: str | None) -> list[str]:
         problems += [f'step "{name}": should be done or skipped when Status is done' for name in unfinished]
         if state.history_kinds and state.history_kinds[-1] != "done":
             problems.append('History: the last line should be "done" when Status is done')
+    elif status == "closed":
+        # A task the client chose to stop after a delivery they did not accept (ADR 0047): it is never resumed or merged.
+        problems += [f'field "{name}": should be "{value}" when Status is closed, not "{fields.get(name)}"'
+                     for name, value in (("Current step", "none"), ("Stopped because", "none"), ("Can continue", "not applicable"))
+                     if fields.get(name) not in (None, value)]
+        if state.history_kinds and state.history_kinds[-1] != "closed":
+            problems.append('History: the last line should be "closed" when Status is closed')
     elif status in ("running", "stopped"):
         if step == "none":
             problems.append(f'field "Current step": should name a step when Status is {status}, not "none"')
@@ -702,7 +711,7 @@ def list_one(root: Path, task: str, branches: list[str], template: Template, now
         for problem in problems:
             print(f"  error: {problem}")
         return False
-    if state.fields["Status"] != "done" or show_done:
+    if state.fields["Status"] not in ("done", "closed") or show_done:
         print(f"{task} ({branch}):")
         for line in describe(state, now)[1:] + ([f"note: {note}"] if note else []):
             print(f"  {line}")
@@ -740,6 +749,17 @@ def is_merged(root: Path, branch: str, task: str, default: str) -> bool:
     return last_state.returncode == 0 and head.returncode == 0 and last_state.stdout.strip() == head.stdout.strip()
 
 
+def is_closed(root: Path, branch: str, task: str) -> bool:
+    """Whether the branch's task was closed (ADR 0047): its head is the commit that last changed the state file, and
+    the state file there says closed. A closed task is never merged, and is no work waiting to be."""
+    path = f"{STATE_DIR}/{task}.md"
+    shown = git(root, "show", f"{branch}:{path}")
+    if shown.returncode != 0 or not re.search(r"^- Status: closed\s*$", shown.stdout.decode("utf-8", errors="replace"), re.MULTILINE):
+        return False
+    last_state, head = git(root, "log", "-1", "--format=%H", branch, "--", path), git(root, "rev-parse", "--verify", "-q", branch)
+    return last_state.returncode == 0 and head.returncode == 0 and last_state.stdout.strip() == head.stdout.strip()
+
+
 def cmd_unmerged(default: str) -> int:
     root = repo_root()
     if git(root, "rev-parse", "--verify", "-q", f"{default}^{{commit}}").returncode != 0:
@@ -748,7 +768,7 @@ def cmd_unmerged(default: str) -> int:
     lines = []
     for task, branches in task_branches(root).items():
         for branch in branches:
-            if is_merged(root, branch, task, default):
+            if is_merged(root, branch, task, default) or is_closed(root, branch, task):
                 continue
             shown = git(root, "show", f"{branch}:{STATE_DIR}/{task}.md")
             status = STATUS_LINE_RE.search(shown.stdout.decode("utf-8", errors="replace")) if shown.returncode == 0 else None

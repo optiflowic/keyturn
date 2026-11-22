@@ -120,6 +120,23 @@ class ConditionsTest(unittest.TestCase):
     def test_a_finding_accepted_on_an_unanswered_card_fails(self):
         self.assert_fails(self.finished((("medium", "accepted: decision card 2"),)), "FAIL findings [review]: keyturn/internal/review.md: F-1: accepted on keyturn/client/decision-card-2.md, which is not answered")
 
+    def test_a_card_made_after_the_developer_s_work_accepts_nothing(self):
+        self.reports((("medium", "accepted: decision card 3"),))
+        documents = self.documents()
+        self.put("keyturn/client/decision-card-3.md", CARD_ANSWERED)
+        self.step("merge")
+        self.acceptance(documents)
+        self.assert_fails(self.conditions(), "FAIL findings [review]: keyturn/internal/review.md: F-1: accepted on keyturn/client/decision-card-3.md, which did not exist before")
+
+    def test_a_card_of_the_merge_step_after_the_documents_passes(self):
+        self.reports()
+        documents = self.documents()
+        self.put("keyturn/client/decision-card-3.md", CARD_ANSWERED)
+        self.step("merge")
+        self.acceptance(documents)
+        result = self.conditions()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_a_finding_accepted_on_a_missing_card_fails(self):
         self.assert_fails(self.finished((("medium", "accepted: decision card 3"),)), "FAIL findings [review]")
 

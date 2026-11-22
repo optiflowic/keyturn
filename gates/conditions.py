@@ -7,13 +7,15 @@ Usage (from inside the project's repository):
 It finds the task's base and the other roles' commits as the gate does in CI (ADR 0043), then checks, each reported as
 one PASS or FAIL line:
   findings [review]           in keyturn/internal/review.md at the head: no high or medium finding is open, a finding
-                              marked "accepted: decision card <n>" is a medium one and that card is answered, and the
+                              marked "accepted: decision card <n>" is a medium one, not a security one, and that card,
+                              as it was before the developer's first commit, is answered, and the
                               report's "Reviewed change" ends at the developer's last commit
   findings [security-review]  the same in keyturn/internal/security-review.md, where no finding may be accepted
   acceptance                  the newest acceptance row of the task in keyturn/client/approvals.md says accepted, names
                               the documents commit (deliver's newest commit that changed the acceptance guide or the
                               delivery report), and has the SHA-256 of both documents at the head; every commit after
-                              the documents commit is merge's or deliver's and changes only the approvals or the state file
+                              the documents commit is merge's or deliver's and changes only the approvals, the state
+                              file, or (merge's) a decision card (ADR 0047)
 
 It never runs the project's code, so it needs no stack tools. The translations the client read are local to the PM and
 are not checked here; `approval.py accept-status` checks them before the PM records the answer.
@@ -142,7 +144,7 @@ def card_answered(text: str) -> bool:
     return bool(DATE_RE.search(last)) and not PLACEHOLDER_RE.search(last)
 
 
-def check_report(root: Path, head: str, role: str, developer_last: str) -> Result:
+def check_report(root: Path, head: str, role: str, developer_last: str, cards_at: str) -> Result:
     path = REPORTS[role]
     text = gate.file_at(root, head, path)
     if text is None:
@@ -184,10 +186,12 @@ def check_report(root: Path, head: str, role: str, developer_last: str) -> Resul
         if fields.get("Category", "").strip().lower() == "security":
             problems.append(f"{path}: {number}: a security finding is never accepted; it is fixed (ADR 0042)")
             continue
+        # Only a card the design step asked, before the developer's work: a card made later (for example in the
+        # merge step, ADR 0047) never accepts a finding.
         card = CARD.format(accepted.group(1))
-        card_text = gate.file_at(root, head, card)
+        card_text = gate.file_at(root, cards_at, card)
         if card_text is None:
-            problems.append(f"{path}: {number}: accepted on {card}, which is missing at the head")
+            problems.append(f"{path}: {number}: accepted on {card}, which did not exist before the developer's work")
         elif not card_answered(card_text):
             problems.append(f"{path}: {number}: accepted on {card}, which is not answered; an unanswered card "
                             "accepts nothing (ADR 0009)")
@@ -219,10 +223,11 @@ def check_acceptance(root: Path, head: str, task: str, commits: list[str], other
         problems.append(f"{documents[:12]}: changes the acceptance guide or the delivery report, but is not deliver's")
     for commit in commits[commits.index(documents) + 1:]:
         role = others.get(commit)
-        outside = [path for path in changed[commit] if path not in (APPROVALS, state)]
+        allowed = [APPROVALS, state] + ([CARD.format("*")] if role == "merge" else [])
+        outside = [path for path in changed[commit] if not any(gate.matches(path, pattern) for pattern in allowed)]
         if role not in ("merge", "deliver") or outside:
             problems.append(f"{commit[:12]} ({role or 'not named'}): comes after the documents commit {documents[:12]}; "
-                            f"only merge's and deliver's commits of {APPROVALS} or {state} may"
+                            f"only merge's and deliver's commits of {APPROVALS}, {state}, or (merge's) a decision card may"
                             + (f" (it changes {', '.join(outside)})" if outside else ""))
     text = gate.file_at(root, head, APPROVALS)
     rows = approval.acceptance_rows(text or "", task)
@@ -258,7 +263,8 @@ def conditions(task: str, default_rev: str, head_rev: str) -> tuple[str, str, li
     developer = [commit for commit in commits if commit not in others]
     if not developer:
         raise SetupError(["the task branch has no developer commit; there is nothing to merge"])
-    results = [check_report(root, head, role, developer[-1]) for role in REPORTS]
+    cards_at = gate.git(root, "rev-parse", f"{developer[0]}^").strip()
+    results = [check_report(root, head, role, developer[-1], cards_at) for role in REPORTS]
     results.append(check_acceptance(root, head, task, commits, others))
     return base, head, results
 

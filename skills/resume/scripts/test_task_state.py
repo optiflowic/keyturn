@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -112,7 +113,7 @@ class TemplateTest(unittest.TestCase):
         ])
         self.assertEqual(template.steps, ["spec", "design", "conventions", "implement", "qa", "security-review", "review", "deliver", "merge"])
         self.assertEqual(template.step_statuses, ["not started", "in progress", "done", "skipped"])
-        self.assertEqual([p.text for p in template.fields["Status"]], ["running", "stopped", "done"])
+        self.assertEqual([p.text for p in template.fields["Status"]], ["running", "stopped", "done", "closed"])
         self.assertEqual(template.sections, ["Summary", "Steps", "Commits", "Open questions", "History"])
 
     def test_worked_example_passes(self):
@@ -121,7 +122,7 @@ class TemplateTest(unittest.TestCase):
     def test_template_missing_a_value_the_script_relies_on_is_reported(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "state.md"
-            path.write_text(TEMPLATE.read_text(encoding="utf-8").replace("<running | stopped | done>", "<running | done>"), encoding="utf-8")
+            path.write_text(TEMPLATE.read_text(encoding="utf-8").replace("<running | stopped | done | closed>", "<running | done | closed>"), encoding="utf-8")
             with self.assertRaises(task_state.Problems) as raised:
                 task_state.read_template(path)
         self.assertIn('field "Status" no longer allows "stopped"', raised.exception.problems[0])
@@ -178,7 +179,7 @@ class MissingFieldsTest(unittest.TestCase):
 class UnknownValuesTest(unittest.TestCase):
     def test_unknown_status(self):
         self.assertIn(
-            'line 6: field "Status": "paused" should be one of: running | stopped | done',
+            'line 6: field "Status": "paused" should be one of: running | stopped | done | closed',
             check(STOPPED.replace("- Status: stopped", "- Status: paused")),
         )
 
@@ -456,6 +457,25 @@ class ListTest(unittest.TestCase):
         self.assertEqual((missing.returncode, missing.stdout), (1, "delivery-7 (task/delivery-7):\n  error: task/delivery-7: has no local or remote branch\n"))
 
 
+def closed(text: str) -> str:
+    """A stopped task closed after the client did not accept it (ADR 0047)."""
+    text = (text.replace("- Status: stopped", "- Status: closed").replace("- Current step: implement", "- Current step: none"))
+    text = re.sub(r"- Stopped because: .*", "- Stopped because: none", text)
+    text = re.sub(r"- Can continue: .*", "- Can continue: not applicable", text)
+    return text.rstrip("\n") + "\n- 2026-11-09T10:00Z: closed: the client chose to stop the task, in merge\n"
+
+
+class ClosedTest(unittest.TestCase):
+    def test_a_closed_task_is_valid_with_unfinished_steps(self):
+        self.assertEqual(check(closed(STOPPED)), [])
+
+    def test_a_closed_task_says_nothing_more_to_do(self):
+        problems = check(closed(STOPPED).replace("- Current step: none", "- Current step: implement"))
+        self.assertIn('field "Current step": should be "none" when Status is closed, not "implement"', " ".join(problems) + "".join(problems))
+        problems = check(closed(STOPPED).rstrip("\n") + "\n- 2026-11-10T10:00Z: resumed: in implement, from commit `abc1234`\n")
+        self.assertIn('History: the last line should be "closed" when Status is closed', problems)
+
+
 class UnmergedTest(unittest.TestCase):
     def setUp(self):
         self.repo = Repo()
@@ -492,6 +512,20 @@ class UnmergedTest(unittest.TestCase):
 
         result = self.repo.run("unmerged", "main")
         self.assertEqual((result.returncode, result.stdout), (0, "no unmerged task branches\n"))
+
+    def test_a_closed_task_is_left_out_of_the_list_and_of_unmerged(self):
+        self.repo.task_branch(self.repo.root, "delivery-1", closed(STOPPED))
+        result = self.repo.run("unmerged", "main")
+        self.assertEqual((result.returncode, result.stdout), (0, "no unmerged task branches\n"), result.stderr)
+        self.assertNotIn("delivery-1", self.repo.run("list").stdout)
+
+    def test_work_after_closing_a_task_is_unmerged(self):
+        self.repo.task_branch(self.repo.root, "delivery-1", closed(STOPPED))
+        self.repo.git(self.repo.root, "switch", "-q", "task/delivery-1")
+        self.repo.commit(self.repo.root, "app/main.py", "print('later')\n")
+        self.repo.git(self.repo.root, "switch", "-q", "main")
+        result = self.repo.run("unmerged", "main")
+        self.assertEqual((result.returncode, result.stdout), (1, "task/delivery-1: closed\n"))
 
     def test_work_after_a_squash_merge_is_unmerged(self):
         done = WORKED_EXAMPLE.read_text(encoding="utf-8")
@@ -544,7 +578,7 @@ class CheckCommandTest(unittest.TestCase):
         first, second = self.run_check(broken), self.run_check(broken)
         self.assertEqual(first.returncode, 1)
         self.assertEqual(first.stdout, second.stdout)
-        self.assertIn('error: delivery-1.md: line 6: field "Status": "paused" should be one of: running | stopped | done\n', first.stdout)
+        self.assertIn('error: delivery-1.md: line 6: field "Status": "paused" should be one of: running | stopped | done | closed\n', first.stdout)
         self.assertIn('error: delivery-1.md: Steps: step "qa" is missing\n', first.stdout)
 
 
