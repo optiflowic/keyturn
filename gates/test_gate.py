@@ -631,6 +631,142 @@ class GateTest(unittest.TestCase):
         self.assertIn("is not an ancestor", result.stderr)
 
 
+class TaskRangeTest(unittest.TestCase):
+    """The gate finds a task's base and the other roles' commits itself, as in CI (ADR 0043)."""
+
+    # The repository and its helpers are GateTest's; its tests are not run again here.
+    tearDown, write_profile, git, put, commit, assert_fails = (GateTest.tearDown, GateTest.write_profile, GateTest.git,
+                                                               GateTest.put, GateTest.commit, GateTest.assert_fails)
+
+    STEPS = ("spec", "design", "conventions", "implement", "qa", "security-review", "review", "deliver")
+
+    def setUp(self):
+        GateTest.setUp(self)
+        self.git("switch", "-q", "-c", "task/t1")
+        self.lines: list[str] = []
+        self.done: set[str] = set()
+        self.record()  # started
+        self.put("keyturn/client/requirements.md", "# Requirements\n")
+        self.step("spec")
+        self.put("keyturn/internal/conventions.md", "# Conventions\n")
+        self.put(".lintrc", "rules\n")
+        self.step("conventions")
+
+    def state_text(self) -> str:
+        rows = "\n".join(f"| {step} | {'done' if step in self.done else 'not started'} | | | |" for step in self.STEPS)
+        commits = "\n".join(self.lines) or "None."
+        return (f"# Task state: t1\n\n- Task: t1\n\n## Steps\n\n| Step | Status | Output | Commit | Notes |\n"
+                f"|---|---|---|---|---|\n{rows}\n\n## Commits\n\n<!--\n- `0000000`: spec, round 1\n-->\n\n"
+                f"{commits}\n\n## History\n\n- started\n")
+
+    def record(self) -> str:
+        """A state commit, listing every commit since the last one listed."""
+        listed = {line.split("`")[1] for line in self.lines}
+        head = self.git("rev-parse", "HEAD")
+        if head != self.base:
+            for commit in self.git("rev-list", "--reverse", f"{self.base}..HEAD").split():
+                if commit[:7] not in listed:
+                    self.lines.append(f"- `{commit[:7]}`: {self.roles.get(commit, 'deliver')}, round 1")
+        self.put("keyturn/internal/state/t1.md", self.state_text())
+        return self.commit("state")
+
+    @property
+    def roles(self) -> dict:
+        if not hasattr(self, "_roles"):
+            self._roles = {}
+        return self._roles
+
+    def step(self, role: str, done: bool = True) -> str:
+        commit = self.commit(role)
+        self.roles[commit] = role
+        if done:
+            self.done.add(role)
+        self.record()
+        return commit
+
+    def task_gate(self, *extra: str) -> subprocess.CompletedProcess:
+        return subprocess.run([sys.executable, str(GATE), "--task", "t1", "--default-branch", "main",
+                               "--profiles", str(self.profiles), *extra],
+                              cwd=self.root, env=self.env, capture_output=True, text=True)
+
+    def test_a_task_s_range_passes_with_the_roles_found_from_the_state_file(self):
+        self.put("app/src/main.py", "print('task')\n")
+        self.step("implement")
+        self.put("app/qa/test_more.txt", "")
+        self.step("qa")
+        result = self.task_gate()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn(f"gate: passed ({self.base[:12]}..", result.stdout)
+
+    def test_the_head_state_commit_that_no_line_lists_is_deliver_s(self):
+        self.put("app/src/main.py", "print('task')\n")
+        self.step("implement")
+        head = self.git("rev-parse", "HEAD")
+        self.assertNotIn(head[:7], self.state_text())
+        self.assertEqual(self.task_gate().returncode, 0)
+
+    def test_a_developer_commit_that_no_line_lists_is_checked_as_the_developer_s(self):
+        self.put("app/src/main.py", "print('task')\n")
+        self.step("implement")
+        self.put("app/qa/test_qa.txt", "changed by the developer")
+        self.commit("not listed")
+        self.put("app/src/main.py", "print('again')\n")
+        self.commit("not listed either")
+        self.put("keyturn/internal/state/t1.md", self.state_text() + "\n")
+        self.commit("state that lists nothing new")
+        self.assert_fails(self.task_gate(), "FAIL protected-paths: app/qa/test_qa.txt")
+
+    def test_a_developer_commit_relabelled_as_qa_s_at_the_head_stops_the_gate(self):
+        self.put("app/src/main.py", "print('task')\n")
+        developer = self.step("implement")
+        self.lines = [line.replace("implement", "qa") if developer[:7] in line else line for line in self.lines]
+        self.record()
+        result = self.task_gate()
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("(qa): changes app/src/main.py", result.stderr)
+
+    def test_a_later_line_naming_a_document_role_is_never_trusted(self):
+        self.put(".lintrc", "weaker rules\n")
+        developer = self.commit("the developer weakens the linter")
+        self.roles[developer] = "conventions"
+        self.record()
+        result = self.task_gate()
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("a later line naming a document role is never trusted", result.stderr)
+
+    def test_a_task_before_conventions_is_recorded_stops_the_gate(self):
+        self.git("switch", "-q", "-c", "task/t2", "main")
+        self.put("keyturn/internal/state/t2.md", "# Task state: t2\n\n## Steps\n\n| conventions | not started | | | |\n")
+        self.commit("started")
+        result = subprocess.run([sys.executable, str(GATE), "--task", "t2", "--default-branch", "main",
+                                 "--profiles", str(self.profiles)], cwd=self.root, env=self.env, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("the conventions step is not recorded yet", result.stderr)
+
+    def test_a_default_branch_that_does_not_give_the_task_s_base_stops_the_gate(self):
+        spec = next(commit for commit, role in self.roles.items() if role == "spec")
+        self.git("branch", "-f", "main", spec)
+        result = self.task_gate()
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("not added on the task branch after it left main", result.stderr)
+
+    def test_a_state_file_added_after_another_commit_stops_the_gate(self):
+        self.git("switch", "-q", "-c", "task/t3", "main")
+        self.put("app/src/main.py", "print('before the state file')\n")
+        self.commit("a commit before the task started")
+        self.put("keyturn/internal/state/t3.md", self.state_text().replace("t1", "t3"))
+        self.commit("started")
+        result = subprocess.run([sys.executable, str(GATE), "--task", "t3", "--default-branch", "main",
+                                 "--profiles", str(self.profiles)], cwd=self.root, env=self.env, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("whose parent is not where the task branch left", result.stderr)
+
+    def test_others_with_task_is_refused(self):
+        result = self.task_gate("--others", f"qa:{self.base}")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("--task needs --default-branch", result.stderr)
+
+
 class ShippedProfiles(unittest.TestCase):
     """Every profile in keyturn's profiles/ is one the gate accepts, and has the README the roles read."""
 
