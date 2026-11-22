@@ -1,6 +1,6 @@
 # 0042. The PM merges the pull request when machine-checked conditions hold, and the host's branch protection refuses a merge without them
 
-- Status: accepted
+- Status: accepted; the branch protection in "What the host enforces", and the need for a public repository or a paid plan, superseded by [0048](0048-default-branch-guarded-in-three-layers.md)
 - Date: 2026-11-22
 - Supersedes: in [0030](0030-deliver-rework-loop.md), that every open medium finding sends the work back (a medium finding of `review` that the client accepted on a decision card does not); the MVP's list in [0025](0025-mvp-first.md), and "automatic merging" among its later items: delivery through a pull request, the gate in CI, and the PM's merge are part of the MVP
 
