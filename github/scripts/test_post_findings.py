@@ -31,7 +31,8 @@ FAKE_GH = textwrap.dedent("""\
     elif args[0] == "api" and "--method" in args:
         payload = json.load(open(args[args.index("--input") + 1], encoding="utf-8"))
         if payload.get("comments") and os.environ.get("FAKE_GH_REFUSE_COMMENTS"):
-            print("Unprocessable Entity: Line could not be resolved", file=sys.stderr)
+            reason = os.environ["FAKE_GH_REFUSE_COMMENTS"]
+            print(reason if reason != "1" else "Unprocessable Entity: Line could not be resolved", file=sys.stderr)
             sys.exit(1)
         reviews.append({"user": {"login": os.environ["FAKE_GH_LOGIN"]}, "body": payload["body"], "payload": payload})
         json.dump(reviews, open(reviews_file, "w", encoding="utf-8"))
@@ -198,6 +199,23 @@ class PostFindingsTest(unittest.TestCase):
         self.assertIn("Fixed: F-1 (Unclear name)", second["body"])
         self.assertNotIn("F-2", second["body"])
         self.assertNotIn("F-3", second["body"])
+
+    def test_a_rerun_where_no_finding_changed_posts_nothing(self):
+        self.assertEqual(self.run_script("delivery-1", "review", self.report()).returncode, 0)
+        text = (self.root / "keyturn/internal/review.md").read_text(encoding="utf-8")
+        self.put("keyturn/internal/review.md", text.replace("Three findings.", "Three findings, checked again."))
+        commit = self.commit("docs(review): rerun")
+        self.pushed()
+        result = self.run_script("delivery-1", "review", commit)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("nothing new", result.stdout)
+        self.assertEqual(len(self.posts()), 1)
+
+    def test_a_failure_other_than_a_line_is_not_posted_again_in_the_text(self):
+        commit = self.report()
+        self.env["FAKE_GH_REFUSE_COMMENTS"] = "Bad Gateway"
+        self.assertEqual(self.run_script("delivery-1", "review", commit).returncode, 1)
+        self.assertEqual(self.posts(), [])
 
     def test_a_finding_gone_from_the_report_is_said(self):
         self.assertEqual(self.run_script("delivery-1", "review", self.report()).returncode, 0)

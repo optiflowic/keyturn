@@ -209,6 +209,10 @@ def cmd_post(root: Path, task: str, role: str, commit: str) -> None:
         before = findings(earlier) if earlier is not None else None
     now = findings(text)
     posted, gone = changes(now, before)
+    if before is not None and not posted and not gone:
+        # Only the summary or the range moved: the pull request already shows every finding as it is.
+        print(f"nothing new: no finding of the {role} report of {commit[:12]} changed since the last post on {existing['url']}")
+        return
 
     link = f"https://github.com/{task_branch.origin_repository(root)}/blob/{commit}/{path}"
     reviewed = RANGE_RE.search(text)
@@ -245,8 +249,7 @@ def cmd_post(root: Path, task: str, role: str, commit: str) -> None:
         if before is None and markers:
             parts += ["(The report this pull request was last given could not be read, so every finding is posted again.)", ""]
         elif before is not None:
-            parts += ["What changed since the last post of this report:" if posted or gone
-                      else "No finding changed since the last post of this report.", ""]
+            parts += ["What changed since the last post of this report:", ""]
         listed = [finding for finding in posted if finding not in fixed] if all_in_text else in_text
         for finding in listed:
             parts += [describe(finding), ""]
@@ -273,8 +276,10 @@ def cmd_post(root: Path, task: str, role: str, commit: str) -> None:
         payload["commit_id"] = target
     try:
         review = send(payload)
-    except Refused:
-        if not comments:
+    except Refused as error:
+        # Only a line GitHub could not place; any other failure may have created the review, and a retry would post
+        # it twice (the next run sees its marker instead).
+        if not comments or "could not be resolved" not in str(error):
             raise
         # GitHub refuses the whole review when one line is not in its diff (a diff that differs from Git's): post every
         # finding in the text instead.
