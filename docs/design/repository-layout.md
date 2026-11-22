@@ -29,7 +29,7 @@ adapters/                 # everything only one tool uses (ADR 0020)
   claude/                 # agents/*.md (listed in plugin.json), recommended permission settings
     scripts/              # scripts only Claude Code uses (for example, the usage limits), with their tests
   codex/                  # agents/*.toml, recommended sandbox settings, scripts/
-github/                   # scripts that push the task branch, open the pull request, post the reviews, and merge;
+github/                   # scripts that push the task branch, open the pull request, post the reviews, merge, and watch;
                           # workflow templates, the one-time repository setup, labels, project setup
 evals/
   requests/               # evaluation requests

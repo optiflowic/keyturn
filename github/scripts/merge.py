@@ -4,7 +4,10 @@
 Usage (from inside the project's repository, on the branch task/TASK):
   merge.py TASK [--wait-minutes N]   (deliver passes --wait-minutes 9, so that one call fits in a tool call)
   merge.py TASK --protection         prints "protected" when the default branch has branch protection (a ruleset or a
-                                     classic rule) that requires both checks, and "not protected" otherwise; merges nothing
+                                     classic rule) that requires both checks, "not protected" when GitHub showed both
+                                     and neither does, and "not known" when either could not be read (GitHub answers 403
+                                     both when the plan has no rulesets and when the token lacks a permission); merges
+                                     nothing
 
 It refuses (exit 1), and never merges, unless all of these hold, in this order:
   - the task's pull request is open, ready for review, goes to the default branch, and its branch is in this repository
@@ -12,11 +15,18 @@ It refuses (exit 1), and never merges, unless all of these hold, in this order:
   - its head is the local HEAD and the task branch on origin;
   - that head contains the default branch's tip on origin ("up to date"): a task branch is never updated from the
     default branch (ADR 0031), so when the default branch moved after the task started, the maintainer decides;
-  - the checks "keyturn gate" and "keyturn conditions" from GitHub Actions on that head have finished and passed;
-  - the check "keyturn watch" from GitHub Actions on the default branch's tip passed, in a run that started after the
-    last push to the default branch in the repository's activity, so that an old success on a commit the branch was
-    reset to does not count (ADR 0048). When the workflow is not on the default branch, it refuses, with branch
-    protection too: protection prevents, but does not find a reset or a deleted task branch;
+  - that head changes nothing under .github/workflows/, so the gate's run on its pull request is the default branch's
+    workflow, not one the branch brought (ADR 0049);
+  - the newest run of the workflow .github/workflows/keyturn-gate.yml for that head, from a pull_request event in this
+    repository, has finished and passed, and so have its jobs "keyturn gate" and "keyturn conditions" (read through
+    GitHub Actions' API, which the agents' token reads with Actions: Read, ADR 0049);
+  - the newest run of .github/workflows/keyturn-watch.yml for the default branch's tip, among those that started after
+    the last push to the default branch in the repository's activity, passed, and so did its job "keyturn watch", so
+    that an old success on a commit the branch was reset to does not count (ADR 0048). When the workflow is not on the
+    default branch, it refuses, with branch protection too: protection prevents, but does not find a reset or a deleted
+    task branch;
+  - the newest run of .github/workflows/keyturn-watch.yml for the head itself (the push of the task branch starts one)
+    passed, so that a force push to the task branch, which that run finds, stops the merge too (ADR 0050);
   - keyturn's conditions check (gates/conditions.sh, next to this script's keyturn copy) passes on that head.
 It waits for the checks up to N minutes (default 9), since a push starts them and the merge step comes right after one
 (ADR 0044). Then it squash-merges the pull request naming that head, so that GitHub refuses the merge if the head moved
@@ -46,12 +56,13 @@ from task_branch import EXIT_DONE, EXIT_REFUSED, EXIT_SETUP, Refused, SetupError
 
 KEYTURN_ROOT = Path(__file__).resolve().parent.parent.parent
 CONDITIONS = KEYTURN_ROOT / "gates" / "conditions.sh"
-# The required checks, by the names of the jobs in github/workflows/keyturn-gate.yml, and the app that must have run them.
+# The workflows by their files in the project, and the jobs each run must have passed (ADR 0049): the gate's on the
+# pull request's head (github/workflows/keyturn-gate.yml), and the detecting one on the default branch's tip (ADR 0048).
+WORKFLOWS_DIR = ".github/workflows/"
+GATE_WORKFLOW = ".github/workflows/keyturn-gate.yml"
 CHECKS = ("keyturn gate", "keyturn conditions")
-CHECKS_APP = "github-actions"
-# The detecting check on the default branch's tip, and the file of its workflow in the project (ADR 0048).
-WATCH = "keyturn watch"
 WATCH_WORKFLOW = ".github/workflows/keyturn-watch.yml"
+WATCH = "keyturn watch"
 POLL_SECONDS = 30
 # GitHub may not show a push on the pull request at once: how long to wait for its head to be the local one.
 HEAD_WAIT_SECONDS = 30
@@ -76,22 +87,37 @@ def remote_head(root: Path, branch: str) -> str:
     return heads[0]
 
 
-def check_runs(root: Path, sha: str, names: tuple[str, ...]) -> dict[str, list[dict]]:
-    """Every run of each named check on the commit, from GitHub Actions only, newest first."""
-    runs: dict[str, list[dict]] = {name: [] for name in names}
-    page = 1
+def workflow_runs(root: Path, workflow: str, sha: str) -> list[dict]:
+    """The runs of the workflow in that file for the commit, newest first. A run's path can carry the ref after an "@"."""
+    found, page = [], 1
     while True:
-        data = json.loads(task_branch.gh_api(root, f"repos/{{repo}}/commits/{sha}/check-runs?per_page=100&page={page}"))
-        for check in data.get("check_runs", []):
-            name = check.get("name")
-            if name in runs and (check.get("app") or {}).get("slug") == CHECKS_APP:
-                runs[name].append(check)
-        if len(data.get("check_runs", [])) < 100:
+        data = json.loads(task_branch.gh_api(root, f"repos/{{repo}}/actions/workflows/{Path(workflow).name}/runs"
+                                                   f"?head_sha={sha}&per_page=100&page={page}"))
+        batch = data.get("workflow_runs", []) if isinstance(data, dict) else []
+        found += [item for item in batch
+                  if item.get("head_sha") == sha and str(item.get("path", "")).split("@")[0] == workflow]
+        if len(batch) < 100:
             break
         page += 1
-    for found in runs.values():
-        found.sort(key=lambda check: check.get("id", 0), reverse=True)
-    return runs
+    return sorted(found, key=lambda item: item.get("id", 0), reverse=True)
+
+
+def run_state(root: Path, item: dict | None, jobs: tuple[str, ...]) -> tuple[str, str]:
+    """('passed' | 'pending' | 'failed', why) for a workflow run and the jobs it must have passed."""
+    if item is None:
+        return "pending", "no run"
+    url = item.get("html_url", "")
+    if item.get("status") != "completed":
+        return "pending", f"has not finished ({url})"
+    if item.get("conclusion") != "success":
+        return "failed", f"did not pass ({item.get('conclusion')}, {url})"
+    data = json.loads(task_branch.gh_api(root, f"repos/{{repo}}/actions/runs/{item['id']}/jobs?per_page=100"))
+    by_name = {job.get("name"): job for job in (data.get("jobs", []) if isinstance(data, dict) else [])}
+    missing = [name for name in jobs if (by_name.get(name) or {}).get("conclusion") != "success"]
+    if missing:
+        return "failed", (f"the job{'s' if len(missing) > 1 else ''} {', '.join(missing)} did not pass "
+                          f"({', '.join(str((by_name.get(name) or {}).get('conclusion', 'no job')) for name in missing)}, {url})")
+    return "passed", ""
 
 
 def when(text: str | None) -> datetime | None:
@@ -127,41 +153,47 @@ def watch_state(root: Path, default: str, tip: str) -> tuple[str, str]:
     pushed = last_push(root, default, tip)
     if pushed is None:
         return "pending", f"the repository's activity does not show {default} at {tip[:12]} yet"
-    runs = [check for check in check_runs(root, tip, (WATCH,))[WATCH]
-            if (started := when(check.get("started_at"))) is not None and started >= pushed]
+    runs = [item for item in workflow_runs(root, WATCH_WORKFLOW, tip)
+            if (started := when(item.get("run_started_at"))) is not None and started >= pushed]
     since = f" since the last push to {default} ({pushed.isoformat()})"
     if not runs:
         return "pending", (f"no run of {WATCH} on {default}'s tip {tip[:12]}{since}; a commit that skipped the workflow "
                            f"gets one at its next scheduled run, or when the maintainer starts it by hand")
-    newest = runs[0]
-    if newest.get("status") != "completed":
-        return "pending", f"{WATCH} on {default}'s tip {tip[:12]} has not finished"
-    if newest.get("conclusion") != "success":
-        return "failed", (f"{WATCH} on {default}'s tip {tip[:12]} did not pass ({newest.get('conclusion')}, "
-                          f"{newest.get('html_url', '')}): a commit on {default} did not come from a task's pull request "
-                          f"merged with the conditions met, and the maintainer puts it right first (ADR 0048)")
+    state, why = run_state(root, runs[0], (WATCH,))
+    if state == "pending":
+        return "pending", f"{WATCH} on {default}'s tip {tip[:12]} {why}"
+    if state == "failed":
+        return "failed", (f"{WATCH} on {default}'s tip {tip[:12]} {why}: a commit on {default} did not come from a "
+                          f"task's pull request merged with the conditions met, or a push rewrote what keyturn trusts, "
+                          f"and the maintainer puts it right first (ADR 0048)")
     return "passed", ""
 
 
-def protected(root: Path, default: str) -> bool:
-    """Whether the default branch's protection (an active ruleset, or a classic rule) requires both checks."""
+def protection(root: Path, default: str) -> str:
+    """'protected' when an active ruleset or a classic rule requires both checks on the default branch; 'not protected'
+    when GitHub showed both and neither does; 'not known' when either could not be read. A 403 does not tell a plan
+    without rulesets from a token that lacks a permission, so it is never read as "not protected"."""
     contexts: set[str] = set()
+    known = True
     try:
-        for rule in json.loads(task_branch.gh_api(root, f"repos/{{repo}}/rules/branches/{default}")):
+        rules = json.loads(task_branch.gh_api(root, f"repos/{{repo}}/rules/branches/{default}"))
+        for rule in rules:
             if rule.get("type") == "required_status_checks":
                 contexts |= {check.get("context") for check in
                              (rule.get("parameters") or {}).get("required_status_checks", [])}
-    except (Refused, ValueError, AttributeError):
-        pass
+    except (Refused, SetupError, ValueError, AttributeError, TypeError):
+        known = False
     try:
         branch = json.loads(task_branch.gh_api(root, f"repos/{{repo}}/branches/{default}"))
         required = ((branch.get("protection") or {}).get("required_status_checks") or {})
         if branch.get("protected"):
             contexts |= set(required.get("contexts") or [])
             contexts |= {check.get("context") for check in required.get("checks") or []}
-    except (Refused, ValueError, AttributeError):
-        pass
-    return set(CHECKS) <= contexts
+    except (Refused, SetupError, ValueError, AttributeError, TypeError):
+        known = False
+    if set(CHECKS) <= contexts:
+        return "protected"
+    return "not protected" if known else "not known"
 
 
 def fetch_default(root: Path, default: str) -> str:
@@ -169,23 +201,46 @@ def fetch_default(root: Path, default: str) -> str:
     return git(root, "rev-parse", f"refs/remotes/origin/{default}")
 
 
+def gate_state(root: Path, head: str) -> tuple[str, str]:
+    """The newest run of the gate's workflow for the head, from a pull_request event in this repository."""
+    repository = task_branch.origin_repository(root)
+    runs = [item for item in workflow_runs(root, GATE_WORKFLOW, head)
+            if item.get("event") == "pull_request" and (item.get("head_repository") or {}).get("full_name") == repository]
+    return run_state(root, runs[0] if runs else None, CHECKS)
+
+
+def head_watch_state(root: Path, head: str) -> tuple[str, str]:
+    """The newest run of keyturn watch for the task's head, which the push of the task branch started (ADR 0050)."""
+    runs = workflow_runs(root, WATCH_WORKFLOW, head)
+    state, why = run_state(root, runs[0] if runs else None, (WATCH,))
+    if state == "failed":
+        return "failed", (f"{WATCH} on the task's head {head[:12]} {why}: a push rewrote what keyturn trusts (a force "
+                          f"push to a task branch, for example), and the maintainer puts it right first (ADR 0050)")
+    if state == "pending":
+        return "pending", (f"{WATCH} on the task's head {head[:12]}: {why}; the push of the task branch starts it, "
+                           f"unless the push skipped workflows")
+    return "passed", ""
+
+
 def wait_for_checks(root: Path, head: str, default: str, tip: str, wait_seconds: float) -> None:
     deadline = time.monotonic() + wait_seconds
     while True:
-        runs = check_runs(root, head, CHECKS)
-        pending = [name for name in CHECKS if not runs[name] or runs[name][0].get("status") != "completed"]
-        failed = [f"{name} ({runs[name][0].get('conclusion')}, {runs[name][0].get('html_url', '')})"
-                  for name in CHECKS if name not in pending and runs[name][0].get("conclusion") != "success"]
-        if failed:
-            raise Refused(f"the checks on {head[:12]} did not pass: {'; '.join(failed)}")
+        gate, gate_why = gate_state(root, head)
+        if gate == "failed":
+            raise Refused(f"the checks {', '.join(CHECKS)} on {head[:12]} did not pass: {GATE_WORKFLOW} {gate_why}")
         state, why = watch_state(root, default, tip)
         if state == "failed":
             raise Refused(why)
-        if not pending and state == "passed":
+        on_head, head_why = head_watch_state(root, head)
+        if on_head == "failed":
+            raise Refused(head_why)
+        if gate == "passed" and state == "passed" and on_head == "passed":
             return
         if time.monotonic() >= deadline:
-            waiting = [f"the checks {', '.join(pending)} on {head[:12]} have not finished (or not started)"] if pending else []
+            waiting = [f"the checks {', '.join(CHECKS)} on {head[:12]} have not finished (or not started): "
+                       f"{GATE_WORKFLOW} {gate_why}"] if gate == "pending" else []
             waiting += [why] if state == "pending" else []
+            waiting += [head_why] if on_head == "pending" else []
             raise Pending(f"{'; '.join(waiting)}, in {wait_seconds / 60:g} minutes; run merge.py again later")
         time.sleep(POLL_SECONDS)
 
@@ -244,6 +299,9 @@ def cmd_merge(root: Path, task: str, wait_seconds: float) -> None:
     if run(["git", "merge-base", "--is-ancestor", tip, head], root).returncode != 0:
         raise Refused(f"{branch} at {head[:12]} does not contain the tip {tip[:12]} of {default}: {default} moved after "
                       f"the task started, and a task branch is never updated from it (ADR 0031); the maintainer decides")
+    if git(root, "diff", "--name-only", "--no-renames", tip, head, "--", WORKFLOWS_DIR):
+        raise Refused(f"{branch} at {head[:12]} changes files under {WORKFLOWS_DIR}: the gate's run on its pull request "
+                      f"would be the branch's own workflow, not the default branch's (ADR 0049); the maintainer decides")
     if run(["git", "cat-file", "-e", f"{tip}:{WATCH_WORKFLOW}"], root).returncode != 0:
         raise Refused(f"{WATCH_WORKFLOW} is not on {default}: add the {WATCH} workflow as the one-time setup says; it is "
                       f"needed with branch protection too (ADR 0048)")
@@ -253,7 +311,10 @@ def cmd_merge(root: Path, task: str, wait_seconds: float) -> None:
     try:
         answer = task_branch.gh_api(root, f"repos/{{repo}}/pulls/{pr['number']}/merge", "-X", "PUT",
                                     "-f", "merge_method=squash", "-f", f"sha={head}",
-                                    "-f", f"commit_title=keyturn: {task} (#{pr['number']})")
+                                    "-f", f"commit_title=keyturn: {task} (#{pr['number']})",
+                                    # A message of its own, not GitHub's list of the task's commit messages: one with
+                                    # [skip ci] would keep keyturn watch from running on the merge (ADR 0048).
+                                    "-f", f"commit_message=Merged by keyturn's merge.py after its checks (task {task}).")
         try:
             merge_sha = json.loads(answer).get("sha")
         except (ValueError, AttributeError):
@@ -297,7 +358,7 @@ def main() -> int:
         root = task_branch.repo_root()
         if args.protection:
             task_branch.check_task(root, args.task)
-            print("protected" if protected(root, task_branch.default_branch(root)) else "not protected")
+            print(protection(root, task_branch.default_branch(root)))
             return EXIT_DONE
         cmd_merge(root, args.task, max(args.wait_minutes, 0) * 60)
     except SetupError as error:

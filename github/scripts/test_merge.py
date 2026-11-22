@@ -15,8 +15,8 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 PUSHED = "2026-01-01T00:00:00Z"  # when the default branch's tip was pushed, in the fake activity
 
-# A stand-in for the GitHub CLI: it records each call, answers `pr list` from FAKE_GH_PRS, the check runs of a commit
-# from FAKE_GH_CHECKS (each run names its head_sha), the repository's activity from FAKE_GH_ACTIVITY, the branch's rules
+# A stand-in for the GitHub CLI: it records each call, answers `pr list` from FAKE_GH_PRS, a workflow's runs for a
+# commit, and a run's jobs, from FAKE_GH_CHECKS (each run names its path, its head_sha, and its jobs), the repository's activity from FAKE_GH_ACTIVITY, the branch's rules
 # and its classic protection from FAKE_GH_RULES and FAKE_GH_BRANCH, and merges as GitHub would: a squash commit with the
 # head's tree on the default branch's tip in the bare origin (FAKE_ORIGIN), or on FAKE_GH_MERGE_PARENT instead. It
 # refuses the merge when FAKE_GH_MERGE_FAILS is set.
@@ -33,13 +33,23 @@ FAKE_GH = textwrap.dedent("""\
     endpoint = sys.argv[2] if len(sys.argv) > 2 else ""
     if sys.argv[1:3] == ["pr", "list"]:
         print(read("FAKE_GH_PRS"))
-    elif sys.argv[1] == "api" and "/check-runs" in endpoint:
-        sha = endpoint.split("/commits/")[1].split("/")[0]
-        runs = [run for run in json.loads(read("FAKE_GH_CHECKS")) if run["head_sha"] == sha]
-        print(json.dumps({"total_count": len(runs), "check_runs": runs}))
+    elif sys.argv[1] == "api" and "/actions/workflows/" in endpoint:
+        workflow = endpoint.split("/actions/workflows/")[1].split("/")[0]
+        sha = endpoint.split("head_sha=")[1].split("&")[0]
+        runs = [run for run in json.loads(read("FAKE_GH_CHECKS"))
+                if run["head_sha"] == sha and run["path"].split("@")[0].endswith("/" + workflow)]
+        print(json.dumps({"total_count": len(runs), "workflow_runs": runs}))
+    elif sys.argv[1] == "api" and "/actions/runs/" in endpoint and endpoint.split("?")[0].endswith("/jobs"):
+        number = int(endpoint.split("/actions/runs/")[1].split("/")[0])
+        run = [run for run in json.loads(read("FAKE_GH_CHECKS")) if run["id"] == number][0]
+        print(json.dumps({"total_count": len(run["jobs"]), "jobs": run["jobs"]}))
     elif sys.argv[1] == "api" and "/activity" in endpoint:
         print(read("FAKE_GH_ACTIVITY"))
     elif sys.argv[1] == "api" and "/rules/branches/" in endpoint:
+        if os.environ.get("FAKE_GH_RULES_FAIL"):
+            print("gh: Upgrade to GitHub Pro or make this repository public to enable this feature. (HTTP 403)",
+                  file=sys.stderr)
+            sys.exit(1)
         print(read("FAKE_GH_RULES"))
     elif sys.argv[1] == "api" and "/branches/" in endpoint:
         print(read("FAKE_GH_BRANCH"))
@@ -123,9 +133,12 @@ class MergeTest(unittest.TestCase):
         self.conditions_log = tmp / "conditions.log"
         self.set_prs([self.pr()])
         self.watch_runs: list[dict] = []
-        self.set_checks(("keyturn gate", "success"), ("keyturn conditions", "success"))
+        self.head_watch_runs: list[dict] = []
+        self.run_ids = 0
+        self.set_gate(self.gate_run())
         self.set_activity(self.tip, PUSHED)
         self.set_watch("success")
+        self.set_head_watch("success")
         self.set_protection(rules=[], branch={"protected": False, "protection": {"enabled": False}})
         self.env.update(PATH=f"{bin_dir}{os.pathsep}{self.env['PATH']}", FAKE_GH_LOG=str(self.log),
                         FAKE_GH_PRS=str(self.prs), FAKE_GH_CHECKS=str(self.checks), FAKE_GH_ACTIVITY=str(self.activity),
@@ -152,23 +165,47 @@ class MergeTest(unittest.TestCase):
     def set_prs(self, prs: list[dict]) -> None:
         self.prs.write_text(json.dumps(prs), encoding="utf-8")
 
-    def set_checks(self, *checks: tuple[str, str | None], app: str = "github-actions") -> None:
-        self.head_runs = [{"id": n, "name": name, "head_sha": self.head, "app": {"slug": app},
-                           "status": "completed" if conclusion else "in_progress", "conclusion": conclusion,
-                           "started_at": PUSHED, "html_url": f"https://github.com/owner/project/runs/{n}"}
-                          for n, (name, conclusion) in enumerate(checks, 1)]
+    def workflow_run(self, path: str, sha: str, conclusion: str | None, jobs: dict[str, str | None], **changes) -> dict:
+        self.run_ids += 1
+        item = {"id": self.run_ids, "path": path, "head_sha": sha, "event": "pull_request",
+                "head_repository": {"full_name": "owner/project"},
+                "status": "completed" if conclusion else "in_progress", "conclusion": conclusion,
+                "run_started_at": PUSHED, "html_url": f"https://github.com/owner/project/actions/runs/{self.run_ids}",
+                "jobs": [{"name": name, "status": "completed" if job else "in_progress", "conclusion": job}
+                         for name, job in jobs.items()]}
+        item.update(changes)
+        return item
+
+    def gate_run(self, conclusion: str | None = "success", jobs: dict[str, str | None] | None = None, **changes) -> dict:
+        """A run of the gate's workflow on the head; its two jobs conclude as the run does unless `jobs` says."""
+        if jobs is None:
+            jobs = {"keyturn gate": conclusion, "keyturn conditions": conclusion}
+        item = self.workflow_run(".github/workflows/keyturn-gate.yml", self.head, conclusion, jobs)
+        item.update(changes)
+        return item
+
+    def set_gate(self, *runs: dict) -> None:
+        self.head_runs = list(runs)
         self.write_checks()
 
     def set_watch(self, *conclusions: str | None, started: str = "2026-01-01T00:05:00Z", sha: str | None = None,
-                  app: str = "github-actions") -> None:
-        self.watch_runs = [{"id": 100 + n, "name": "keyturn watch", "head_sha": sha or self.tip, "app": {"slug": app},
-                            "status": "completed" if conclusion else "in_progress", "conclusion": conclusion,
-                            "started_at": started, "html_url": f"https://github.com/owner/project/runs/{100 + n}"}
-                           for n, conclusion in enumerate(conclusions)]
+                  path: str = ".github/workflows/keyturn-watch.yml") -> None:
+        """keyturn watch on the default branch's tip (or on `sha`)."""
+        self.watch_runs = [self.workflow_run(path, sha or self.tip, conclusion, {"keyturn watch": conclusion},
+                                             event="schedule", run_started_at=started)
+                           for conclusion in conclusions]
+        self.write_checks()
+
+    def set_head_watch(self, *conclusions: str | None) -> None:
+        """keyturn watch on the task's head, started by the push of the task branch (ADR 0050)."""
+        self.head_watch_runs = [self.workflow_run(".github/workflows/keyturn-watch.yml", self.head, conclusion,
+                                                  {"keyturn watch": conclusion}, event="push")
+                                for conclusion in conclusions]
         self.write_checks()
 
     def write_checks(self) -> None:
-        self.checks.write_text(json.dumps(self.head_runs + self.watch_runs), encoding="utf-8")
+        runs = self.head_runs + self.watch_runs + [dict(run, head_sha=self.head) for run in self.head_watch_runs]
+        self.checks.write_text(json.dumps(runs), encoding="utf-8")
 
     def set_activity(self, after: str, timestamp: str, kind: str = "push") -> None:
         self.activity.write_text(json.dumps([{"id": 1, "ref": "refs/heads/main", "before": "0" * 40, "after": after,
@@ -215,7 +252,8 @@ class MergeTest(unittest.TestCase):
         result = self.merge()
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.merged(), [["api", "repos/owner/project/pulls/7/merge", "-X", "PUT", "-f", "merge_method=squash",
-                                          "-f", f"sha={self.head}", "-f", "commit_title=keyturn: delivery-1 (#7)"]])
+                                          "-f", f"sha={self.head}", "-f", "commit_title=keyturn: delivery-1 (#7)",
+                                          "-f", "commit_message=Merged by keyturn's merge.py after its checks (task delivery-1)."]])
         self.assertEqual(self.conditions_log.read_text().split(),
                          ["--task", "delivery-1", "--default-branch", "origin/main", "--head", self.head])
 
@@ -238,20 +276,43 @@ class MergeTest(unittest.TestCase):
         self.assert_refused(self.merge(), "task/delivery-1 on origin is not at the local HEAD")
 
     def test_checks_that_failed_or_did_not_finish_are_refused(self):
-        self.set_checks(("keyturn gate", "success"), ("keyturn conditions", "failure"))
-        self.assert_refused(self.merge(), "did not pass: keyturn conditions (failure")
-        self.set_checks(("keyturn gate", "success"), ("keyturn conditions", None))
-        self.assert_pending(self.merge(), "keyturn conditions on")
-        self.set_checks(("keyturn gate", "success"))
+        self.set_gate(self.gate_run("failure", {"keyturn gate": "success", "keyturn conditions": "failure"}))
+        self.assert_refused(self.merge(), "did not pass: .github/workflows/keyturn-gate.yml did not pass (failure")
+        self.set_gate(self.gate_run(None))
+        self.assert_pending(self.merge(), "keyturn-gate.yml has not finished")
+        self.set_gate()
         self.assert_pending(self.merge(), "have not finished (or not started)")
 
-    def test_a_check_from_another_app_does_not_count(self):
-        self.set_checks(("keyturn gate", "success"), ("keyturn conditions", "success"), app="someone-else")
-        self.assert_pending(self.merge(), "have not finished (or not started)")
+    def test_a_passing_run_whose_jobs_did_not_both_pass_is_refused(self):
+        # A run whose jobs were skipped (a draft) or that has only one of them does not count as a pass.
+        self.set_gate(self.gate_run("success", {"keyturn gate": "skipped", "keyturn conditions": "skipped"}))
+        self.assert_refused(self.merge(), "the jobs keyturn gate, keyturn conditions did not pass (skipped, skipped")
+        self.set_gate(self.gate_run("success", {"keyturn gate": "success"}))
+        self.assert_refused(self.merge(), "the job keyturn conditions did not pass (no job")
 
-    def test_the_newest_run_of_a_check_counts(self):
-        self.set_checks(("keyturn gate", "success"), ("keyturn conditions", "failure"), ("keyturn conditions", "success"))
+    def test_a_run_of_another_workflow_event_or_repository_does_not_count(self):
+        for changes in ({"path": ".github/workflows/other.yml"}, {"event": "push"},
+                        {"head_repository": {"full_name": "someone/project"}}, {"head_sha": "0" * 40}):
+            with self.subTest(changes=changes):
+                self.set_gate(self.gate_run(**changes))
+                self.assert_pending(self.merge(), "have not finished (or not started)")
+
+    def test_a_run_path_with_a_ref_counts(self):
+        self.set_gate(self.gate_run(path=".github/workflows/keyturn-gate.yml@refs/pull/7/merge"))
         self.assertEqual(self.merge().returncode, 0)
+
+    def test_the_newest_run_counts(self):
+        self.set_gate(self.gate_run("failure"), self.gate_run("success"))
+        self.assertEqual(self.merge().returncode, 0)
+
+    def test_a_task_branch_that_changes_a_workflow_is_refused(self):
+        (self.root / ".github" / "workflows" / "keyturn-gate.yml").write_text("changed\n", encoding="utf-8")
+        self.git("add", ".")
+        self.head = self.commit("ci: change the gate")
+        self.git("push", "-q", "origin", "task/delivery-1")
+        self.set_prs([self.pr()])
+        self.set_gate(self.gate_run())
+        self.assert_refused(self.merge(), "changes files under .github/workflows/")
 
     def test_conditions_that_do_not_hold_are_refused(self):
         self.env["FAKE_CONDITIONS_FAIL"] = "1"
@@ -282,10 +343,23 @@ class MergeTest(unittest.TestCase):
         self.assert_pending(self.merge(), "keyturn watch on main's tip")
         self.set_watch()
         self.assert_pending(self.merge(), "no run of keyturn watch")
-        self.set_watch("success", app="someone-else")
+        self.set_watch("success", path=".github/workflows/other.yml")
         self.assert_pending(self.merge(), "no run of keyturn watch")
+        self.set_watch("success")
+        self.watch_runs[0]["jobs"][0]["conclusion"] = "skipped"
+        self.write_checks()
+        self.assert_refused(self.merge(), "the job keyturn watch did not pass")
         self.set_watch("success", sha=self.head)  # on the task's head, not on the tip
         self.assert_pending(self.merge(), "no run of keyturn watch")
+
+    def test_a_failed_watch_on_the_task_s_head_is_refused(self):
+        # A force push to the task branch: the push's own run of keyturn watch fails on the head (ADR 0050).
+        self.set_head_watch("success", "failure")
+        self.assert_refused(self.merge(), "keyturn watch on the task's head")
+        self.set_head_watch()
+        self.assert_pending(self.merge(), "keyturn watch on the task's head")
+        self.set_head_watch(None)
+        self.assert_pending(self.merge(), "has not finished")
 
     def test_an_old_success_before_the_last_push_does_not_count(self):
         # The branch was reset to a commit with an old passing run: the reset is a push after it.
@@ -307,7 +381,7 @@ class MergeTest(unittest.TestCase):
         self.script.write_text(self.script.read_text(encoding="utf-8").replace("POLL_SECONDS = 30", "POLL_SECONDS = 0.2"),
                                encoding="utf-8")
         self.set_activity("1" * 40, PUSHED)
-        self.set_checks(("keyturn gate", "success"), ("keyturn conditions", None))
+        self.set_gate(self.gate_run(None))
         catch_up = textwrap.dedent(f"""\
             import json, time
             time.sleep(1)
@@ -315,6 +389,8 @@ class MergeTest(unittest.TestCase):
             runs = json.load(open({str(self.checks)!r}))
             for run in runs:
                 run.update(status="completed", conclusion="success")
+                for job in run["jobs"]:
+                    job.update(status="completed", conclusion="success")
             open({str(self.checks)!r}, "w").write(json.dumps(runs))
         """)
         writer = subprocess.Popen([sys.executable, "-c", catch_up])
@@ -335,7 +411,7 @@ class MergeTest(unittest.TestCase):
         self.head = self.git("rev-parse", "HEAD")
         self.git("push", "-q", "-f", "origin", "task/delivery-1")
         self.set_prs([self.pr()])
-        self.set_checks(("keyturn gate", "success"), ("keyturn conditions", "success"))
+        self.set_gate(self.gate_run())
         self.set_activity(self.tip, PUSHED)
         self.assert_refused(self.merge(), "keyturn-watch.yml is not on main")
         self.set_protection(rules=[{"type": "required_status_checks", "parameters": {
@@ -355,6 +431,15 @@ class MergeTest(unittest.TestCase):
         self.assertEqual(protection(), "protected")
         self.rules.write_text("not json", encoding="utf-8")
         self.assertEqual(protection(), "protected")
+
+    def test_the_protection_option_says_not_known_when_the_rules_cannot_be_read(self):
+        # On a private repository on GitHub Free, the rules answer 403, as they do for a token without a permission.
+        self.env["FAKE_GH_RULES_FAIL"] = "1"
+        result = self.merge("--protection")
+        self.assertEqual((result.returncode, result.stdout.strip()), (0, "not known"), result.stderr)
+        self.set_protection(rules=[], branch={"protected": True, "protection": {"enabled": True, "required_status_checks": {
+            "contexts": ["keyturn gate", "keyturn conditions"]}}})
+        self.assertEqual(self.merge("--protection").stdout.strip(), "protected")
         self.assertEqual(self.merged(), [])
 
     def test_a_merge_commit_that_is_not_the_checked_head_on_the_checked_tip_stops_for_the_maintainer(self):
@@ -382,7 +467,7 @@ class MergeTest(unittest.TestCase):
         self.head = self.commit("a change")
         self.git("push", "-q", "origin", "task/delivery-1")
         self.set_prs([self.pr()])
-        self.set_checks(("keyturn gate", "success"), ("keyturn conditions", "success"))
+        self.set_gate(self.gate_run())
         result = self.merge()
         self.assertEqual(result.returncode, 4, result.stderr)
         self.assertIn("does not have the tree of the checked head", result.stderr)
