@@ -318,9 +318,11 @@ def guide_translation(text: str = GUIDE, name: str = "acceptance-guide.md") -> s
 
 
 def acceptance_row(commit: str, guide_sha: str, report_sha: str, translations: tuple[str, str] = ("none", "none"),
-                   answer: str = "waiting", task: str = "delivery-1") -> str:
+                   answer: str = "waiting", task: str = "delivery-1", words: str | None = None) -> str:
+    if words is None:
+        words = "none" if answer == "waiting" else "問題ありません。受け入れます。"
     return (f"| acceptance-guide.md, delivery-report.md | {task} | {commit} | Japanese (original) | {guide_sha} | "
-            f"{report_sha} | {translations[0]} | {translations[1]} | 2026-11-22 | {answer} | |\n")
+            f"{report_sha} | {translations[0]} | {translations[1]} | 2026-11-22 | {answer} | {words} | |\n")
 
 
 class AcceptanceTest(RepoTest):
@@ -367,7 +369,23 @@ class AcceptanceTest(RepoTest):
                     acceptance_row(self.commit, sha(GUIDE), sha(REPORT), answer="accepted"),
                     acceptance_row("0" * 40, sha(GUIDE), sha(REPORT), task="delivery-2"))
         result = self.repo.run("accept-status", "delivery-1")
-        self.assertEqual((result.returncode, result.stdout), (0, "delivery-1: current, answer: accepted\n"), result.stderr)
+        self.assertEqual((result.returncode, result.stdout),
+                         (0, "delivery-1: current, answer: accepted\nin the client's words: 問題ありません。受け入れます。\n"),
+                         result.stderr)
+
+    def test_status_keeps_an_escaped_pipe_in_the_client_s_words(self):
+        self.record(acceptance_row(self.commit, sha(GUIDE), sha(REPORT), answer="not accepted",
+                                   words=r"一覧の「完了 \| 未完了」の切り替えを直してください"))
+        result = self.repo.run("accept-status", "delivery-1")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("answer: not accepted\n", result.stdout)
+        self.assertIn(r"完了 \| 未完了", result.stdout)
+
+    def test_status_checks_the_client_s_words_against_the_answer(self):
+        self.record(acceptance_row(self.commit, sha(GUIDE), sha(REPORT), answer="accepted", words="none"))
+        self.assertFails(self.repo.run("accept-status", "delivery-1"), "the client's words are missing")
+        self.record(acceptance_row(self.commit, sha(GUIDE), sha(REPORT), answer="waiting", words="受け入れます"))
+        self.assertFails(self.repo.run("accept-status", "delivery-1"), "write none until the client answers")
 
     def test_status_finds_a_changed_document_or_a_later_commit_of_them_stale(self):
         self.record(acceptance_row(self.commit, sha(GUIDE), sha(REPORT), answer="accepted"))
@@ -377,8 +395,9 @@ class AcceptanceTest(RepoTest):
         self.assertFails(self.repo.run("accept-status", "delivery-1"), "stale (the acceptance guide or the delivery report changed after")
 
     def test_status_refuses_an_answer_that_is_not_one_of_the_words(self):
-        self.record(acceptance_row(self.commit, sha(GUIDE), sha(REPORT), answer="承認"))
-        self.assertFails(self.repo.run("accept-status", "delivery-1"), "use waiting, accepted, or not accepted")
+        for answer in ("承認", "accepted（受け入れ）", "not accepted: fix R-3"):
+            self.record(acceptance_row(self.commit, sha(GUIDE), sha(REPORT), answer=answer))
+            self.assertFails(self.repo.run("accept-status", "delivery-1"), "use waiting, accepted, or not accepted")
 
     def test_status_without_a_row_or_with_a_translation_and_no_lang(self):
         self.record()

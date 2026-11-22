@@ -19,7 +19,8 @@ Usage:
                                        the acceptance row (ADR 0046).
   approval.py accept-status TASK [--lang LANG]
                                        Check the newest acceptance row of TASK: whether the two documents are still
-                                       the ones sent, at the same commit, and the client's answer.
+                                       the ones sent, at the same commit, and the client's answer, as the fixed
+                                       word and in the client's words.
 
 Every command prints its result, or every problem (one per line) and exits 1.
 Paths are resolved from the root of the Git repository, whatever the current folder.
@@ -45,7 +46,12 @@ DELIVERY_DOCUMENTS = (ACCEPTANCE_GUIDE, DELIVERY_REPORT)
 # The first cell of an acceptance row, fixed whatever the document language, so that a script finds the row (ADR 0046).
 ACCEPTANCE_ROW = "acceptance-guide.md, delivery-report.md"
 # The answers of an acceptance row: fixed English words, read by CI in any document language (ADR 0046).
-ACCEPTANCE_ANSWER_RE = re.compile(r"waiting|accepted|not accepted: .+")
+# What the client wrote goes in the next cell, in their words; the client never types these words.
+ACCEPTANCE_ANSWERS = ("waiting", "accepted", "not accepted")
+# Cells of an acceptance row, by index.
+ANSWER, CLIENT_WORDS, ACCEPTANCE_CELLS = 9, 10, 12
+# A cell ends at a pipe that is not escaped, so the client's words may contain one written as \|.
+CELL_SPLIT_RE = re.compile(r"(?<!\\)\|")
 TASK_RE = re.compile(r"[a-z0-9][a-z0-9-]*")
 COMMIT_RE = re.compile(r"[0-9a-f]{40}")
 ATTRIBUTES_LINE = f"{CLIENT_DIR}/*.md text eol=lf"
@@ -361,8 +367,11 @@ def acceptance_rows(text: str, task: str) -> list[list[str]]:
     """The acceptance rows of a task, in file order (newest last), found by their fixed first cell (ADR 0046)."""
     rows = []
     for line in text.splitlines():
-        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
-        if line.lstrip().startswith("|") and len(cells) >= 10 and cells[0] == ACCEPTANCE_ROW and cells[1] == task:
+        stripped = line.strip()
+        if not stripped.startswith("|"):
+            continue
+        cells = [cell.strip() for cell in CELL_SPLIT_RE.split(stripped.removeprefix("|").removesuffix("|"))]
+        if len(cells) >= ACCEPTANCE_CELLS and cells[0] == ACCEPTANCE_ROW and cells[1] == task:
             rows.append(cells)
     return rows
 
@@ -370,14 +379,20 @@ def acceptance_rows(text: str, task: str) -> list[list[str]]:
 def acceptance_problems(root: Path, task: str, row: list[str], lang: str | None) -> list[str]:
     """Whether the row is current: the documents commit, and the hashes of the two documents and their translations."""
     problems = []
-    commit, answer = row[2], row[9]
+    commit, answer, words = row[2], row[ANSWER], row[CLIENT_WORDS]
     if not COMMIT_RE.fullmatch(commit):
         problems.append(f"{APPROVALS}: {task}: the documents commit is not a full commit hash")
     elif commit != documents_commit(root):
         problems.append(f"{task}: stale (the acceptance guide or the delivery report changed after {commit[:12]})")
-    if not ACCEPTANCE_ANSWER_RE.fullmatch(answer):
+    if answer not in ACCEPTANCE_ANSWERS:
         problems.append(f"{APPROVALS}: {task}: the answer is {answer or '(empty)'!r}; use waiting, accepted, "
-                        "or not accepted: <what to change>")
+                        "or not accepted, and put the client's words in the next cell")
+    elif answer == "waiting" and words != "none":
+        problems.append(f"{APPROVALS}: {task}: the answer is waiting, but the client's words are {words or '(empty)'!r}; "
+                        "write none until the client answers")
+    elif answer != "waiting" and words in ("", "none"):
+        problems.append(f"{APPROVALS}: {task}: the answer is {answer}, but the client's words are missing; "
+                        "write what the client wrote")
     for rel_path, sha_cell, translation_cell in zip(DELIVERY_DOCUMENTS, row[4:6], row[6:8]):
         if not SHA_RE.fullmatch(sha_cell):
             problems.append(f"{APPROVALS}: {task}: the SHA-256 of {Path(rel_path).name} is not a SHA-256")
@@ -403,7 +418,8 @@ def cmd_accept_status(root: Path, task: str, lang: str | None) -> None:
     problems = acceptance_problems(root, task, rows[-1], lang)
     if problems:
         raise ApprovalError(problems)
-    print(f"{task}: current, answer: {rows[-1][9]}")
+    print(f"{task}: current, answer: {rows[-1][ANSWER]}")
+    print(f"in the client's words: {rows[-1][CLIENT_WORDS]}")
 
 
 def check_task(task: str) -> str:
