@@ -64,7 +64,7 @@ A stop between the done commit and the merge (a closed session, a usage limit) l
 ## Consequences
 
 - "Merging is the client's action" in `docs/design/github-integration.md` becomes "Merging needs the client's acceptance", with the PM merging on these conditions.
-- #138 runs the gate in CI; #141 records the acceptance, checks the conditions in CI, adds the `merge` step and the `merge` role's commits to `deliver`, the state template, and the gate, adds `accepted: decision card <n>` to the review template, and writes the setup steps.
+- #138 runs the gate in CI; #141 records the acceptance, checks the conditions in CI, adds the `merge` step and the `merge` role's commits to `deliver`, the state template, and the gate, adds `accepted: decision card <n>` to the review template, makes `resume` continue a task that is done but not merged, and writes the setup steps.
 - `task_state.py unmerged` ([ADR 0034](0034-new-task-waits-for-unmerged-task-branches.md)) keeps working, since the merge is the task's last action: the state file is set to done in the last commit before the merge, the squash merge carries it, and nothing is committed to the task branch after it.
 - A private repository on a free plan cannot be used for a task until it is public or on a paid plan.
 - The end-to-end run (#63) checks the setup before it starts.
