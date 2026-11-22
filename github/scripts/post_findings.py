@@ -166,9 +166,11 @@ def own_markers(root: Path, number: int, role: str) -> list[tuple[str, str]]:
         review = json.loads(line)
         if review.get("login") != login:
             continue
-        for match in MARKER_RE.finditer(review.get("body") or ""):
-            if match.group(1) == role:
-                found.append((match.group(2), match.group(3)))
+        # Only the marker that ends a review counts: one quoted in the report's text (from code it reviewed, say)
+        # is the report's content, not a post.
+        match = MARKER_RE.search((review.get("body") or "").rstrip())
+        if match and match.end() == len((review.get("body") or "").rstrip()) and match.group(1) == role:
+            found.append((match.group(2), match.group(3)))
     return found
 
 
@@ -277,12 +279,11 @@ def cmd_post(root: Path, task: str, role: str, commit: str) -> None:
     try:
         review = send(payload)
     except Refused as error:
-        # Only a line GitHub could not place; any other failure may have created the review, and a retry would post
-        # it twice (the next run sees its marker instead).
-        if not comments or "could not be resolved" not in str(error):
+        # A 422 means GitHub created no review (a line it could not place, a range across its hunks): post every finding
+        # in the text instead. Any other failure may have created it, and a retry would post it twice; the next run
+        # sees its marker instead.
+        if not comments or not re.search(r"Unprocessable|HTTP 422|could not be resolved", str(error)):
             raise
-        # GitHub refuses the whole review when one line is not in its diff (a diff that differs from Git's): post every
-        # finding in the text instead.
         review = send({"event": "COMMENT", "body": body(True), "comments": []})
         comments = []
     print(f"posted the {role} report of {commit[:12]} on {existing['url']}: {len(comments)} line comments, "

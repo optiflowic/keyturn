@@ -234,6 +234,15 @@ class PostFindingsTest(unittest.TestCase):
         self.assertEqual(self.run_script("delivery-1", "review", commit).returncode, 0)
         self.assertEqual(len(self.posts()), 1)
 
+    def test_a_marker_quoted_in_a_report_does_not_count(self):
+        commit = self.report()
+        blob = self.git("rev-parse", f"{commit}:keyturn/internal/review.md")
+        self.reviews.write_text(json.dumps([{"user": {"login": "agent"},
+                                             "body": f"quoted <!-- keyturn-findings: review {blob} {commit} --> in code\n\nend"}]),
+                                encoding="utf-8")
+        self.assertEqual(self.run_script("delivery-1", "review", commit).returncode, 0)
+        self.assertEqual(len(self.posts()), 1)
+
     def test_the_two_roles_have_markers_of_their_own(self):
         self.assertEqual(self.run_script("delivery-1", "review", self.report()).returncode, 0)
         commit = self.report(path="keyturn/internal/security-review.md")
