@@ -46,7 +46,8 @@
       "Bash(gh pr comment *)",
       "Bash(gh pr reopen *)",
       "Bash(gh pr update-branch *)",
-      "Bash(gh pr lock *)"
+      "Bash(gh pr lock *)",
+      "Bash(gh api *)"
     ]
   }
 }

@@ -108,6 +108,8 @@ class PermissionSettings(unittest.TestCase):
         deny = self.settings["permissions"]["deny"]
         for command in ("merge", "create", "edit", "ready", "close", "review", "comment", "reopen", "update-branch", "lock"):
             self.assertIn(f"Bash(gh pr {command} *)", deny)
+        # ADR 0045: gh api would post on the pull request around post_findings.py.
+        self.assertIn("Bash(gh api *)", deny)
 
 
 if __name__ == "__main__":
