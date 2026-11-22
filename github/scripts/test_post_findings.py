@@ -266,6 +266,17 @@ class PostFindingsTest(unittest.TestCase):
         self.assertIn("#### F-3: About the design", post["body"])
         self.assertNotIn("F-9", post["body"])
 
+    def test_inline_code_on_a_line_of_its_own_is_not_a_fence(self):
+        text = REPORT.format(base=self.base, head=self.developer, status="open").replace(
+            "Three findings. Nothing for @someone to do.\n", "Three findings. Nothing for @someone to do.\n\n```Use `cnt` here```\n")
+        self.put("keyturn/internal/review.md", text)
+        commit = self.commit("docs(review): review delivery-1")
+        self.pushed()
+        self.assertEqual(self.run_script("delivery-1", "review", commit).returncode, 0)
+        [post] = self.posts()
+        self.assertEqual([(c["path"], c["line"]) for c in post["comments"]], [("app/main.py", 2)])
+        self.assertIn("#### F-2: Outside the diff", post["body"])
+
     def test_the_two_roles_have_markers_of_their_own(self):
         self.assertEqual(self.run_script("delivery-1", "review", self.report()).returncode, 0)
         commit = self.report(path="keyturn/internal/security-review.md")

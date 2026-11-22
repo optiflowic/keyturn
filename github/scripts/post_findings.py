@@ -72,6 +72,9 @@ def outside_fences(lines: list[str]) -> list[bool]:
     result, fence = [], None
     for line in lines:
         match = FENCE_RE.match(line)
+        # A backtick fence's opening line has no other backtick (CommonMark): ```Use `cnt` here``` is inline code.
+        if fence is None and match and match.group(1)[0] == "`" and "`" in line.strip()[len(match.group(1)):]:
+            match = None
         if fence is None:
             result.append(match is None)
             if match:
