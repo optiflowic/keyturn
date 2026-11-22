@@ -51,6 +51,7 @@ Stopped in the middle of the programming because the plan's 5-hour usage window 
 | security-review | not started | | | |
 | review | not started | | | |
 | deliver | not started | | | |
+| merge | not started | | | |
 
 ## Commits
 
@@ -109,7 +110,7 @@ class TemplateTest(unittest.TestCase):
             "Task", "Requirements version", "Branch", "Status", "Current step", "Stopped because",
             "Can continue", "Rework", "Updated",
         ])
-        self.assertEqual(template.steps, ["spec", "design", "conventions", "implement", "qa", "security-review", "review", "deliver"])
+        self.assertEqual(template.steps, ["spec", "design", "conventions", "implement", "qa", "security-review", "review", "deliver", "merge"])
         self.assertEqual(template.step_statuses, ["not started", "in progress", "done", "skipped"])
         self.assertEqual([p.text for p in template.fields["Status"]], ["running", "stopped", "done"])
         self.assertEqual(template.sections, ["Summary", "Steps", "Commits", "Open questions", "History"])
@@ -224,17 +225,17 @@ class MalformedTimesTest(unittest.TestCase):
 
     def test_history_time(self):
         problems = check(STOPPED.replace("- 2026-11-08T01:05Z: started", "- 8 Nov 2026: started"))
-        self.assertIn('line 40: "8 Nov 2026" should be a UTC time in the form YYYY-MM-DDTHH:MMZ', problems)
+        self.assertIn('line 41: "8 Nov 2026" should be a UTC time in the form YYYY-MM-DDTHH:MMZ', problems)
 
     def test_history_out_of_order(self):
         problems = check(STOPPED.replace("- 2026-11-08T06:02Z: resumed", "- 2026-11-08T03:22Z: resumed"))
         self.assertNotIn("should not be earlier than the line before it", " ".join(problems))
         problems = check(STOPPED.replace("- 2026-11-08T12:48Z: stopped: usage", "- 2026-11-08T05:48Z: stopped: usage"))
-        self.assertIn("line 43: 2026-11-08T05:48Z should not be earlier than the line before it (newest last)", problems)
+        self.assertIn("line 44: 2026-11-08T05:48Z should not be earlier than the line before it (newest last)", problems)
 
     def test_open_question_time(self):
         problems = check(WAITING.replace("Waiting since 2026-11-08T03:20Z", "Waiting since yesterday"))
-        self.assertIn('line 36: "yesterday" should be a UTC time in the form YYYY-MM-DDTHH:MMZ', problems)
+        self.assertIn('line 37: "yesterday" should be a UTC time in the form YYYY-MM-DDTHH:MMZ', problems)
 
     def test_blocks_names_steps_of_the_template(self):
         self.assertEqual(check(WAITING), [])
@@ -244,16 +245,16 @@ class MalformedTimesTest(unittest.TestCase):
 
     def test_blocks_with_an_unknown_step_is_reported(self):
         problems = check(WAITING.replace("Blocks: design and every later step", "Blocks: the design"))
-        self.assertIn('line 36: "Blocks:" names "the design", which should be a step (spec, design, conventions, implement, '
-                      'qa, security-review, review, deliver), "every later step" right after a step, or a requirement (R-n)', problems)
+        self.assertIn('line 37: "Blocks:" names "the design", which should be a step (spec, design, conventions, implement, '
+                      'qa, security-review, review, deliver, merge), "every later step" right after a step, or a requirement (R-n)', problems)
 
     def test_empty_blocks_is_reported(self):
         for blocks in (".", ",", ", ."):
             with self.subTest(blocks=blocks):
                 problems = check(WAITING.replace("Blocks: design and every later step", f"Blocks: {blocks}"))
-                self.assertIn('line 36: "Blocks:" should name at least one step or requirement', problems)
+                self.assertIn('line 37: "Blocks:" should name at least one step or requirement', problems)
         problems = check(WAITING.replace("Blocks: design and every later step", "Blocks: implement, , qa"))
-        self.assertIn('line 36: "Blocks: implement, , qa" has an empty item between its commas or "and"', problems)
+        self.assertIn('line 37: "Blocks: implement, , qa" has an empty item between its commas or "and"', problems)
 
     def test_blocks_every_later_step_needs_a_step_before_it(self):
         problems = check(WAITING.replace("Blocks: design and every later step", "Blocks: every later step"))
@@ -267,7 +268,7 @@ class BrokenStepsTableTest(unittest.TestCase):
     def test_steps_out_of_order(self):
         text = STOPPED.replace("| qa | not started | | | |\n| security-review | not started | | | |\n",
                                "| security-review | not started | | | |\n| qa | not started | | | |\n")
-        self.assertIn("Steps: the steps should be in this order: spec, design, conventions, implement, qa, security-review, review, deliver", check(text))
+        self.assertIn("Steps: the steps should be in this order: spec, design, conventions, implement, qa, security-review, review, deliver, merge", check(text))
 
     def test_unknown_and_duplicate_step(self):
         problems = check(STOPPED.replace("| review | not started | | | |", "| review | not started | | | |\n| review | not started | | | |\n| lint | not started | | | |"))

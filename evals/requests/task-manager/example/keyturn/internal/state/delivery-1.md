@@ -8,11 +8,11 @@
 - Stopped because: none
 - Can continue: not applicable
 - Rework: 1 of 3
-- Updated: 2026-11-08T21:40Z
+- Updated: 2026-11-09T09:12Z
 
 ## Summary
 
-Delivery 1 is done: the acceptance guide and the delivery report are ready for the client. The task stopped twice on the way, once for the client's answers and once for a usage limit, and was resumed both times.
+Delivery 1 is done: the client accepted it, and the pull request is merged. The task stopped three times on the way, for the client's answers, for a usage limit, and for the client's acceptance, and was resumed each time.
 
 ## Steps
 
@@ -26,6 +26,7 @@ Delivery 1 is done: the acceptance guide and the delivery report are ready for t
 | security-review | done | [security review](../security-review.md) | `e5b8c90` | reviewed `09f4c3d`..`9b02d4f` |
 | review | done | [review](../review.md) | `f1c4d27` | reviewed `09f4c3d`..`9b02d4f` |
 | deliver | done | [acceptance guide](../../client/acceptance-guide.md), [delivery report](../../client/delivery-report.md) | `c08d5e1` | |
+| merge | done | [approvals](../../client/approvals.md) | `5e9b3c7` | accepted by the client on 2026-11-09 |
 
 ## Commits
 
@@ -64,6 +65,11 @@ Delivery 1 is done: the acceptance guide and the delivery report are ready for t
 - `f1c4d27f7563f6335310bf7da5b2d8787e173d0d`: review, round 2
 - `f3a8e05f617c0b829d27d118e9969905328193c3`: deliver, round 2
 - `c08d5e18368f08616c7e7b4b37e9dfdc8eafe711`: deliver, round 2
+- `b4d7e2a09c3f61e85a2d4c7b9e0f1a3d5c6b8e27`: deliver, round 2
+- `2f6a9d1c4e8b07a3d5f2c9e6b1a4d7c0e3f8b562`: merge, round 2
+- `6c1e8f3a5d2b9047e6c3a8f1d5b2e9c7a4f0d318`: deliver, round 2
+- `8a3f5c2e9d1b4706f8e2a5c3d9b1e7f4a6c0d285`: deliver, round 2
+- `5e9b3c7d1a4f28e6b0c9d3a7f5e1b8c2d6a4f093`: merge, round 2
 
 ## Open questions
 
@@ -76,4 +82,6 @@ None.
 - 2026-11-08T06:02Z: resumed: in design, from commit `5d0b9e2`
 - 2026-11-08T12:48Z: stopped: usage limit, in implement (5-hour window at 80%, resets at 2026-11-08T15:30Z)
 - 2026-11-08T15:41Z: resumed: in implement, from commit `4f8d2c0`
-- 2026-11-08T21:40Z: done
+- 2026-11-08T21:40Z: stopped: waiting for the client, in merge (acceptance of delivery-1)
+- 2026-11-09T09:05Z: resumed: in merge, from commit `6c1e8f3`
+- 2026-11-09T09:12Z: done

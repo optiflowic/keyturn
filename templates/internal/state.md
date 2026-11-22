@@ -17,7 +17,7 @@ Template: task state file (internal). Written by `deliver` at every step boundar
 - Status: <running | stopped | done>
 - Current step: <step name from the table below | none>
 - Stopped because: <none | usage limit | session ended | waiting for the client | waiting for the maintainer | rework limit | budget limit | error>
-- Can continue: <now | after YYYY-MM-DDTHH:MMZ | when the client approves: requirements version <n> | when the client answers: decision card <n> | when the client agrees: design summary | when the maintainer decides: <what> | not applicable>
+- Can continue: <now | after YYYY-MM-DDTHH:MMZ | when the client approves: requirements version <n> | when the client answers: decision card <n> | when the client agrees: design summary | when the client accepts: <task> | when the maintainer decides: <what> | not applicable>
 - Rework: <n> of <limit>
 - Updated: <YYYY-MM-DDTHH:MMZ>
 
@@ -47,6 +47,7 @@ One row per step, in the order deliver runs them. Do not remove rows; a step tha
 | security-review | <status> | <links> | <commit> | <notes> |
 | review | <status> | <links> | <commit> | <notes> |
 | deliver | <status> | <links> | <commit> | <notes> |
+| merge | <status> | <links> | <commit> | <notes> |
 
 ## Commits
 
