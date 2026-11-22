@@ -11,10 +11,11 @@ A minimum viable keyturn is built first, before the numbered phases are finished
 - From phase 3: `deliver`, the Claude Code adapter's subagent definitions, and minimal permission settings that block direct pushes to the default branch and destructive commands. Not the sandbox or the translation subagent.
 - From phase 4: a minimal gate and minimal `go` and `react-spa` profiles: build, tests, lint, no drop in the number of tests, protected paths, and new suppression comments. Not skipped tests, coverage, the evaluation baseline, or the eval suite.
 - From phase 6: one run from request to delivery on a real application, including a stopped run finished with `resume`.
+- From phase 7: delivery through a pull request on GitHub. Agents push the task branch and open the pull request, the review roles post their findings on it, the gate runs in CI, and the PM merges when the gate passes, no high or medium finding is open, and the client's acceptance is recorded, with branch protection requiring the same checks ([ADR 0041](../adr/0041-agents-push-task-branches-and-open-pull-requests.md), [ADR 0042](../adr/0042-pm-merges-on-machine-checked-conditions.md)). Not issues, the Project board, labels, or a separate identity for agents. Other Git hosts are not in the MVP.
 
 What the MVP runs without (the sandbox and the profiles' security checks) is listed in each delivery report under "What was not verified" ([Guardrails](guardrails.md) 4, [Stack Profiles](stack-profiles.md)).
 
-- Done when: a real application runs from request to a delivery report with `deliver`, a stopped run is finished with `resume` in a new session, and the client can decide from the client-facing documents without reading the code.
+- Done when: a real application runs from request to a merged pull request with `deliver`, a stopped run is finished with `resume` in a new session, and the client can decide from the client-facing documents without reading the code.
 
 Everything else in the phases below is an enhancement after the MVP. The phases keep their numbers and order for it.
 
@@ -37,11 +38,12 @@ Everything else in the phases below is an enhancement after the MVP. The phases 
    - In the MVP: the first run, with the MVP gate and profiles and without the sandbox or the security checks of phase 5.
 7. **GitHub integration**: issues, Project board, labels, Actions, PR-based delivery
    - Done when: a task moves from issue to merged PR with the client only approving requirements and doing the final check.
+   - In the MVP: pushing the task branch, the pull request, the reviews on it, the gate in CI, and the PM's merge on machine-checked conditions. Issues, the Project board, labels, and a GitHub App for agents (so that the client's approval of the pull request can be a required review) are enhancements after it.
 8. **Client portal**: build it with keyturn, on top of the GitHub integration
    - Done when: the client can approve requirements, answer questions, and do acceptance checks from the portal alone.
 9. **More profiles**, one at a time
 10. **Codex adapter**
     - Done when: the same evaluation requests run on Codex as on Claude Code.
 11. **Existing-repository mode**: onboarding, then the first real issue on an existing repository
-    - Done when: the delivery report and acceptance guide are good enough for the client to merge without reading the code.
+    - Done when: the delivery report and acceptance guide are good enough for the client to accept without reading the code.
 12. Later: security and operations roles; DAST (OWASP ZAP); scheduled unattended runs

@@ -26,11 +26,11 @@ AI agents sometimes suggest packages that do not exist or that imitate popular o
 
 - Agents run in a sandbox (container or the tool's sandbox mode) with only the access they need.
 - No production credentials. Network access is limited to what the task needs.
-- Destructive commands and direct pushes to the default branch are blocked.
+- Destructive commands, direct pushes to the default branch, and force pushes are blocked. Agents push only the task branch, through keyturn's scripts, and branch protection on the host blocks the rest whatever command ran ([ADR 0041](../adr/0041-agents-push-task-branches-and-open-pull-requests.md)).
 
 These are safety guardrails that must always be on, so unlike quality gates they **are** enforced with each tool's own mechanisms (permission rules, sandbox settings, and hooks). The adapters ship recommended settings for each tool.
 
-During the MVP ([Phases](phases.md#mvp), [ADR 0025](../adr/0025-mvp-first.md)), agents run without a sandbox: the adapter ships only permission rules that block direct pushes to the default branch and destructive commands, and network access and credentials are limited only by how the person runs it. Every delivery report made during that time says so under "What was not verified".
+During the MVP ([Phases](phases.md#mvp), [ADR 0025](../adr/0025-mvp-first.md)), agents run without a sandbox: the adapter ships only permission rules that block the plain push and merge commands (agents push through keyturn's scripts) and destructive commands, branch protection on the host blocks pushes to the default branch, and network access and credentials are limited only by how the person runs it. Every delivery report made during that time says so under "What was not verified".
 
 ## 5. Budgets and escalation
 

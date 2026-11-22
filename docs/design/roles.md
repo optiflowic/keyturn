@@ -16,6 +16,8 @@ The `deliver` pipeline runs these in order and ends by producing `acceptance-gui
 
 Each role runs in a context of its own, and `deliver` checkpoints every step in the task state file. After each `implement` step, `deliver` runs the gate; when it passes, QA, the security role, and the reviewer all run before anything goes back. A failing gate, a failing test, or a high or medium finding sends the work back to the developer with every open finding, up to a rework limit (3 rounds by default, set in `keyturn/config.json`); low findings alone are listed in the delivery report ([ADR 0030](../adr/0030-deliver-rework-loop.md)). During the MVP, one task runs at a time (a new one also waits while a task branch is not merged, unless the person says to start anyway, [ADR 0034](../adr/0034-new-task-waits-for-unmerged-task-branches.md)), and its requirements, design, and conventions are fixed once `implement` starts: the design step waits until the client has answered everything it asked, and a later need to change them stops the task for the maintainer ([ADR 0031](../adr/0031-documents-fixed-once-implement-starts.md)).
 
+The work is delivered as a pull request: `deliver` pushes the task branch and opens it, the security role and the reviewer post their findings on it, and the PM merges it once the client has accepted the delivery and the machine checks pass ([ADR 0041](../adr/0041-agents-push-task-branches-and-open-pull-requests.md), [ADR 0042](../adr/0042-pm-merges-on-machine-checked-conditions.md)).
+
 ## Architect
 
 The architect turns requirements into a design that fits their size and nature.
