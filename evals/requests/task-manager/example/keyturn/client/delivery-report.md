@@ -40,6 +40,7 @@ R-5, R-6, and R-9 are planned for delivery 2, so that this delivery has no more 
 - The web pages in a real browser: the automatic tests use them in a simulated browser, so please try them in yours with the acceptance guide.
 - How the pages look on phones: no requirement covers it, so nobody checked it.
 - R-5, R-6, and R-9: not part of this delivery.
+- Blocking changes to the main version of the code that skip keyturn's checks: your repository on GitHub has no branch protection, so such a change is noticed afterwards and reported to the maintainer, not blocked. GitHub offers branch protection on public repositories and on paid plans.
 
 ## Remaining risks
 
