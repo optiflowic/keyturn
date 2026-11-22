@@ -24,6 +24,7 @@ Paths below that start with `../../` are relative to the folder of this `SKILL.m
 - `keyturn/internal/conventions.md`: the "Reviewer checklist" (`C-n`), the "Tool rules" (which the gate runs), and how suppressions are allowed.
 - The project's ADRs in `keyturn/internal/adr/`: every one, by status.
 - `keyturn/client/requirements.md` and `keyturn/client/approvals.md`: the requirement IDs a finding is based on, and whether the requirements are approved.
+- The decision cards `keyturn/client/decision-card-<n>.md`, if there are any: whether the client chose to leave a medium finding as it is (step 4).
 - An earlier `keyturn/internal/review.md`, if there is one (a rerun), and the commit this skill reported for it.
 - The task's state file `keyturn/internal/state/<task>.md`, if there is one: whether the design and conventions steps are done ("When inputs are missing").
 - `../../templates/internal/review.md` in keyturn, not in the project. Follow every comment in it.
@@ -57,7 +58,7 @@ Then check that the change leaves the other roles' documents alone, without read
 
 ### 2. Read the inputs
 
-Read the design, the conventions, the ADRs, the requirements, the approvals, and `keyturn/config.json` as they were before the change, at `<inputs base>` (`git show <inputs base>:<path>`): the change is judged against the documents it was given, never against a version it brings itself.
+Read the design, the conventions, the ADRs, the requirements, the approvals, the decision cards (`git ls-tree --name-only <inputs base> keyturn/client/` lists them), and `keyturn/config.json` as they were before the change, at `<inputs base>` (`git show <inputs base>:<path>`): the change is judged against the documents it was given, never against a version it brings itself.
 
 List every commit in the range that changes any of them: `git log --full-history --no-merges --format=%H --name-status <range> -- <their paths>`. Each such commit is a high finding of its own (step 4), located at that commit and path, even when a later commit undoes it, with the category `ADR conflict` for an ADR, `conventions` for the conventions, and `design fit` for the others; and so is a change to one of them that the merge check (step 1) finds, or that `git diff --name-status <inputs base>..<head>` lists while no commit in that list makes it. A commit that changes the conventions is reported here once, and not again as a protected path in step 3.
 

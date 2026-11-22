@@ -375,8 +375,13 @@ def check_steps(lines: list[tuple[int, str]], template: Template, state: StateFi
     names = [row["Step"] for row in rows]
     problems += [f'Steps: "{name}" is not a step of the template' for name in names if name not in template.steps]
     problems += [f'Steps: step "{name}" should appear once' for name in sorted(set(names), key=names.index) if names.count(name) > 1]
-    problems += [f'Steps: step "{name}" is missing' for name in template.steps if name not in names]
-    if not problems and names != template.steps:
+    # A done task from before keyturn 0.15.0 has no merge step: a person merged it, and it is never resumed, so its
+    # file stays valid as it was committed (a commit that added the row would be work that is not merged, ADR 0034).
+    expected = template.steps
+    if (state.fields.get("Status") == "done" and template.steps[-1:] == ["merge"] and names == template.steps[:-1]):
+        expected = template.steps[:-1]
+    problems += [f'Steps: step "{name}" is missing' for name in expected if name not in names]
+    if not problems and names != expected:
         problems.append(f"Steps: the steps should be in this order: {', '.join(template.steps)}")
     if not problems:
         state.steps = {row["Step"]: row for row in rows}

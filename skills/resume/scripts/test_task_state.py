@@ -476,6 +476,18 @@ class ClosedTest(unittest.TestCase):
         self.assertIn('History: the last line should be "closed" when Status is closed', problems)
 
 
+class BeforeMergeStepTest(unittest.TestCase):
+    def test_a_done_task_from_before_the_merge_step_stays_valid(self):
+        done = WORKED_EXAMPLE.read_text(encoding="utf-8")
+        old = re.sub(r"\n\| merge \|[^\n]*", "", done)
+        self.assertNotEqual(old, done)
+        self.assertEqual(check(old), [])
+
+    def test_a_task_that_is_not_done_still_needs_the_merge_step(self):
+        old = re.sub(r"\n\| merge \|[^\n]*", "", STOPPED)
+        self.assertIn('Steps: step "merge" is missing', check(old))
+
+
 class UnmergedTest(unittest.TestCase):
     def setUp(self):
         self.repo = Repo()
