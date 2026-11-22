@@ -1,6 +1,6 @@
 # 0043. In CI, the gate finds a task's base and the other roles' commits itself, as ADR 0032 says, and never trusts the state file at the head for the document roles
 
-- Status: accepted
+- Status: accepted; the ruleset on `task/*` as what keeps a task branch's history superseded by [0048](0048-default-branch-guarded-in-three-layers.md)
 - Date: 2026-11-22
 
 ## Context

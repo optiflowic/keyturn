@@ -26,11 +26,11 @@ AI agents sometimes suggest packages that do not exist or that imitate popular o
 
 - Agents run in a sandbox (container or the tool's sandbox mode) with only the access they need.
 - No production credentials. Network access is limited to what the task needs.
-- Destructive commands, direct pushes to the default branch, and force pushes are blocked. Agents push only the task branch, through keyturn's scripts, and branch protection on the host blocks the rest whatever command ran ([ADR 0041](../adr/0041-agents-push-task-branches-and-open-pull-requests.md)).
+- Destructive commands, direct pushes to the default branch, and force pushes are blocked. Agents push only the task branch, through keyturn's scripts ([ADR 0041](../adr/0041-agents-push-task-branches-and-open-pull-requests.md)). The default branch is guarded in three layers ([ADR 0048](../adr/0048-default-branch-guarded-in-three-layers.md)): the scripts and the permission rules stop the plain commands, and the merge script checks the conditions itself; a workflow on the host, which the agents' token cannot change, checks every commit on the default branch and tells the maintainer about one that did not come from a task's pull request merged with the conditions met; and branch protection blocks the rest whatever command ran, on a repository whose plan has it (public, or paid). Without branch protection, a push that goes around the scripts is detected, not prevented.
 
 These are safety guardrails that must always be on, so unlike quality gates they **are** enforced with each tool's own mechanisms (permission rules, sandbox settings, and hooks). The adapters ship recommended settings for each tool.
 
-During the MVP ([Phases](phases.md#mvp), [ADR 0025](../adr/0025-mvp-first.md)), agents run without a sandbox: the adapter ships only permission rules that block the plain push and merge commands (agents push through keyturn's scripts) and destructive commands, branch protection on the host blocks pushes to the default branch, and network access and credentials are limited only by how the person runs it. Every delivery report made during that time says so under "What was not verified".
+During the MVP ([Phases](phases.md#mvp), [ADR 0025](../adr/0025-mvp-first.md)), agents run without a sandbox: the adapter ships only permission rules that block the plain push and merge commands (agents push through keyturn's scripts) and destructive commands, the workflow of ADR 0048 detects a push to the default branch that went around them (and branch protection blocks it, where the plan has it), and network access and credentials are limited only by how the person runs it. Every delivery report made during that time says so under "What was not verified".
 
 ## 5. Budgets and escalation
 

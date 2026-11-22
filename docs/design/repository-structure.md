@@ -6,7 +6,7 @@ keyturn supports both single-repository and multi-repository projects. Which one
 
 1. The PM gathers requirements from the client, including the expected size and how the project may grow.
 2. The architect decides the repository structure (one repository, a monorepo, or several repositories) and records it as an ADR, with the reasons and the alternatives.
-3. keyturn gives the client a short setup guide: the repositories to create, their names, visibility, and the required settings (e.g., branch protection, labels).
+3. keyturn gives the client a short setup guide: the repositories to create, their names, visibility, and the required settings (e.g., the CI workflows, the agents' token, labels, and branch protection where the plan has it).
 4. **The client creates the repositories.** Agents do not create repositories, in line with least privilege.
 5. keyturn verifies the setup (access, settings, labels) and reports anything missing before starting work.
 

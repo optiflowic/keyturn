@@ -1,6 +1,6 @@
 # 0046. The client's acceptance is a row of its own in `approvals.md`, a check next to the gate's decides the merge conditions, and the PM merges through a script that runs it again
 
-- Status: accepted
+- Status: accepted; the branch protection and the ruleset in "The one-time setup" superseded by [0048](0048-default-branch-guarded-in-three-layers.md)
 - Date: 2026-11-22
 
 ## Context
