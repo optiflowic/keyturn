@@ -228,6 +228,16 @@ class MalformedTimesTest(unittest.TestCase):
         problems = check(STOPPED.replace("- 2026-11-08T01:05Z: started", "- 8 Nov 2026: started"))
         self.assertIn('line 41: "8 Nov 2026" should be a UTC time in the form YYYY-MM-DDTHH:MMZ', problems)
 
+    def test_a_resume_before_the_usage_reset_by_the_maintainers_decision(self):
+        # ADR 0053: the resume says why it went on before the reset, and "Can continue" was never changed to make the
+        # time pass: the stop's line keeps the reset, and the resume sets the fields as any resume does.
+        resumed = (STOPPED.replace("- Status: stopped", "- Status: running")
+                   .replace("- Stopped because: usage limit", "- Stopped because: none")
+                   .replace("- Can continue: after 2026-11-08T15:30Z", "- Can continue: not applicable")
+                   .rstrip("\n") + "\n- 2026-11-08T13:10Z: resumed: in implement, from commit `9a8b7c6` (before the usage"
+                   " limit resets at 2026-11-08T15:30Z, by the maintainer's decision: raised the soft limit to 95%)\n")
+        self.assertEqual(check(resumed), [])
+
     def test_history_out_of_order(self):
         problems = check(STOPPED.replace("- 2026-11-08T06:02Z: resumed", "- 2026-11-08T03:22Z: resumed"))
         self.assertNotIn("should not be earlier than the line before it", " ".join(problems))

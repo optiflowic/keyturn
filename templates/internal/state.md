@@ -75,7 +75,7 @@ Leave the section with "None." when there is nothing waiting.
 
 <!--
 One line per stop and per resume, newest last. Never edit or remove a line.
-For a usage limit, say which window and when it resets.
+For a usage limit, say which window and when it resets. A resume before that reset, by the maintainer's decision, says so on its line: "resumed: in the step, from which commit (before the usage limit resets at YYYY-MM-DDTHH:MMZ, by the maintainer's decision: what they decided)" (ADR 0053 in keyturn's `docs/adr/`).
 -->
 
 - <YYYY-MM-DDTHH:MMZ>: <started | stopped: reason, in the step | resumed: in the step, from which commit | done | closed: why, in the step>

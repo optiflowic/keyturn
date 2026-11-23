@@ -67,3 +67,5 @@ See "Architecture decision records" in [`docs/design/documents.md`](../design/do
 | [0049](0049-workflow-runs-read-instead-of-check-runs.md) | The scripts read the runs of keyturn's workflows and their jobs, with Actions read, instead of check runs | accepted; for the gate's workflow, reading the newest of all its runs superseded by [0051](0051-draft-checks-fail-under-other-names.md) |
 | [0050](0050-merge-script-reads-watch-on-the-task-head.md) | The merge script also needs `keyturn watch` to have passed on the task's head | accepted |
 | [0051](0051-draft-checks-fail-under-other-names.md) | On a draft pull request, the gate's workflow fails its jobs under other names instead of skipping them | accepted |
+| [0052](0052-permission-rules-allow-the-github-scripts.md) | The recommended permission rules allow keyturn's GitHub scripts by their full path, and deny edits to the plugin's folder | accepted |
+| [0053](0053-continuing-before-a-usage-reset.md) | The maintainer can let a task stopped for a usage limit go on before the recorded reset; `resume` records the decision and the usage check still decides | accepted |
