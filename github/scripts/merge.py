@@ -46,6 +46,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import time
 from datetime import datetime
@@ -261,8 +262,21 @@ def wait_for_checks(root: Path, head: str, default: str, tip: str, wait_seconds:
         time.sleep(POLL_SECONDS)
 
 
+VOUCHED_RE = re.compile(r"documents vouched for at `([0-9a-f]{40})`")
+
+
+def recorded_vouch(root: Path, task: str, sha: str) -> list[str]:
+    """The conditions' --documents-vouched for the vouch that resume recorded in "History" at the head, if any (ADR 0057).
+    The agents cannot read KEYTURN_DOCUMENTS; this local check only repeats the checks' run, which reads the variable
+    itself, and merge.py merges only after those checks passed."""
+    text = run(["git", "show", f"{sha}:keyturn/internal/state/{task}.md"], root).stdout
+    found = VOUCHED_RE.findall(text or "")
+    return ["--documents-vouched", f"{task}:{found[-1]}"] if found else []
+
+
 def run_conditions(root: Path, task: str, default: str, sha: str) -> None:
-    result = run([str(CONDITIONS), "--task", task, "--default-branch", f"origin/{default}", "--head", sha], root)
+    result = run([str(CONDITIONS), "--task", task, "--default-branch", f"origin/{default}", "--head", sha,
+                  *recorded_vouch(root, task, sha)], root)
     output = (result.stdout + result.stderr).strip()
     if result.returncode != 0:
         raise Refused(f"the merge conditions do not hold on {sha[:12]} (conditions.sh exit {result.returncode}):\n{output}")

@@ -863,21 +863,45 @@ def state_commits(text: str, where: str) -> list[tuple[str, str]]:
     return listed
 
 
-def conventions_recorded(text: str) -> bool:
+def step_status(text: str, step: str) -> str:
+    """A step's status in the steps table of a task state file, or "" when it has no row."""
     for line in state_section(text, "Steps"):
         cells = [cell.strip() for cell in line.strip("|").split("|")]
-        if len(cells) >= 2 and cells[0] == "conventions":
-            return cells[1] == "done"
-    return False
+        if len(cells) >= 2 and cells[0] == step:
+            return cells[1]
+    return ""
 
 
-def task_range(root: Path, task: str, default_rev: str, head_rev: str) -> tuple[str, list[str]]:
+def conventions_recorded(text: str) -> bool:
+    return step_status(text, "conventions") == "done"
+
+
+def vouched_documents(value: str, task: str) -> str:
+    """The full SHA the maintainer vouched for as the task's documents, from the repository variable KEYTURN_DOCUMENTS
+    (entries "<task>:<full SHA>", separated by spaces, commas, or new lines), or "" when it has none for the task
+    (ADR 0057). The agents' token cannot write the variable, so the developer cannot vouch for a redo."""
+    found, problems = [], []
+    for entry in filter(None, re.split(r"[\s,]+", value or "")):
+        name, _, sha = entry.partition(":")
+        if not (TASK_RE.fullmatch(name) and re.fullmatch(r"[0-9a-f]{40}", sha)):
+            problems.append(f"KEYTURN_DOCUMENTS: `{entry}` is not `<task>:<full SHA>`")
+        elif name == task:
+            found.append(sha)
+    if len(found) > 1:
+        problems.append(f"KEYTURN_DOCUMENTS: {task} has {len(found)} entries; keep only the newest vouched commit")
+    if problems:
+        raise SetupError(problems)
+    return found[0] if found else ""
+
+
+def task_range(root: Path, task: str, default_rev: str, head_rev: str, vouched: str = "") -> tuple[str, list[str]]:
     """The base and the other roles' commits of a task's range, found as deliver finds them, without its session (ADR 0043).
 
     The base is where the task branch left the default branch (ADR 0032). The commits of spec, design, and conventions
     are read only from the state file as committed when the conventions step was recorded, never from a later version;
-    the later roles' commits are read from the state file at the head, as after a resume, and each is still checked
-    against what its role may write (ADR 0029).
+    or, when the maintainer vouched for a version after a redo of the documents before implement (`vouched`, the value of
+    KEYTURN_DOCUMENTS, ADR 0057), only from that version. The later roles' commits are read from the state file at the
+    head, as after a resume, and each is still checked against what its role may write (ADR 0029).
     """
     if not TASK_RE.fullmatch(task):
         raise SetupError([f"--task {task}: not a task name (lowercase letters and digits with single hyphens)"])
@@ -905,7 +929,10 @@ def task_range(root: Path, task: str, default_rev: str, head_rev: str) -> tuple[
         return found[0]
 
     recorded = None
-    for commit in git(root, "log", "--reverse", "--format=%H", f"{base}..{head}", "--", state).split():
+    sha = vouched_documents(vouched, task)
+    if sha:
+        recorded = vouched_version(root, sha, state, commits, resolve)
+    for commit in [] if sha else git(root, "log", "--reverse", "--format=%H", f"{base}..{head}", "--", state).split():
         text = file_at(root, commit, state)
         if text is not None and conventions_recorded(text):
             recorded = (commit, text)
@@ -935,7 +962,8 @@ def task_range(root: Path, task: str, default_rev: str, head_rev: str) -> tuple[
         if step in DOCUMENT_ROLES:
             if others.get(commit) != step:
                 raise SetupError([f"{where}: `{short}` is named as {step}'s, which the state file did not say when "
-                                  "conventions was recorded; a later line naming a document role is never trusted"])
+                                  "conventions was recorded (or at the version the maintainer vouched for in "
+                                  "KEYTURN_DOCUMENTS); a later line naming a document role is never trusted"])
         elif step in LATER_ROLES or step == "implement":
             role = None if step == "implement" else step
             if others.get(commit, role) != role:
@@ -948,6 +976,30 @@ def task_range(root: Path, task: str, default_rev: str, head_rev: str) -> tuple[
     if head not in listed and head not in others and name_status(root, f"{head}^", head) == [state]:
         others[head] = "deliver"
     return base, [f"{role}:{commit}" for commit, role in others.items()]
+
+
+def vouched_version(root: Path, sha: str, state: str, commits: list[str], resolve) -> tuple[str, str]:
+    """The version of the state file the maintainer vouched for (ADR 0057), checked to be one that deliver committed
+    before implement started: a state-only commit in the range, with conventions done and implement not started, whose
+    "Commits" list every commit before it, each as spec's, design's, conventions', or deliver's."""
+    where = f"KEYTURN_DOCUMENTS: {sha[:12]}"
+    if sha not in commits:
+        raise SetupError([f"{where}: not a commit of the task's range"])
+    text = file_at(root, sha, state)
+    if text is None or name_status(root, f"{sha}^", sha) != [state]:
+        raise SetupError([f"{where}: not a commit that changes only {state}"])
+    if not conventions_recorded(text) or step_status(text, "implement") != "not started":
+        raise SetupError([f"{where}: {state} there does not have conventions done and implement not started"])
+    before = commits[:commits.index(sha)]
+    listed = {}
+    for short, step in state_commits(text, f"{state} at {sha[:12]}"):
+        if step not in DOCUMENT_ROLES and step != "deliver":
+            raise SetupError([f"{where}: `{short}` is listed there as {step}'s; only the documents come before implement"])
+        listed[resolve(short, f"{state} at {sha[:12]}", before)] = step
+    missing = [commit[:12] for commit in before if commit not in listed]
+    if missing:
+        raise SetupError([f"{where}: {state} there does not list {', '.join(missing)}, so it is not the documents' record"])
+    return sha, text
 
 
 def gate(base_rev: str, head_rev: str, profiles_dir: Path, timeout: float,
@@ -994,16 +1046,19 @@ def main() -> int:
     parser.add_argument("--others", action="append", default=[], metavar="ROLE:COMMIT",
                         help="a commit in the range that is another role's (spec, design, conventions, qa, security-review, review, deliver); "
                              "repeat for each (ADR 0029, ADR 0032)")
+    parser.add_argument("--documents-vouched", default="", metavar="VALUE",
+                        help="with --task: the value of the repository variable KEYTURN_DOCUMENTS (\"<task>:<full SHA> ...\"), "
+                             "the state file version the maintainer vouched for after a redo of the documents (ADR 0057)")
     args = parser.parse_args()
     if args.task is not None and (args.others or args.default_branch is None):
         parser.error("--task needs --default-branch, and finds the other roles' commits itself (no --others)")
-    if args.task is None and args.default_branch is not None:
-        parser.error("--default-branch goes with --task")
+    if args.task is None and (args.default_branch is not None or args.documents_vouched):
+        parser.error("--default-branch and --documents-vouched go with --task")
 
     try:
         base_rev, others = args.base, args.others
         if args.task is not None:
-            base_rev, others = task_range(repo_root(), args.task, args.default_branch, args.head)
+            base_rev, others = task_range(repo_root(), args.task, args.default_branch, args.head, args.documents_vouched)
         base, head, results, versions = gate(base_rev, args.head, args.profiles, args.timeout_minutes * 60, others)
     except SetupError as error:
         for problem in error.problems:

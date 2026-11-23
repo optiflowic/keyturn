@@ -920,6 +920,83 @@ class TaskRangeTest(unittest.TestCase):
         self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
         self.assertIn("a later line naming a document role is never trusted", result.stderr)
 
+    def redo_design(self) -> str:
+        """Redo design and conventions before implement, as deliver does after the maintainer's decision; return the state
+        commit that records conventions as done again."""
+        self.done -= {"design", "conventions"}
+        self.record()  # deliver sets the steps back
+        self.put("keyturn/internal/design.md", DESIGN + "\nRedone.\n")
+        self.step("design")
+        self.put("keyturn/internal/conventions.md", "# Conventions, redone\n")
+        self.step("conventions")
+        return self.git("rev-parse", "HEAD")
+
+    def test_a_redo_of_the_documents_without_the_maintainer_s_vouch_stops_the_gate(self):
+        self.redo_design()
+        self.put("app/src/main.py", "print('task')\n")
+        self.step("implement")
+        result = self.task_gate()
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("a later line naming a document role is never trusted", result.stderr)
+
+    def test_a_redo_the_maintainer_vouched_for_passes(self):
+        vouched = self.redo_design()
+        self.put("app/src/main.py", "print('task')\n")
+        self.step("implement")
+        other = "t2:" + "a" * 40
+        result = self.task_gate("--documents-vouched", f"{other}, t1:{vouched}\n")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_a_vouched_version_after_a_developer_commit_is_refused(self):
+        self.put("app/src/main.py", "print('early')\n")
+        early = self.commit("the developer, before the vouched version")
+        self.roles[early] = "implement"
+        vouched = self.record()
+        self.put("app/src/main.py", "print('task')\n")
+        self.step("implement")
+        result = self.task_gate("--documents-vouched", f"t1:{vouched}")
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("is listed there as implement's", result.stderr)
+
+    def test_a_vouched_version_that_does_not_list_every_commit_before_it_is_refused(self):
+        self.put("keyturn/internal/adr/0002-a-forged-allowance.md", ADR.replace("0001", "0002"))
+        self.commit("the developer's ADR, listed by nothing")
+        self.put("keyturn/internal/state/t1.md", self.state_text() + "- resumed\n")  # a state file that does not list it
+        vouched = self.commit("a forged state commit")
+        self.put("app/src/main.py", "print('task')\n")
+        self.step("implement")
+        result = self.task_gate("--documents-vouched", f"t1:{vouched}")
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("does not list", result.stderr)
+
+    def test_a_vouched_commit_that_is_not_a_state_commit_is_refused(self):
+        vouched = self.step("implement", done=False)
+        result = self.task_gate("--documents-vouched", f"t1:{vouched}")
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("not a commit that changes only", result.stderr)
+
+    def test_a_vouched_version_after_implement_started_is_refused(self):
+        self.put("app/src/main.py", "print('task')\n")
+        self.step("implement")
+        vouched = self.git("rev-parse", "HEAD")
+        result = self.task_gate("--documents-vouched", f"t1:{vouched}")
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("conventions done and implement not started", result.stderr)
+
+    def test_a_malformed_or_doubled_vouch_stops_the_gate(self):
+        self.put("app/src/main.py", "print('task')\n")
+        self.step("implement")
+        for value, message in (("t1:abc", "is not `<task>:<full SHA>`"), (f"t1:{'a' * 40} t1:{'b' * 40}", "has 2 entries")):
+            with self.subTest(value=value):
+                result = self.task_gate("--documents-vouched", value)
+                self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+                self.assertIn(message, result.stderr)
+
+    def test_a_vouch_without_task_is_refused(self):
+        result = self.gate("--documents-vouched", f"t1:{'a' * 40}")
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("--documents-vouched go with --task", result.stderr)
+
     def test_a_task_before_conventions_is_recorded_stops_the_gate(self):
         self.git("switch", "-q", "-c", "task/t2", "main")
         self.put("keyturn/internal/state/t2.md", "# Task state: t2\n\n## Steps\n\n| conventions | not started | | | |\n")

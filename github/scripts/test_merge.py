@@ -508,5 +508,34 @@ class MergeTest(unittest.TestCase):
         self.assertEqual(self.merged(), [])
 
 
+class RecordedVouchTest(unittest.TestCase):
+    """merge.py passes the vouch resume recorded to its local conditions check (ADR 0057)."""
+
+    def test_the_newest_recorded_vouch_is_passed_and_none_without_one(self):
+        sys.path.insert(0, str(HERE))
+        import merge
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+            env.update(GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1")
+
+            def git(*args: str) -> str:
+                return subprocess.run(["git", *args], cwd=root, env=env, check=True, capture_output=True, text=True).stdout.strip()
+
+            git("init", "-q", "-b", "main")
+            git("-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "base")
+            self.assertEqual(merge.recorded_vouch(root, "delivery-1", git("rev-parse", "HEAD")), [])
+            state = root / "keyturn" / "internal" / "state" / "delivery-1.md"
+            state.parent.mkdir(parents=True)
+            first, second = "a" * 40, "b" * 40
+            state.write_text(f"## History\n\n- t: resumed: in implement (documents vouched for at `{first}`, by the "
+                             f"maintainer's decision)\n- t: resumed: in implement (documents vouched for at `{second}`, by "
+                             "the maintainer's decision)\n", encoding="utf-8")
+            git("add", "-A")
+            git("-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "-m", "state")
+            self.assertEqual(merge.recorded_vouch(root, "delivery-1", git("rev-parse", "HEAD")),
+                             ["--documents-vouched", f"delivery-1:{second}"])
+
+
 if __name__ == "__main__":
     unittest.main()
