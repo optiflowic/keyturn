@@ -192,8 +192,14 @@ class WatchTest(unittest.TestCase):
         merge, head = self.task_merge()
         self.push("refs/heads/main", merge, "pr_merge")
         self.assertEqual(self.watch(), [])
-        self.assertIn(f"--task delivery-1 --default-branch {self.start} --head {head}",
+        self.assertIn(f"--task delivery-1 --default-branch {self.start} --head {head} --documents-vouched=",
                       self.conditions_log.read_text(encoding="utf-8"))
+
+    def test_the_vouched_documents_are_passed_to_the_conditions_check(self):
+        merge, head = self.task_merge()
+        self.push("refs/heads/main", merge, "pr_merge")
+        self.assertEqual(self.watch(documents=f"delivery-1:{'d' * 40}"), [])
+        self.assertIn(f"--documents-vouched=delivery-1:{'d' * 40}", self.conditions_log.read_text(encoding="utf-8"))
 
     def test_a_direct_push_fails(self):
         direct = self.commit("fix: straight to main")
@@ -519,7 +525,8 @@ class WorkflowTest(unittest.TestCase):
         for needed in ("name: keyturn watch", "    name: keyturn watch", "  push:", "'task/**'", "  delete:",
                        "  schedule:", "  workflow_dispatch:", "issues: write", "actions: read",
                        "pull-requests: read", "fetch-depth: 0", "github/scripts/watch.py",
-                       "vars.KEYTURN_VOUCHED", "vars.KEYTURN_CHECKED_UNTIL", "vars.KEYTURN_MAINTAINER"):
+                       "vars.KEYTURN_VOUCHED", "vars.KEYTURN_CHECKED_UNTIL", "vars.KEYTURN_MAINTAINER",
+                       "vars.KEYTURN_DOCUMENTS"):
             self.assertIn(needed, text)
         self.assertNotIn("concurrency:", text)
         self.assertNotIn("checks:", text)  # a fine-grained token has no Checks permission; the runs are read instead  # a pending run replaced by a later one would leave a tip unchecked

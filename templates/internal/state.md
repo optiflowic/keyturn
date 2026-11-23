@@ -75,7 +75,7 @@ Leave the section with "None." when there is nothing waiting.
 
 <!--
 One line per stop and per resume, newest last. Never edit or remove a line.
-For a usage limit, say which window and when it resets. A resume before that reset, by the maintainer's decision, says so on its line: "resumed: in the step, from which commit (before the usage limit resets at YYYY-MM-DDTHH:MMZ, by the maintainer's decision: what they decided)" (ADR 0053 in keyturn's `docs/adr/`).
+For a usage limit, say which window and when it resets. A resume before that reset, by the maintainer's decision, says so on its line: "resumed: in the step, from which commit (before the usage limit resets at YYYY-MM-DDTHH:MMZ, by the maintainer's decision: what they decided)" (ADR 0053 in keyturn's `docs/adr/`). A redo of spec, design, or conventions before implement, and the maintainer's vouch for the redone documents, are said on the resume's line too: "(redo of <steps> before implement, by the maintainer's decision: what they decided)" and "(documents vouched for at `<full SHA>`, by the maintainer's decision)" (ADR 0057).
 -->
 
 - <YYYY-MM-DDTHH:MMZ>: <started | stopped: reason, in the step | resumed: in the step, from which commit | done | closed: why, in the step>

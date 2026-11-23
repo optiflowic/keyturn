@@ -276,9 +276,9 @@ def check_acceptance(root: Path, head: str, task: str, commits: list[str], other
     return Result("acceptance", problems)
 
 
-def conditions(task: str, default_rev: str, head_rev: str) -> tuple[str, str, list[Result]]:
+def conditions(task: str, default_rev: str, head_rev: str, vouched: str = "") -> tuple[str, str, list[Result]]:
     root = gate.repo_root()
-    base, others_values = gate.task_range(root, task, default_rev, head_rev)
+    base, others_values = gate.task_range(root, task, default_rev, head_rev, vouched)
     head = gate.commit_of(root, head_rev)
     others = gate.parse_others(root, others_values)
     commits = [commit for commit, _ in gate.range_commits(root, base, head)]
@@ -296,9 +296,11 @@ def main() -> int:
     parser.add_argument("--task", required=True, help="the task, whose branch is task/<task>")
     parser.add_argument("--default-branch", required=True, help="the default branch the task branch left (for example origin/main)")
     parser.add_argument("--head", default="HEAD", help="the head to check (default: HEAD)")
+    parser.add_argument("--documents-vouched", default="", metavar="VALUE",
+                        help="the value of the repository variable KEYTURN_DOCUMENTS, as for gate.sh --task (ADR 0057)")
     args = parser.parse_args()
     try:
-        base, head, results = conditions(args.task, args.default_branch, args.head)
+        base, head, results = conditions(args.task, args.default_branch, args.head, args.documents_vouched)
     except SetupError as error:
         for problem in error.problems:
             print(f"setup error: {problem}", file=sys.stderr)

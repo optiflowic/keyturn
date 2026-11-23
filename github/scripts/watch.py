@@ -91,6 +91,9 @@ class Settings:
     run_url: str = ""
     wait_seconds: float = 300
     conditions: Path = CONDITIONS
+    # KEYTURN_DOCUMENTS, passed on to the conditions check as it is: the documents the maintainer vouched for after a
+    # redo before implement (ADR 0057). A merged task's head is checked again on every run, so its entry stays.
+    documents: str = ""
 
 
 def when(text) -> datetime | None:
@@ -323,8 +326,8 @@ class Watch:
                                  f"({(jobs.get(name) or {}).get('conclusion', 'no job')})")
 
     def check_conditions(self, where: str, number: str, task: str, parent: str, head_sha: str) -> None:
-        result = run([str(self.settings.conditions), "--task", task, "--default-branch", parent, "--head", head_sha],
-                     self.root)
+        result = run([str(self.settings.conditions), "--task", task, "--default-branch", parent, "--head", head_sha,
+                      f"--documents-vouched={self.settings.documents}"], self.root)
         if result.returncode != 0:
             failed = [line for line in (result.stdout + result.stderr).splitlines()
                       if line.startswith(("FAIL", "setup error"))]
@@ -474,7 +477,7 @@ def settings_from_env(start: str, wait_minutes: float) -> Settings:
     run_url = f"{env.get('GITHUB_SERVER_URL', 'https://github.com')}/{repository}/actions/runs/{run_id}" if run_id else ""
     return Settings(repository=repository, start=start, vouched=vouched, checked_until=checked_until,
                     maintainer=maintainer, event_name=env.get("GITHUB_EVENT_NAME", ""), event=event, run_id=run_id,
-                    run_url=run_url, wait_seconds=max(wait_minutes, 0) * 60)
+                    run_url=run_url, wait_seconds=max(wait_minutes, 0) * 60, documents=env.get("KEYTURN_DOCUMENTS", ""))
 
 
 def main() -> int:

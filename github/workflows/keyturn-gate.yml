@@ -11,6 +11,9 @@
 # On a plan with branch protection, then make the checks "keyturn gate" and "keyturn conditions" required on the default
 # branch, with GitHub Actions as their expected source (github/README.md). "keyturn conditions" fails until the client's
 # acceptance is recorded.
+# Both checks read the repository variable KEYTURN_DOCUMENTS, which the maintainer sets only after a redo of the task's
+# documents before implement, with the state commit they vouch for (ADR 0057, github/README.md). The agents' token cannot
+# write it.
 #
 # Neither job has a job-level condition, since GitHub counts a skipped required check as passed (ADR 0043, ADR 0051). On a
 # draft pull request, both jobs take another name, "keyturn gate (draft, not checked)" and "keyturn conditions (draft,
@@ -100,8 +103,10 @@ jobs:
         env:
           HEAD_REF: ${{ github.head_ref }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          KEYTURN_DOCUMENTS: ${{ vars.KEYTURN_DOCUMENTS }}
         run: |
-          .keyturn-ci/gates/gate.sh --task "${HEAD_REF#task/}" --default-branch "origin/$DEFAULT_BRANCH"
+          .keyturn-ci/gates/gate.sh --task "${HEAD_REF#task/}" --default-branch "origin/$DEFAULT_BRANCH" \
+            --documents-vouched="$KEYTURN_DOCUMENTS"
 
   conditions:
     # The merge conditions (ADR 0046): no open high or medium finding, and the client's acceptance of the documents at
@@ -150,5 +155,7 @@ jobs:
         env:
           HEAD_REF: ${{ github.head_ref }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          KEYTURN_DOCUMENTS: ${{ vars.KEYTURN_DOCUMENTS }}
         run: |
-          .keyturn-ci/gates/conditions.sh --task "${HEAD_REF#task/}" --default-branch "origin/$DEFAULT_BRANCH"
+          .keyturn-ci/gates/conditions.sh --task "${HEAD_REF#task/}" --default-branch "origin/$DEFAULT_BRANCH" \
+            --documents-vouched="$KEYTURN_DOCUMENTS"

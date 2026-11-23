@@ -70,4 +70,5 @@ jobs:
           KEYTURN_VOUCHED: ${{ vars.KEYTURN_VOUCHED }}
           KEYTURN_CHECKED_UNTIL: ${{ vars.KEYTURN_CHECKED_UNTIL }}
           KEYTURN_MAINTAINER: ${{ vars.KEYTURN_MAINTAINER }}
+          KEYTURN_DOCUMENTS: ${{ vars.KEYTURN_DOCUMENTS }}
         run: python3 .keyturn-ci/github/scripts/watch.py --start "$KEYTURN_START"
