@@ -35,9 +35,11 @@ Option 1.
 
 ## Consequences
 
-- `gates/gate.py` and `gates/conditions.py` take `--documents-vouched`; `github/workflows/keyturn-gate.yml` and `keyturn-watch.yml` pass the variable; `github/scripts/merge.py` passes the recorded vouch. A project that copied the workflows before this change copies them again between tasks; `deliver` stops a redo when the workflow at the task's base does not pass the variable, since updating it during the task would move the default branch.
+- `gates/gate.py` and `gates/conditions.py` take `--documents-vouched`; `github/workflows/keyturn-gate.yml` and `keyturn-watch.yml` pass the variable; `github/scripts/merge.py` passes the recorded vouch. A project that copied the workflows before this change copies them again between tasks; `deliver` stops a redo when the workflow at the task's base does not pass the variable, since updating it during the task would move the default branch; that task is closed, and started again after the workflows are updated.
 - A redo sets back only steps that are `done`, and the task goes on from the first step that is neither `done` nor `skipped`, so a step waiting for the client still takes in the answer first (ADR 0031).
 - Once `conventions` is recorded and the current step is `implement`, no commit is listed as a document role's any more, even before the `implement` row changes: an ADR the developer committed in a run that ended before it was recorded must not become `design`'s through a redo and a vouch.
 - `deliver` has a procedure for a redo before `implement`, and stops for the vouch; `resume` records both decisions. `github/README.md` says how to add the entry.
 - A redo costs the maintainer one more step, at the moment the documents are fixed. A redo after `implement` has started is still not possible inside the task (ADR 0031).
+- Entries are never removed, also after their task is merged or closed, so the variable grows by one entry per task with a redo. Removing one would make `keyturn watch` fail on that task's merge commit.
+- One malformed entry, or two entries for one task, stops the checks of every task, not only of the task it names. It is accepted: `keyturn watch` checks every merged task's conditions with the same variable, so its next run fails and opens an issue that mentions the maintainer, and the entry is put right at once.
 - The agents' local checks trust the vouch line in "History", which the developer could forge; they never merge on it alone, since `merge.py` also needs the checks in CI, which read the variable.
