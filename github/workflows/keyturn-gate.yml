@@ -10,9 +10,12 @@
 # branch, with GitHub Actions as their expected source (github/README.md). "keyturn conditions" fails until the client's
 # acceptance is recorded.
 #
-# Both jobs skip a draft pull request (ADR 0048): a task's pull request is a draft until the deliver step commits the
+# Neither job has a job-level condition, since GitHub counts a skipped required check as passed (ADR 0043, ADR 0051). On a
+# draft pull request, both jobs take another name, "keyturn gate (draft, not checked)" and "keyturn conditions (draft,
+# not checked)", and fail in their first step: a task's pull request is a draft until the deliver step commits the
 # delivery documents and marks it ready, deliver runs the gate locally on every round before that, and the merge
-# conditions need the checks only on the head that is merged. Marking it ready runs them on that head.
+# conditions need the checks only on the head that is merged. So a draft never gets a check with a required check's
+# name, and nobody reads its checks as passed. Marking it ready runs both checks on that head under their own names.
 
 name: keyturn gate
 
@@ -33,14 +36,34 @@ env:
 
 jobs:
   gate:
-    # The only job-level condition is the draft: GitHub does not merge a draft, and neither merge.py nor keyturn watch
-    # counts a skipped check as a pass. A required check that is skipped counts as passed on GitHub, so a pull request
-    # from a branch that is not a task's fails in the last step instead, not by a condition here.
-    name: keyturn gate
-    if: github.event.pull_request.draft == false
+    # No job-level condition (a skipped required check counts as passed on GitHub): a draft fails in the first step,
+    # under another name, and a pull request from a branch that is not a task's, or to another branch than the default
+    # one, fails in the second, before any checkout or tool. The conditions job has the same first two steps.
+    name: ${{ github.event.pull_request.draft && 'keyturn gate (draft, not checked)' || 'keyturn gate' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
+      - name: Refuse a draft
+        if: github.event.pull_request.draft
+        run: |
+          echo "a draft pull request: not checked; both checks run when it is marked ready" >&2
+          exit 1
+
+      - name: Check that it is a task's pull request
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          case "$HEAD_REF" in
+            task/*) ;;
+            *) echo "not a task branch (task/<task>): $HEAD_REF" >&2; exit 1 ;;
+          esac
+          if [ "$BASE_REF" != "$DEFAULT_BRANCH" ]; then
+            echo "a task's pull request goes to the default branch ($DEFAULT_BRANCH), not to $BASE_REF" >&2
+            exit 1
+          fi
+
       - name: Check out the pull request
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -74,6 +97,26 @@ jobs:
       - name: Run the gate
         env:
           HEAD_REF: ${{ github.head_ref }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          .keyturn-ci/gates/gate.sh --task "${HEAD_REF#task/}" --default-branch "origin/$DEFAULT_BRANCH"
+
+  conditions:
+    # The merge conditions (ADR 0046): no open high or medium finding, and the client's acceptance of the documents at
+    # the head. Committed records only: it runs no project code, so it needs no stack tools.
+    name: ${{ github.event.pull_request.draft && 'keyturn conditions (draft, not checked)' || 'keyturn conditions' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Refuse a draft
+        if: github.event.pull_request.draft
+        run: |
+          echo "a draft pull request: not checked; both checks run when it is marked ready" >&2
+          exit 1
+
+      - name: Check that it is a task's pull request
+        env:
+          HEAD_REF: ${{ github.head_ref }}
           BASE_REF: ${{ github.base_ref }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
@@ -85,16 +128,7 @@ jobs:
             echo "a task's pull request goes to the default branch ($DEFAULT_BRANCH), not to $BASE_REF" >&2
             exit 1
           fi
-          .keyturn-ci/gates/gate.sh --task "${HEAD_REF#task/}" --default-branch "origin/$DEFAULT_BRANCH"
 
-  conditions:
-    # The merge conditions (ADR 0046): no open high or medium finding, and the client's acceptance of the documents at
-    # the head. Committed records only: it runs no project code, so it needs no stack tools.
-    name: keyturn conditions
-    if: github.event.pull_request.draft == false
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
       - name: Check out the pull request
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -113,15 +147,6 @@ jobs:
       - name: Check the merge conditions
         env:
           HEAD_REF: ${{ github.head_ref }}
-          BASE_REF: ${{ github.base_ref }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
-          case "$HEAD_REF" in
-            task/*) ;;
-            *) echo "not a task branch (task/<task>): $HEAD_REF" >&2; exit 1 ;;
-          esac
-          if [ "$BASE_REF" != "$DEFAULT_BRANCH" ]; then
-            echo "a task's pull request goes to the default branch ($DEFAULT_BRANCH), not to $BASE_REF" >&2
-            exit 1
-          fi
           .keyturn-ci/gates/conditions.sh --task "${HEAD_REF#task/}" --default-branch "origin/$DEFAULT_BRANCH"

@@ -1,6 +1,6 @@
 # 0049. The scripts read the runs of keyturn's workflows and their jobs, with Actions read, instead of check runs
 
-- Status: accepted
+- Status: accepted; for the gate's workflow, reading the newest of all its runs for the commit superseded by [0051](0051-draft-checks-fail-under-other-names.md)
 - Date: 2026-11-23
 - Supersedes: in [0046](0046-acceptance-record-conditions-check-and-merge-script.md), that the agents' token gets Checks read because `merge.py` reads the check runs; in [0048](0048-default-branch-guarded-in-three-layers.md), that the agents' token has Checks read, and that `merge.py` and `keyturn watch` read the checks `keyturn gate`, `keyturn conditions`, and `keyturn watch` as check runs from GitHub Actions
 

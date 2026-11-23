@@ -18,8 +18,9 @@ Each run checks, and fails on any of these:
     request from a task/<task> branch of this repository to the default branch, with one parent, the tree of that pull
     request's head, a head that contains its parent and changes nothing under .github/workflows/ (so the gate ran as the
     default branch's workflow, ADR 0049), the newest run of .github/workflows/keyturn-gate.yml for that head, from a
-    pull_request event in this repository, passed with its jobs "keyturn gate" and "keyturn conditions" (GitHub
-    Actions' API, ADR 0049), and keyturn's conditions check (gates/conditions.sh, next to this script's keyturn copy) passing on it
+    pull_request event in this repository, among those with a job named "keyturn gate" or "keyturn conditions" (a
+    draft's run names its jobs "... (draft, not checked)", ADR 0051), passed with its jobs "keyturn gate" and "keyturn
+    conditions" (GitHub Actions' API, ADR 0049), and keyturn's conditions check (gates/conditions.sh, next to this script's keyturn copy) passing on it
     again;
   - SHA is not an ancestor of the tip, and the default branch's tip of the newest earlier passing run is not either;
   - the repository's activity after the checkpoint (the later of KEYTURN_CHECKED_UNTIL and the start of the newest
@@ -297,15 +298,22 @@ class Watch:
                     if item.get("head_sha") == head_sha and str(item.get("path", "")).split("@")[0] == GATE_WORKFLOW
                     and item.get("event") == "pull_request"
                     and (item.get("head_repository") or {}).get("full_name") == self.settings.repository]
-            if not runs:
-                self.find(where, f"{GATE_WORKFLOW} has no run from its pull request on {number}'s head {short(head_sha)}")
+            # The newest run with a job named as one of the checks: a draft's run names its jobs "... (draft, not
+            # checked)" and is passed over (ADR 0051). A run with no jobs at all is not.
+            newest, jobs = None, {}
+            for item in sorted(runs, key=lambda item: item.get("id", 0), reverse=True):
+                jobs = {job.get("name"): job for job in self.github.jobs(int(item["id"]))}
+                if not jobs or set(CHECKS) & set(jobs):
+                    newest = item
+                    break
+            if newest is None:
+                self.find(where, f"{GATE_WORKFLOW} has no run from its pull request on {number}'s head {short(head_sha)}"
+                                 + (" that is not a draft's" if runs else ""))
                 return
-            newest = max(runs, key=lambda item: item.get("id", 0))
             if newest.get("status") != "completed" or newest.get("conclusion") != "success":
                 self.find(where, f"{GATE_WORKFLOW} on {number}'s head {short(head_sha)} did not pass "
                                  f"({newest.get('conclusion') or newest.get('status')})")
                 return
-            jobs = {job.get("name"): job for job in self.github.jobs(int(newest["id"]))}
         except SetupError as error:
             self.find(where, f"the checks on {number}'s head could not be read: {error}")
             return

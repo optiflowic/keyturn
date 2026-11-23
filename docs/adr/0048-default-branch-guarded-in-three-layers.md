@@ -1,6 +1,6 @@
 # 0048. The default branch is guarded in three layers: keyturn's scripts stop, a workflow detects, and the host's protection is added when the plan has it
 
-- Status: accepted; the token's Checks read, and reading the checks as check runs, superseded by [0049](0049-workflow-runs-read-instead-of-check-runs.md)
+- Status: accepted; the token's Checks read, and reading the checks as check runs, superseded by [0049](0049-workflow-runs-read-instead-of-check-runs.md); that the gate's workflow skips draft pull requests superseded by [0051](0051-draft-checks-fail-under-other-names.md)
 - Date: 2026-11-22
 - Supersedes: in [0041](0041-agents-push-task-branches-and-open-pull-requests.md), that the host's branch protection is what holds for certain; in [0042](0042-pm-merges-on-machine-checked-conditions.md), the branch protection in "What the host enforces", that the repository must be public or on a paid plan, and that a private repository on a free plan cannot be used; in [0043](0043-gate-finds-a-task-s-range-in-ci.md), that a ruleset on `task/*` is what keeps a task branch's history; in [0046](0046-acceptance-record-conditions-check-and-merge-script.md), the branch protection and the ruleset in "The one-time setup"; in [0047](0047-after-the-client-does-not-accept-a-delivery.md), that the ruleset on `task/*` blocks deleting a task branch
 
