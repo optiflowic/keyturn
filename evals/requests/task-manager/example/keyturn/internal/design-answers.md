@@ -7,7 +7,7 @@ Points the design left open, found after the work started, and the architect's a
 - What the design left open: the module path that `api/go.mod` declares. The design names the API's folders and its two dependencies, but not the module's own path.
 - Asked by: implement
 - Answer: `example.com/taskmanager/api`. The module is never imported from outside this repository, so the path only has to be unique within it; the packages are then `example.com/taskmanager/api/internal/account` and so on.
-- Why it changes nothing: "Stack" and "Structure" in the design fix the folders and the dependencies, not the module's name, and no requirement, interface, or threat depends on it.
+- Why it changes nothing: "Stack" and "Structure" in the design fix the folders and the dependencies, not the module's name, and no requirement, interface, or threat depends on it; it changes only `api/go.mod`, inside the API's area, and no rule of the conventions names the module path.
 - Answered by: the architect
 - Reads with the design at: `b7e44103f31bad9654d8e75f3a7bc30708f7732d`
 - Round: 1

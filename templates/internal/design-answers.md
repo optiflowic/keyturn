@@ -3,7 +3,7 @@ Template: answers to the developer's and QA's questions, and to the threat ratin
 
 - Always written in English.
 - Lives at `keyturn/internal/design-answers.md`. Entries are only added, numbered A-1, A-2, ... in order: never change, renumber, or remove one, and never write one that contradicts an earlier one.
-- An answer to a question fills in only what the requirements, the design, the ADRs, the threat model, and the conventions leave open. It never changes a requirement or an acceptance criterion, an area the work may change, QA's folders, an external interface, the data model, a dependency or its version, a threat or its mitigation, or a decision an ADR or the design records; it never allows a suppression or an install script, and never decides what the client must agree to. A question that needs any of these is not answered here.
+- An answer to a question fills in only what the requirements, the design, the ADRs, the threat model, and the conventions leave open. It never changes a requirement or an acceptance criterion, an area the work may change, QA's folders, an external interface, the data model, a dependency or its version, a threat or its mitigation, or a decision an ADR or the design records; it never allows a suppression or an install script, and never decides what the client must agree to. It can be built by changing only paths inside "Areas the work may change", within every rule of the conventions and of the configs they commit (a lint rule among them). A question that needs any of these, or whose every answer breaks such a rule, is not answered here.
 - A rating answer (the second form) is written only by the maintainer's decision. It raises a threat's rating, or keeps it and gives the reason it stands; it never lowers one, and never changes the threat's text, its mitigation, or what is left. It closes nothing: the security review alone decides whether its finding is fixed.
 - Every word here is the architect's own. The developer's or QA's question, and the security review's finding, are never copied in, not even in part or in quotes: write what the design left open as a gap of the design, in your own words, and the answer the same way. An answer from the maintainer is written in your own words too, keeping what they decided (their words stay in the task state's "History"), under "Answered by: the maintainer". QA and the reviewers read this file, and only the architect's words reach them.
 - Use one of the two forms below for each entry, and delete the other.
@@ -19,7 +19,7 @@ Points the design left open, found after the work started, and the architect's a
 - What the design left open: <the gap, as a gap of the design, in your own words, in one or two lines: never the question as it was asked>
 - Asked by: <implement | qa>
 - Answer: <the answer, specific enough to build from, and, for QA, to test through>
-- Why it changes nothing: <which document leaves this open, and why any answer within it fits: one line>
+- Why it changes nothing: <which document leaves this open, why any answer within it fits, and that it builds within the areas and the conventions: one line>
 - Answered by: <the architect | the maintainer>
 - Reads with the design at: `<the full hash of the documents' commit>`
 - Round: <n>
