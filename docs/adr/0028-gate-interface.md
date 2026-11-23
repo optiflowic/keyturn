@@ -1,6 +1,6 @@
 # 0028. The gate is a Python CLI behind `gates/gate.sh`, run on a Git range, with JSON stack profiles
 
-- Status: accepted; the design and the ADRs read at the base, when `--others` names a document role's commit, superseded by [0032](0032-gate-base-is-where-the-task-branch-left.md); the list of profile fields superseded by [0037](0037-gate-records-tool-versions.md) (also `versions`) and [0040](0040-profile-tools-at-conventions-versions.md) (also `pinned`); a suppression approved only by an ADR its line names superseded by [0038](0038-suppressions-allowed-in-a-folder.md) (also by an ADR that allows it in the file's folder)
+- Status: accepted; the design and the ADRs read at the base, when `--others` names a document role's commit, superseded by [0032](0032-gate-base-is-where-the-task-branch-left.md); the list of profile fields superseded by [0037](0037-gate-records-tool-versions.md) (also `versions`) [0040](0040-profile-tools-at-conventions-versions.md) (also `pinned`), and [0056](0056-gate-fails-new-packages-with-install-scripts.md) (also `install_scripts`); a suppression approved only by an ADR its line names superseded by [0038](0038-suppressions-allowed-in-a-folder.md) (also by an ADR that allows it in the file's folder)
 - Date: 2026-11-21
 
 ## Context

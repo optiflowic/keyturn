@@ -36,7 +36,7 @@ Any other development tool, a test library such as `testify` included, is an oth
 
 ## Installing packages
 
-Go modules have no install scripts: `go get`, `go mod download`, `go build`, and `go test` run no code from a module when they download it, so a role installs them as usual ([ADR 0055](../../docs/adr/0055-installs-skip-install-scripts.md)). `go generate` runs commands that the code names, but only when someone runs it; it is not part of installing, and the gate never runs it.
+Go modules have no install scripts: `go get`, `go mod download`, `go build`, and `go test` run no code from a module when they download it, so a role installs them as usual ([ADR 0055](../../docs/adr/0055-installs-skip-install-scripts.md)). `go generate` runs commands that the code names, but only when someone runs it; it is not part of installing, and the gate never runs it. So the profile has no `install-scripts` check (`"install_scripts": null`).
 
 ## Where the rules go
 

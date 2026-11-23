@@ -13,6 +13,9 @@ Checks, in this order, each reported as one PASS or FAIL line:
                    (or at the newest spec, design, or conventions commit named with --others)
   pinned-tools     the profile's tools in a part's lock file are at the versions of the newest conventions commit named with
                    --others, or of the base (profiles with "pinned" only)
+  install-scripts  no package with an install script in a part's lock file at the head that is not at the base, unless
+                   an accepted ADR allows it ("- Allows install scripts: <package>@<version>", ADR 0056; profiles with
+                   "install_scripts" only)
   test-count       no part has fewer tests at the head than at the base
   <profile check>  each check its profile names (build, test, lint, ...), run in the part's folder at the head,
                    after the profile's setup commands (for example, installing dependencies)
@@ -77,7 +80,8 @@ ROLE_PATHS = {
     "merge": ["keyturn/client/approvals.md", "keyturn/client/decision-card-*.md"],
 }
 
-PROFILE_FIELDS = {"name", "tools", "setup", "checks", "count_tests", "versions", "pinned", "source_files", "suppressions", "protected"}
+PROFILE_FIELDS = {"name", "tools", "setup", "checks", "count_tests", "versions", "pinned", "install_scripts", "source_files",
+                  "suppressions", "protected"}
 NAME_RE = re.compile(r"[a-z0-9][a-z0-9-]*")
 ADR_REF_RE = re.compile(r"\bADR-(\d{4})\b")
 EXIT_PASS, EXIT_FAIL, EXIT_SETUP = 0, 1, 2
@@ -316,6 +320,12 @@ def profile_problems(name: str, profile: object) -> list[str]:
             and pinned["lock"] in pinned["files"] and all(isinstance(name, str) and is_plain_name(name) for name in pinned["files"])):
         problems.append(f"{where}: pinned: must be null, or {{\"files\", \"lock\", \"read\"}}: file names in the part's folder, "
                         "the lock file among them, and a command")
+    scripts = profile["install_scripts"]
+    if scripts is not None and not (
+            isinstance(scripts, dict) and set(scripts) == {"lock", "read"} and is_command(scripts["read"])
+            and isinstance(scripts["lock"], str) and is_plain_name(scripts["lock"])):
+        problems.append(f"{where}: install_scripts: must be null, or {{\"lock\", \"read\"}}: a file name in the part's folder, "
+                        "and a command")
     for key in ("source_files", "suppressions", "protected"):
         value = profile[key]
         if not isinstance(value, list) or not all(isinstance(item, str) and item for item in value):
@@ -417,14 +427,17 @@ class Allowed:
     ("- Allows in <pattern>: <text>", ADR 0038), as (pattern, text, ADR number)."""
     named: dict[str, list[str]] = field(default_factory=dict)
     placed: list[tuple[str, str, str]] = field(default_factory=list)
+    # "- Allows install scripts: <package>@<version>" (ADR 0055, ADR 0056): by "<package>@<version>", the ADR number.
+    scripts: dict[str, str] = field(default_factory=dict)
 
 
 def accepted_adrs(root: Path, base: str) -> Allowed:
     """What the project's ADRs accepted at a commit allow: the base, or the newest commit named as a document role's
     (ADR 0032), so that no ADR the developer's commits add can approve anything.
 
-    Only the lines before the first "## " heading count: "- Status: accepted", and one "- Allows: <text>" or
-    "- Allows in <path pattern>: <text>" line per suppression it allows.
+    Only the lines before the first "## " heading count: "- Status: accepted", one "- Allows: <text>" or
+    "- Allows in <path pattern>: <text>" line per suppression it allows, and one "- Allows install scripts:
+    <package>@<version>" line per package whose install script it allows.
     """
     listing = git(root, "ls-tree", "-z", "--name-only", f"{base}:{ADR_DIR}") if file_at(root, base, ADR_DIR) is not None else ""
     allowed = Allowed()
@@ -440,6 +453,9 @@ def accepted_adrs(root: Path, base: str) -> Allowed:
             for pattern, value in re.findall(r"^- Allows in `?([^`:\s]+)`?: (.+)$", header, re.M):
                 if allowed_text(value):
                     allowed.placed.append((pattern, allowed_text(value), number))
+            for value in re.findall(r"^- Allows install scripts: (.+)$", header, re.M):
+                if allowed_text(value):
+                    allowed.scripts.setdefault(allowed_text(value), number)
     return allowed
 
 
@@ -581,18 +597,26 @@ def in_part(part: Part, name: str) -> str:
     return name if part.path == "." else f"{part.path}/{name}"
 
 
-def pinned_versions(part: Part, text: str, timeout: float) -> tuple[dict[str, str] | None, str]:
-    """The versions the profile's `pinned.read` reads from a lock file's text ("" when there is none), by tool name."""
-    with tempfile.TemporaryDirectory(prefix="keyturn-pinned-") as folder:
+def read_lock(command: list[str], text: str, timeout: float) -> tuple[str | None, str]:
+    """What a profile's command prints for a lock file's text ("" when there is none), run in an empty folder, or None
+    and why it failed."""
+    with tempfile.TemporaryDirectory(prefix="keyturn-lock-") as folder:
         try:
-            result = subprocess.run(part.profile["pinned"]["read"], cwd=folder, input=text, capture_output=True, text=True,
-                                    timeout=timeout, env=ENV)
+            result = subprocess.run(command, cwd=folder, input=text, capture_output=True, text=True, timeout=timeout, env=ENV)
         except (OSError, subprocess.TimeoutExpired) as error:
             return None, str(error)
     if result.returncode != 0:
         return None, (result.stdout + result.stderr).strip() or f"exit {result.returncode}"
+    return result.stdout, ""
+
+
+def pinned_versions(part: Part, text: str, timeout: float) -> tuple[dict[str, str] | None, str]:
+    """The versions the profile's `pinned.read` reads from a lock file's text ("" when there is none), by tool name."""
+    output, why = read_lock(part.profile["pinned"]["read"], text, timeout)
+    if output is None:
+        return None, why
     versions = {}
-    for line in result.stdout.splitlines():
+    for line in output.splitlines():
         name, _, version = line.strip().partition(" ")
         if name:
             versions[name] = version.strip()
@@ -616,6 +640,32 @@ def check_pinned(root: Path, reference: str, where: str, head: str, parts: list[
         changed = [f"{name}: {before.get(name) or 'not installed'} at {where}, {after.get(name) or 'not installed'} at the head"
                    for name in sorted(set(before) | set(after)) if (before.get(name) or "") != (after.get(name) or "")]
         results.append(Result("pinned-tools", part.path, not changed, changed))
+    return results
+
+
+def check_install_scripts(root: Path, base: str, head: str, parts: list[Part], documents: str,
+                          timeout: float) -> list[Result]:
+    """Every package with an install script in the lock file at the head that was not there, at that version, at the base
+    is allowed by an ADR accepted at the documents' commit (ADR 0056)."""
+    allowed = accepted_adrs(root, documents).scripts
+    results = []
+    for part in parts:
+        if part.profile["install_scripts"] is None:
+            continue
+        lock = in_part(part, part.profile["install_scripts"]["lock"])
+        found = {}
+        for name, commit in (("the base", base), ("the head", head)):
+            output, why = read_lock(part.profile["install_scripts"]["read"], file_at(root, commit, lock) or "", timeout)
+            if output is None:
+                results.append(Result("install-scripts", part.path, False, [f"{lock} at {name}: {why}"]))
+                break
+            found[name] = {line.strip() for line in output.splitlines() if line.strip()}
+        else:
+            new = sorted(found["the head"] - found["the base"])
+            hits = [f"{lock}: {package} runs scripts on install, and no accepted ADR has "
+                    f"\"- Allows install scripts: {package}\"" for package in new if package not in allowed]
+            details = hits or [f"{package}: allowed by ADR-{allowed[package]}" for package in new]
+            results.append(Result("install-scripts", part.path, not hits, details))
     return results
 
 
@@ -852,6 +902,7 @@ def gate(base_rev: str, head_rev: str, profiles_dir: Path, timeout: float,
             results = [check_protected(changed_paths(root, base, head, skip), protected_patterns(parts, qa))]
             results += check_suppressions(root, base, head, parts, others, documents)
             results += check_pinned(root, *conventions_commit(root, base, head, others), head, parts, timeout)
+            results += check_install_scripts(root, base, head, parts, documents, timeout)
             results += check_test_count(trees, parts)
             results += check_profile(trees, parts)
             versions = read_versions(trees, parts)

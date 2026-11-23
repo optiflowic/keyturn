@@ -17,6 +17,7 @@
   "count_tests": ["sh", "-c", "out=$(GOWORK=off GOFLAGS=-mod=readonly go test -list . ./... 2>&1) || { printf '%s\\n' \"$out\"; exit 1; }; printf '%s\\n' \"$out\" | grep -cE '^(Test|Fuzz|Example)[^[:space:]]*$' || true"],
   "versions": ["sh", "-c", "env GOWORK=off go version; golangci-lint --version"],
   "pinned": null,
+  "install_scripts": null,
   "source_files": ["*.go"],
   "suppressions": [
     "//\\s*nolint\\b",
