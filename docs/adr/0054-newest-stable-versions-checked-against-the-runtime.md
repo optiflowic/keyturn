@@ -24,7 +24,7 @@ Option 2, as the rule for keyturn and for the projects it works on:
 - A different version is used only when the client names one, or when versions do not work together (a library's `engines` or peer dependencies, or a tool that does not support a newer one yet), and the reason goes in an ADR (the project's, or keyturn's for a profile).
 - Each version is confirmed from its official source at that time (the project's releases, or its package registry), never from memory.
 - `design` names one version of each part's runtime in `design.md`'s "Stack", and checks each new dependency against that version and against the other dependencies, as part of the dependency check.
-- `conventions` chooses a tool no profile names at its newest stable release, and stops for the architect when installing the profile's tools reports one that does not support the design's runtime version.
+- `conventions` chooses a tool no profile names at its newest stable release. Before it installs the profile's tools, it checks that the runtime on `PATH` is the design's version or a later release of the same major version, and stops for the person otherwise; and it stops for the architect when the install reports a tool that does not support the design's runtime version.
 - The profiles name the runtime as "the version the design names" instead of a lower bound, and the gate's workflow template installs that version, set by the person who copies it.
 
 ## Reasons
