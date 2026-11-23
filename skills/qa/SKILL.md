@@ -24,7 +24,7 @@ Everything this skill needs is in this file, the template it names, and the scri
 - `keyturn/config.json`: read with the `project-config` skill, only to check the approval (step 1).
 - The "How to run" section of `keyturn/internal/handoff.md`, and only that section: how to build, start, and test the deliverable, test accounts, and sample data.
 - From `keyturn/internal/design.md`: "QA's tests" (where tests go), "Libraries and external services" (which test tools are approved), "Stack", and the interfaces the design describes (the routes, pages, commands, or exported names in "Structure"). These say how to reach the deliverable, not what to test.
-- `keyturn/internal/design-answers.md`, if it exists: the points the design left open, found after the work started, and the architect's answers (`A-n`), in the architect's words. Read them with the design, for the same sections only: how to reach the deliverable, never what to test (ADR 0058 in keyturn's `docs/adr/`).
+- `keyturn/internal/design-answers.md`, if it exists: the points the design left open, found after the work started, and the architect's answers (`A-n`), in the architect's words. Read them with the design, for the same sections only: how to reach the deliverable, never what to test (ADR 0058 in keyturn's `docs/adr/`). An answer to one of your questions (`Asked by: qa`) is how a test reaches what the design left open: use it (ADR 0060).
 - The ADRs in `keyturn/internal/adr/` that the "Libraries and external services" rows of test tools link to, to see whether the client agreed to them (step 4).
 - The lines `- Allows install scripts: <package>@<version>` of the accepted ADRs in `keyturn/internal/adr/`, to see which package's install script may run (step 6).
 - The requirements this task covers, from whoever runs QA (with `deliver`, the delivery's scope). Without it, ask; if nobody can say, test every acceptance criterion that is not removed.
@@ -71,7 +71,9 @@ Learn that interface only from:
 
 In browser tests, find elements the way a person does (by role, label, or visible text), not by internal names, so the test checks what the acceptance criterion describes.
 
-When a test needs something these sources do not give (a route the design does not name, a way to control time, a way to reset data), do not look in the code. Mark the criterion "not tested", with what is missing, and report it in step 9: the architect adds a missing interface to the design, and the developer adds a missing step to "How to run".
+When a test needs something these sources do not give (a route the design does not name, a way to control time, a way to reset data), do not look in the code. Mark the criterion "not tested", or "partly tested" when the rest of it was tested, with what is missing, and report it in step 9: the architect adds a missing interface to the design, and the developer adds a missing step to "How to run".
+
+When what is missing is something the design leaves open about how a test reaches the deliverable (how a test finds a part of it, such as the names a web client's parts are exported under or the labels its pages give them, or how a test controls time or data, such as moving the clock to the end of a block), ask the architect: under that item in "Untested areas", add a line that starts with `Question for the design:` and says, in your own words, what the design leaves open and what a test needs from it. Write it as a gap of the design, never as a guess at how the code is built, and never ask for a change to a requirement, an acceptance criterion, or QA's folders. With `deliver`, the architect answers it in `keyturn/internal/design-answers.md` before the next round, the developer builds what the answer names, and you test through it in that round (ADR 0060 in keyturn's `docs/adr/`). Do not ask about what the design already decides, or about a step missing from "How to run" (the developer's).
 
 ### 4. Choose the test tools
 
@@ -92,7 +94,7 @@ For every acceptance criterion in scope, write one or more tests:
 
 - **Test the whole expected result.** Every part of "Expected result" is checked, including the case that goes wrong (a refused password, a page that says "Task not found", input kept exactly as typed). Use the numbers and wording the criterion and its requirements give. An expected result such as "the delivery report shows that R-4 was tested and passed" means: test R-4 through the interface.
 - **Name the criterion.** Every test names the `AC-n` it checks, in its name or in a comment next to it, so a failure points to the requirement.
-- **Keep tests independent and repeatable.** Each test creates the data it needs (for example, its own accounts) and does not depend on the order tests run in or on data another test left. Keep them fast; when a check would need a long real wait (for example, a block that ends after 15 minutes), use only what "How to run" provides to shorten it, or mark it "not tested" and say what is needed.
+- **Keep tests independent and repeatable.** Each test creates the data it needs (for example, its own accounts) and does not depend on the order tests run in or on data another test left. Keep them fast; when a check would need a long real wait (for example, a block that ends after 15 minutes), use only what "How to run" or the design answers provide to shorten it, or mark it "not tested" and say what is needed (step 3).
 - **Only in QA's folders.** Create a folder from "QA's tests" if it does not exist. Put the test tool's configuration there too, when the tool can read it from there. If the runner needs something outside QA's folders (a manifest entry, a script, a configuration at the root), do not change it: report it in step 9.
 
 ### 6. Run the tests
@@ -132,7 +134,8 @@ Tell whoever asked for the tests (the client, the developer, or `deliver`, which
 
 - the commit of the outputs, and the tested commit;
 - how many criteria pass, fail, and were not tested, and each failure in one line, for the developer;
-- what is missing and who can provide it: interfaces the design does not describe and test tools that are not approved (the architect), and steps missing from "How to run" or approved tools that are not installed (the developer).
+- what is missing and who can provide it: interfaces the design does not describe and test tools that are not approved (the architect), and steps missing from "How to run" or approved tools that are not installed (the developer);
+- each `Question for the design:` line of the report, with the criteria it keeps from being fully tested.
 
 This skill does not write the task's state file.
 
