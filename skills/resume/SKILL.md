@@ -23,7 +23,7 @@ Paths below that start with `scripts/`, `../`, or `../../` are relative to the f
 - The project's Git repository, with its task branches `task/<task>` (local, or on a remote).
 - `../../templates/internal/state.md`: the fields and values of a state file. The script reads it; you need it only to edit the state file in step 5.
 - For a task waiting for the client: the decision card, `keyturn/client/design-summary.md`, or `keyturn/client/approvals.md` named in its "Open questions", and the scripts `../spec/scripts/approval.py` and `../project-config/scripts/project_config.py`.
-- To push what only the local branch has: `../../github/scripts/task_branch.py` (below, `task_branch.py` means its full path); to post the reviews: `../../github/scripts/post_findings.py`; to merge a done task: `../../github/scripts/merge.py` (below, `merge.py`).
+- To push what only the local branch has: `../../github/scripts/task_branch.py` (below, `task_branch.py` means its full path); to post the reviews: `../../github/scripts/post_findings.py`; to merge a done task: `../../github/scripts/merge.py` (below, `merge.py`). Run each of these as `deliver`'s rule "To the host only through the scripts" says: a command of its own, `python3` and the script's absolute path, resolved and written out in full (no `.` or `..` part), never joined with another command (`../deliver/SKILL.md`).
 - To continue: the `deliver` skill, `../deliver/SKILL.md`.
 
 ## Outputs

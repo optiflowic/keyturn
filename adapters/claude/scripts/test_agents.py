@@ -14,6 +14,7 @@ from pathlib import Path
 ADAPTER = Path(__file__).resolve().parent.parent
 ROOT = ADAPTER.parent.parent
 AGENTS = ADAPTER / "agents"
+PLUGIN = "<path to the keyturn plugin>"  # the placeholder the person replaces, as in statusline-settings.json
 
 FILE_TOOLS = ["Read", "Grep", "Glob", "Edit", "Write", "Bash"]
 TOOLS = {
@@ -93,12 +94,49 @@ class PermissionSettings(unittest.TestCase):
     def setUp(self):
         self.settings = json.loads((ADAPTER / "permission-settings.json").read_text(encoding="utf-8"))
 
-    def test_only_deny_rules(self):
+    def test_only_allow_and_deny_rules(self):
         self.assertEqual(list(self.settings), ["permissions"])
-        self.assertEqual(list(self.settings["permissions"]), ["deny"])
+        self.assertEqual(list(self.settings["permissions"]), ["allow", "deny"])
+        for kind in ("allow", "deny"):
+            rules = self.settings["permissions"][kind]
+            self.assertEqual(len(rules), len(set(rules)), kind)
+            self.assertTrue(all(rule.startswith(("Bash(", "Edit(", "Write(")) and rule.endswith(")") for rule in rules))
+
+    def test_only_the_github_scripts_are_allowed_by_their_full_path(self):
+        # ADR 0052: auto mode judges every command no allow rule matches, and denied task_branch.py (#155). Each rule
+        # names one script by the plugin's path, with no wildcard in the path, so a script of the same name elsewhere
+        # does not match.
+        self.assertEqual(self.settings["permissions"]["allow"], [
+            f"Bash(python3 {PLUGIN}/github/scripts/{script} *)"
+            for script in ("task_branch.py", "post_findings.py", "merge.py")])
+        for rule in self.settings["permissions"]["allow"]:
+            path = rule[len("Bash(python3 "):-len(" *)")]
+            self.assertNotIn("*", path)
+            self.assertTrue((ROOT / path.replace(PLUGIN + "/", "")).is_file(), path)
+
+    def test_the_rules_filled_in_with_a_path_match_the_scripts_and_the_folder_only(self):
+        # The person replaces the placeholder with an absolute path (ADR 0052): the Bash rules must then match the
+        # scripts there only, and the Edit and Write rules must become absolute ("//"), not relative to the settings file.
+        sample = "/Users/me/keyturn"
+        allow = [rule.replace(PLUGIN, sample)[len("Bash("):-1] for rule in self.settings["permissions"]["allow"]]
+        deny = [rule.replace(PLUGIN, sample) for rule in self.settings["permissions"]["deny"] if PLUGIN in rule]
+        def allowed(command):
+            return any(fnmatch.fnmatchcase(command, pattern) for pattern in allow)
+        for script in ("task_branch.py", "post_findings.py", "merge.py"):
+            self.assertTrue(allowed(f"python3 {sample}/github/scripts/{script} delivery-1"), script)
+            self.assertFalse(allowed(f"python3 /tmp/keyturn/github/scripts/{script} delivery-1"), script)
+        self.assertFalse(allowed(f"python3 {sample}/gates/gate.sh --task delivery-1"))
+        # The rules match the text: the same script by a path with ".." does not match, so deliver writes the resolved path.
+        self.assertFalse(allowed(f"python3 {sample}/skills/deliver/../../github/scripts/task_branch.py push delivery-1"))
+        self.assertEqual(sorted(deny), [f"Edit(/{sample}/**)", f"Write(/{sample}/**)"])
+        self.assertTrue(all(rule.split("(", 1)[1].startswith("//") for rule in deny))
+
+    def test_edits_under_the_plugin_folder_are_denied(self):
+        # ADR 0052: an allowed script is only as safe as the script, so the file tools (and the shell writes Claude Code
+        # checks against these rules) cannot change it. "/" before the path makes it absolute ("//...").
         deny = self.settings["permissions"]["deny"]
-        self.assertEqual(len(deny), len(set(deny)))
-        self.assertTrue(all(rule.startswith("Bash(") and rule.endswith(")") for rule in deny))
+        for tool in ("Edit", "Write"):
+            self.assertIn(f"{tool}(/{PLUGIN}/**)", deny)
 
     def test_every_push_is_denied(self):
         self.assertIn("Bash(git push *)", self.settings["permissions"]["deny"])
@@ -118,7 +156,7 @@ class PermissionSettings(unittest.TestCase):
     def test_the_commands_that_change_credentials_variables_secrets_and_workflows_are_denied(self):
         # ADR 0048: agents run with the agents' token alone, and the detecting workflow, its variables, and its runs
         # stay out of their reach; gh auth token would also hand the token to a command that is not gh.
-        patterns = [rule[len("Bash("):-1] for rule in self.settings["permissions"]["deny"]]
+        patterns = [rule[len("Bash("):-1] for rule in self.settings["permissions"]["deny"] if rule.startswith("Bash(")]
         for command in ("gh auth", "gh auth token", "gh auth login --with-token", "gh auth switch --user someone",
                         "gh auth refresh -s workflow", "gh auth status", "gh variable set KEYTURN_VOUCHED --body x",
                         "gh variable list", "gh secret set TOKEN", "gh workflow disable keyturn-watch.yml",
@@ -128,7 +166,7 @@ class PermissionSettings(unittest.TestCase):
     def test_the_os_credential_store_is_denied(self):
         # The maintainer reads the agents' token from the credential store before starting the session; the agents never
         # need it, and the maintainer's own credentials are there too (#119). It stops the plain command only.
-        patterns = [rule[len("Bash("):-1] for rule in self.settings["permissions"]["deny"]]
+        patterns = [rule[len("Bash("):-1] for rule in self.settings["permissions"]["deny"] if rule.startswith("Bash(")]
         for command in ("security", "security find-generic-password -s keyturn -w", "security dump-keychain"):
             self.assertTrue(any(fnmatch.fnmatchcase(command, pattern) for pattern in patterns), command)
 
