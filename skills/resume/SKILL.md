@@ -15,6 +15,7 @@ Paths below that start with `scripts/`, `../`, or `../../` are relative to the f
 - **Never rely on the previous session.** A step that was stopped in the middle is rerun from its start, from its inputs (the documents and commits on the task branch). Nothing the earlier session was thinking or had not committed counts.
 - **No answer is not consent.** Do not continue past a decision card, requirements, or a delivery the client has not answered, not even with the card's recommendation. Work that depends on the answer waits, and nothing is merged before the client accepts.
 - **Not before the reset.** Do not continue a task stopped for a usage limit before the time it records; say when it can continue.
+- **A command the tool refuses to run did not run.** When the tool you run in does not let a script or command this skill names run (a permission rule, the tool's own check of the command, a hook, or the person declining it), treat it as that command's failure, with the tool's message as its message, and do what this skill says where it fails; never run it another way (the same rule as in `../deliver/SKILL.md`).
 - **Never discard work.** Do not reset, stash, or overwrite uncommitted changes or a branch that has diverged; stop and ask.
 
 ## Inputs
