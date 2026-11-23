@@ -54,6 +54,9 @@ TIME_RE = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}Z")
 TASK_RE = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
 NUMBER_RE = re.compile(r"0|[1-9][0-9]*")
 COMMIT_RE = re.compile(r"`[0-9a-f]{7,40}`")
+# What "Commits" may name besides the steps: the architect's answers to the developer's questions during implement,
+# which are no step of their own (ADR 0058).
+COMMIT_ONLY_ROLES = ("answer",)
 PLACEHOLDER_RE = re.compile(r"<([^<>]+)>|" + re.escape(TIME_FORM))
 LEFTOVER_PLACEHOLDER_RE = re.compile(r"<[a-z][^<>]*>")
 FIELD_RE = re.compile(r"^- ([^:]+): (.*)$")
@@ -441,8 +444,8 @@ def check_commits(lines: list[tuple[int, str]], template: Template) -> list[str]
             problems.append(f"line {number}: commit {commit} is also listed on line {seen[commit]}")
         else:
             seen[commit] = number
-        if step not in template.steps:
-            problems.append(f'line {number}: "{step}" is not a step of the template')
+        if step not in template.steps and step not in COMMIT_ONLY_ROLES:
+            problems.append(f'line {number}: "{step}" is not a step of the template, or answer')
         if int(round_number) < 1:
             problems.append(f"line {number}: the round should be 1 or more")
     return problems

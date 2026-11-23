@@ -80,6 +80,9 @@ ROLE_PATHS = {
     # The client's acceptance, recorded by the PM in the merge step (ADR 0042, ADR 0046), and the card that asks the
     # client what to do after they did not accept (ADR 0047).
     "merge": ["keyturn/client/approvals.md", "keyturn/client/decision-card-*.md"],
+    # The architect's answers to the developer's questions, during implement, which change no document the developer is
+    # judged against (ADR 0058).
+    "answer": ["keyturn/internal/design-answers.md"],
 }
 
 PROFILE_FIELDS = {"name", "tools", "setup", "checks", "count_tests", "versions", "pinned", "install_scripts", "source_files",
@@ -819,7 +822,7 @@ def check_others(root: Path, base: str, head: str, others: dict[str, str], qa: l
         parent = commits[commit][0]
         allowed = ROLE_PATHS[role] + {"qa": qa, "conventions": configs}.get(role, [])
         outside = [path for path in name_status(root, parent, commit) if not any(matches(path, p) for p in allowed)]
-        problems += [f"{commit[:12]} ({role}): changes {path}, which a {role} commit may not" for path in outside]
+        problems += [f"{commit[:12]} ({role}): changes {path}, which {'an' if role[0] in 'aeiou' else 'a'} {role} commit may not" for path in outside]
         if role == "security-review":
             diff = git(root, "diff", "--no-color", "--no-ext-diff", "--text", "--no-textconv", "--unified=0", parent, commit,
                        "--", THREAT_MODEL)
@@ -835,8 +838,9 @@ def check_others(root: Path, base: str, head: str, others: dict[str, str], qa: l
 STATE_DIR = "keyturn/internal/state"
 TASK_RE = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
 STATE_COMMIT_RE = re.compile(r"- `([0-9a-f]{7,40})`: ([a-z-]+), round [1-9][0-9]*")
-# The steps of the task state file whose commits are another role's; "implement" is the developer's.
-LATER_ROLES = ("qa", "security-review", "review", "deliver", "merge")
+# The steps of the task state file whose commits are another role's, and "answer" (ADR 0058), which "Commits" names
+# though it is no step; "implement" is the developer's.
+LATER_ROLES = ("qa", "answer", "security-review", "review", "deliver", "merge")
 
 
 def state_section(text: str, name: str) -> list[str]:
@@ -1044,8 +1048,8 @@ def main() -> int:
     parser.add_argument("--profiles", type=Path, default=PLUGIN_ROOT / "profiles", help="the folder of stack profiles")
     parser.add_argument("--timeout-minutes", type=float, default=30, help="the limit for each command (default: 30)")
     parser.add_argument("--others", action="append", default=[], metavar="ROLE:COMMIT",
-                        help="a commit in the range that is another role's (spec, design, conventions, qa, security-review, review, deliver); "
-                             "repeat for each (ADR 0029, ADR 0032)")
+                        help="a commit in the range that is another role's (spec, design, conventions, qa, answer, security-review, review, deliver, merge); "
+                             "repeat for each (ADR 0029, ADR 0032, ADR 0058)")
     parser.add_argument("--documents-vouched", default="", metavar="VALUE",
                         help="with --task: the value of the repository variable KEYTURN_DOCUMENTS (\"<task>:<full SHA> ...\"), "
                              "the state file version the maintainer vouched for after a redo of the documents (ADR 0057)")
