@@ -29,7 +29,7 @@ Everything this skill needs is in this file, the template it names, and the scri
 - `keyturn/client/requirements.md` and `keyturn/client/approvals.md`: the approved requirements, and the record of their approval.
 - `keyturn/internal/design.md`: the parts and their locations, the data model, the dependencies with their kind and check ("Libraries and external services"), "Areas the work may change", "QA's tests", and "Open questions".
 - `keyturn/internal/adr/`: the decisions the design depends on, and their status.
-- `keyturn/internal/design-answers.md`, if it exists: the architect's answers to earlier questions (`A-n`), about what the design leaves open. Read them with the design, and build by them as by the design. An answer never changes the design: if one seems to, the design wins, and you ask again (step 6).
+- `keyturn/internal/design-answers.md`, if it exists: the points the design left open and the architect's answers (`A-n`), written from earlier questions. Read them with the design, and build by them as by the design. An answer never changes the design: if one seems to, the design wins, and you ask again (step 6).
 - `keyturn/internal/threat-model.md`: the threats, and the mitigation each needs in the design's parts.
 - `keyturn/internal/conventions.md` and the tool configs it lists under "Tool rules".
 - Optional: which requirements this task covers (for example, `deliver` builds a delivery in parts). Without it, the task covers every requirement that is not removed.

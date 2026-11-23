@@ -21,7 +21,7 @@ Paths below that start with `../../` are relative to the folder of this `SKILL.m
 
 - The change: a Git range `<base>..<head>` (step 1).
 - `keyturn/internal/design.md`: the parts and what each does, the data model, the interfaces between parts, the libraries, "Areas the work may change", and "QA's tests".
-- `keyturn/internal/design-answers.md`, if it exists, at `<head>`: the architect's answers (`A-n`) to the developer's questions after the work started, about what the design leaves open (read with the design; an answer that changes what the design or an ADR decides is a high `design fit` finding, located at the answer, and the change is judged against the design without it). They come after the documents' commit, in commits `deliver` names as `answer`'s, and never change what the design decides (ADR 0058 in keyturn's `docs/adr/`).
+- `keyturn/internal/design-answers.md`, if it exists, at `<head>`: the points the design left open, found after the work started, and the architect's answers (`A-n`), in the architect's words (read with the design; an answer that changes what the design or an ADR decides is a high `design fit` finding, located at the answer, and the change is judged against the design without it). They come after the documents' commit, in commits `deliver` names as `answer`'s, and never change what the design decides (ADR 0058 in keyturn's `docs/adr/`).
 - `keyturn/internal/conventions.md`: the "Reviewer checklist" (`C-n`), the "Tool rules" (which the gate runs), and how suppressions are allowed.
 - The project's ADRs in `keyturn/internal/adr/`: every one, by status.
 - `keyturn/client/requirements.md` and `keyturn/client/approvals.md`: the requirement IDs a finding is based on, and whether the requirements are approved.

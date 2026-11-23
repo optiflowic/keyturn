@@ -25,7 +25,7 @@ Paths below that start with `../../` are relative to the folder of this `SKILL.m
 - The change: a Git range `<base>..<head>` (step 1).
 - The gate's scan results: SAST, dependency scanning, and secret scanning. None exist until the gate arrives (phases 4 and 5 of keyturn); the report then says which scans did not run.
 - `keyturn/internal/design.md`: the data model (who owns and may reach each record), the libraries and external services with their kind and check, and QA's test folders.
-- `keyturn/internal/design-answers.md`, if it exists, at `<head>`: the architect's answers (`A-n`) to the developer's questions after the work started, about what the design leaves open (read with the design). They come after the documents' commit, in commits `deliver` names as `answer`'s, and never change what the design decides (ADR 0058 in keyturn's `docs/adr/`).
+- `keyturn/internal/design-answers.md`, if it exists, at `<head>`: the points the design left open, found after the work started, and the architect's answers (`A-n`), in the architect's words (read with the design). They come after the documents' commit, in commits `deliver` names as `answer`'s, and never change what the design decides (ADR 0058 in keyturn's `docs/adr/`).
 - "How to run" in `keyturn/internal/handoff.md`, and only that section.
 - To check accepted risks and the public-accounts exception: `keyturn/client/requirements.md`, `keyturn/client/approvals.md`, the decision cards the threat model links to (`keyturn/client/decision-card-<n>.md`), and the design summary `keyturn/client/design-summary.md` for which dependencies the client agreed to.
 - QA's tests and `keyturn/internal/test-report.md`, as evidence only.
