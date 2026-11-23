@@ -6,7 +6,8 @@
 #   - set KEYTURN_COMMIT to the full SHA of the keyturn commit whose gate and profiles check the project;
 #   - keep the tool steps of the profiles in the project's keyturn/config.json ("parts"), and remove the others;
 #   - for a go part, set go-version-file to that part's go.mod;
-#   - for a react-spa part, set node-version to the Node.js version in the design's "Stack" (keyturn/internal/design.md).
+#   - for a react-spa part, set node-version to the newest Node.js LTS release, confirmed on nodejs.org; change it to the
+#     version a design names only between tasks, never while one runs (github/README.md).
 # On a plan with branch protection, then make the checks "keyturn gate" and "keyturn conditions" required on the default
 # branch, with GitHub Actions as their expected source (github/README.md). "keyturn conditions" fails until the client's
 # acceptance is recorded.
