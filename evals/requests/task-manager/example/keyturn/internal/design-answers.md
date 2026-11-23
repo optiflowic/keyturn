@@ -15,13 +15,13 @@ Points the design left open, found after the work started, and the architect's a
 
 ## A-2
 
-- What the design left open: how a test moves time forward to the end of a 15-minute sign-in block (R-8). The design says when a block ends, but not where the server's code takes the time from.
-- Asked by: qa
+- What the design left open: where the API's code takes the current time from. The design says that a sign-in block ends 15 minutes after the fifth wrong password (R-8), but not how the code reads the time, which a test needs to reach the end of a block without waiting.
+- Asked by: implement
 - Answer: `api/internal/http` exports `NewServer(cfg Config)`, with `Config{DBPath string; Now func() time.Time}`; `NewServer` opens the database itself, and `Now` is the only clock the sign-in limit reads. `api/cmd/server` leaves `Now` unset (`time.Now`); a test sets it and moves it forward.
 - Why it changes nothing: the design leaves the clock's source open, and no requirement, interface, or threat depends on it; it changes only `api/internal/http/` and `api/cmd/server/`, inside the API's areas.
 - Answered by: the architect
 - Reads with the design at: `b7e44103f31bad9654d8e75f3a7bc30708f7732d`
-- Round: 2
+- Round: 1
 - Date: 2026-11-08
 
 ## A-3
@@ -31,16 +31,16 @@ Points the design left open, found after the work started, and the architect's a
 - In its place: A-4, the entry after this one
 - Withdrawn by: the maintainer's decision
 - Reads with the design at: `b7e44103f31bad9654d8e75f3a7bc30708f7732d`
-- Round: 2
+- Round: 1
 - Date: 2026-11-08
 
 ## A-4
 
-- What the design left open: the same gap as A-2, which A-3 withdrew: where the server's code takes the time from, so that a test can move it to the end of a 15-minute sign-in block (R-8).
-- Asked by: qa
+- What the design left open: the same gap as A-2, which A-3 withdrew: where the API's code takes the current time from, so that a test can move it to the end of a 15-minute sign-in block (R-8).
+- Asked by: implement
 - Answer: `api/internal/account` exports `NewService(db *store.Store, now func() time.Time)`, and the sign-in limit reads the time only from `now`. `api/internal/http` exports `NewHandler(accounts *account.Service, tasks *task.Service) http.Handler`, and imports neither `api/internal/store` nor `database/sql`. `api/cmd/server` opens the store and passes `time.Now`; a test opens a store of its own, builds the account service with a clock it moves forward, and serves the handler with `httptest`.
 - Why it changes nothing: the design leaves the clock's source open, and puts the sign-in limit in the account service; it changes only `api/internal/account/`, `api/internal/http/`, and `api/cmd/server/`, inside the API's areas, and `api/internal/http` still imports neither `api/internal/store` nor `database/sql`, as the conventions' import rule requires.
 - Answered by: the architect
 - Reads with the design at: `b7e44103f31bad9654d8e75f3a7bc30708f7732d`
-- Round: 2
+- Round: 1
 - Date: 2026-11-08

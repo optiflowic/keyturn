@@ -13,7 +13,7 @@ The rehearsal of the MVP run found an answer that the developer could not build:
 ## Options considered
 
 1. **A withdrawal entry, by the maintainer's decision only.** `design` adds an entry that names the answer it withdraws and why. Readers take the withdrawn answer as void. No earlier entry changes, so the file still shows what was answered, and when.
-2. **Let `design` change or remove the entry.** Simpler to read, but the record of what the developer built from, and of what QA and the reviewers read, is lost, and the gate's view that the answers' commits only add would no longer hold.
+2. **Let `design` change or remove the entry.** Simpler to read, but the record of what the developer built from, and of what QA and the reviewers read, is lost, and an earlier entry could change after the roles read it.
 3. **Let the maintainer go on without recording it.** The task goes on, but the answers still say what to build, so `implement`, `qa`, and the reviewers keep reading the withdrawn answer as the design.
 
 ## Decision

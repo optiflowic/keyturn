@@ -12,7 +12,7 @@
 
 ## Summary
 
-Delivery 1 is done: the client accepted it, and the pull request is merged. The task stopped three times on the way, for the client's answers, for a usage limit, and for the client's acceptance, and was resumed each time.
+Delivery 1 is done: the client accepted it, and the pull request is merged. The task stopped four times on the way, for the client's answers, for a usage limit, for the maintainer's decision on a design answer that could not be built, and for the client's acceptance, and was resumed each time.
 
 ## Steps
 
@@ -51,6 +51,13 @@ Delivery 1 is done: the client accepted it, and the pull request is merged. The 
 - `4f8d2c048a5ca20a1469a5e98387bdc338417e4d`: deliver, round 1
 - `5b2f0d65d6fd8b86aa42edab9110de5903a026b8`: deliver, round 1
 - `6a8c3e210e24fe5f5793f2ec500b689f3ac58271`: implement, round 1
+- `3dfa36745d867681819f40571506b7e8c62a99d2`: deliver, round 1
+- `4f17fcddc6af5215c8acef7a4e31ef39a017d74f`: deliver, round 1
+- `30cd9d743a2364309b0674a1649700da9f3d2920`: deliver, round 1
+- `5edff8c36286afc3d35f223ae3dc297dee70663a`: deliver, round 1
+- `2c1f895d852b216dc7db9ca16a2ae9e65110d2b0`: answer, round 1
+- `1decb7060c5324c0b65228d1ccd4d14d253c59c2`: deliver, round 1
+- `6c59abc441c0748a9a86188ab68fe00076993433`: implement, round 1
 - `7d4b1f9f7577a107f473c1557c5d3de9d3e2dab4`: deliver, round 1
 - `8c6e2a0fc2d2a775078e05ad3448b1d09362d0e4`: qa, round 1
 - `8f0a5b360eedb61015f04ba6fbd34092981e8636`: deliver, round 1
@@ -84,6 +91,8 @@ None.
 - 2026-11-08T06:02Z: resumed: in design, from commit `5d0b9e2`
 - 2026-11-08T12:48Z: stopped: usage limit, in implement (5-hour window at 80%, resets at 2026-11-08T15:30Z)
 - 2026-11-08T15:41Z: resumed: in implement, from commit `4f8d2c0`
+- 2026-11-08T16:20Z: stopped: waiting for the maintainer, in implement (design could not answer again: A-2 cannot be built within the conventions)
+- 2026-11-08T16:45Z: resumed: in implement, from commit `4f17fcd` (withdraw A-2, by the maintainer's decision: it cannot be built, because opening the database in api/internal/http breaks the conventions' import rule for that package; the architect answers the clock again)
 - 2026-11-08T21:40Z: stopped: waiting for the client, in merge (acceptance of delivery-1)
 - 2026-11-09T09:05Z: resumed: in merge, from commit `6c1e8f3`
 - 2026-11-09T09:12Z: done
