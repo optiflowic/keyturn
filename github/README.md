@@ -15,12 +15,12 @@ A person adds it to the project once:
 
 1. Copy it to `.github/workflows/keyturn-gate.yml` in the project.
 2. Set `KEYTURN_COMMIT` to the full SHA of the keyturn commit to check with (the one the project's tasks run with).
-3. Keep the tool steps of the profiles that `parts` in `keyturn/config.json` names, and remove the others. For a `go` part, set `go-version-file` to that part's `go.mod`.
+3. Keep the tool steps of the profiles that `parts` in `keyturn/config.json` names, and remove the others. For a `go` part, set `go-version-file` to that part's `go.mod`. For a `react-spa` part, set `node-version` to the newest LTS release of Node.js, confirmed on https://nodejs.org/ when you copy it: the same rule `design` follows, so the two normally agree ([ADR 0054](../docs/adr/0054-newest-stable-versions-checked-against-the-runtime.md)). When a task's design names another version (the "Runtime" line of the design's "Stack", in `keyturn/internal/design.md`), change it only once that task is merged or closed and before the next one starts: a commit pushed to the default branch while a task runs makes `merge.py` refuse that task's merge, since a task branch is never updated from the default branch ([ADR 0031](../docs/adr/0031-documents-fixed-once-implement-starts.md)). Until then, the gate records the Node.js version that ran. Reading the version from the project instead of setting it by hand waits for #133.
 4. Commit it on the default branch. On a plan with branch protection, also require both checks, as "One-time setup" below says.
 
 On a pull request, GitHub runs the workflow as the pull request's branch has it, so a branch that changed it would run its own version. What keeps it as the person committed it is the agents' token: without the Workflows permission, GitHub refuses a push that changes a file under `.github/workflows/` ([ADR 0042](../docs/adr/0042-pm-merges-on-machine-checked-conditions.md)). The gate also fails such a change as one to a protected path (the CI jobs that run the gates, "Guardrails" 1), but that check runs inside the workflow, so it is not what protects it. A token with that permission, or a person's own push, can change it; the one-time setup gives the agents only the token without it.
 
-The workflow's steps install the tools the profiles need (`profiles/<name>/README.md`, "Tools"): Go and `golangci-lint` v2 for `go`, Node.js 22 or later for `react-spa`. The gate records their versions; it does not pin them ([ADR 0037](../docs/adr/0037-gate-records-tool-versions.md)).
+The workflow's steps install the tools the profiles need (`profiles/<name>/README.md`, "Tools"): Go and `golangci-lint` v2 for `go`, Node.js at the version the design names for `react-spa`. The gate records their versions; it does not pin them ([ADR 0037](../docs/adr/0037-gate-records-tool-versions.md)).
 
 ## The detecting workflow
 

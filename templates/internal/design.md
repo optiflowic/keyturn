@@ -25,9 +25,11 @@ The stack profile used, from profiles/. If no profile fits, write "No profile" a
 the gate's coverage is then limited, and the delivery report must say so.
 Name each profile and its folder exactly as in the form below (for example `go` for `api/`, `react-spa` for `web/`):
 deliver writes the gate's `parts` in keyturn/config.json from this line, and stops when it cannot read it.
+The runtime line names one exact version per part, never a lower bound (ADR 0054 in keyturn).
 -->
 
 - Stack profile: <`profile` for `folder/`, one per part, separated by commas | `profile` alone, for the whole repository | No profile: the stack>
+- Runtime: <runtime and exact version for `folder/`, one per part, separated by commas (for example Go 1.27.4 for `api/`, Node.js 26.13.1 for `web/`)>, confirmed from the official sources on <date>
 - Repository structure: <one repository | monorepo | several repositories>, see <link to the ADR>
 
 ## Structure
@@ -73,7 +75,7 @@ Indirect dependencies are not listed: the lock file fixes them and is always com
 Do not list the language toolchain and standard library (covered by approving the stack) or the gate's scanners (installed by the gate, never added to the project).
 - A new runtime dependency, a new other tool, or a new external service always needs the client's approval before it is used, under "Must agree" in design-summary.md.
 - A new profile tool is approved by the stack profile, and is listed in design-summary.md for information only.
-- Every new dependency, of every kind, is checked for existence, maintenance status, known vulnerabilities, and license, and the result is recorded in "Check".
+- Every new dependency, of every kind, is checked for existence, maintenance status, known vulnerabilities, license, whether it works with the runtime version and the other dependencies, and its supply chain (a look-alike name, the release date against the waiting period, a recent change of publishers, install scripts, provenance), and the result is recorded in "Check" (ADR 0054 in keyturn).
 - "New" is "no" only for a dependency the project already has. A runtime library the stack profile suggests is still new the first time the project adds it, and needs the approval and the check.
 Leave the section with "None." when there are none.
 -->

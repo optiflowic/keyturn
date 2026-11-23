@@ -29,7 +29,7 @@ The gate also records the versions of Node.js, npm, Vite, Vitest, ESLint, TypeSc
 
 Install them before the gate runs; it stops with exit code 2 and says how when one is missing.
 
-- **Toolchain** (covered by approving the stack, ADR 0015): Node.js 22 or later (an LTS release), with npm.
+- **Toolchain** (covered by approving the stack, ADR 0015): Node.js at the version the design names (the newest LTS release, [ADR 0054](../../docs/adr/0054-newest-stable-versions-checked-against-the-runtime.md)), with npm. The gate does not check that the Node.js on `PATH` is that version (see below).
 - **Runtime** (part of the deliverable, so the client agrees to them through the design, ADR 0015): React, `react-dom`, Vite, and `@vitejs/plugin-react`.
 - **Profile tools** (approved by this profile, ADR 0015; the design still lists each with its kind and a passing check), installed as development dependencies of the part:
   - type checking: `typescript` (at a version `typescript-eslint` supports: 6.0, since TypeScript 7 is not supported by it yet), `@types/react`, `@types/react-dom`, `@types/node`;
@@ -78,5 +78,5 @@ Each delivery report made with this profile lists these under "What was not veri
 - **Code that runs during the tests and the build**: the tests run the application's code, which can change what the test tools do (for example, by changing `expect`); `vite build` runs `vite.config.ts` and its plugins; the packages' own code runs in every check. The gate does not stop code that changes how the checks run; the review and the security review read it.
 - **Type checking**: `tsc` checks the files `tsconfig.json` reaches. JavaScript files are linted but not type-checked, unless the conventions turn on `checkJs`.
 - **Browsers**: no test runs in a real browser; `jsdom` stands in for one. A page that works in `jsdom` and fails in a browser is not found.
-- **The Node.js version**: the gate uses the Node.js on `PATH`, whatever `engines` in `package.json` asks for.
+- **The Node.js version**: the gate uses the Node.js on `PATH`, whatever the design's "Stack" or `engines` in `package.json` asks for (fixing it waits for #133).
 - **Structure and secure defaults**: this profile does not give a recommended project structure or secure defaults yet; the architect takes them from React's and Vite's own documentation and says so in the stack's ADR.
