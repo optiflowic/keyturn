@@ -74,3 +74,4 @@ See "Architecture decision records" in [`docs/design/documents.md`](../design/do
 | [0056](0056-gate-fails-new-packages-with-install-scripts.md) | The gate fails a new package with an install script that no accepted ADR names | accepted |
 | [0057](0057-documents-redone-before-implement-vouched-by-the-maintainer.md) | The maintainer may have a task's documents redone before `implement`, and vouches for the result in a repository variable | accepted |
 | [0058](0058-design-answers-during-implement.md) | A gap the design leaves is answered during `implement`, in a document of its own, without changing the design | accepted |
+| [0059](0059-roles-write-through-file-operations-and-never-delete-recursively.md) | The roles write files through the tool's file operations, try things in a new scratch folder each time, and never delete recursively | accepted |
