@@ -126,6 +126,8 @@ class PermissionSettings(unittest.TestCase):
             self.assertTrue(allowed(f"python3 {sample}/github/scripts/{script} delivery-1"), script)
             self.assertFalse(allowed(f"python3 /tmp/keyturn/github/scripts/{script} delivery-1"), script)
         self.assertFalse(allowed(f"python3 {sample}/gates/gate.sh --task delivery-1"))
+        # The rules match the text: the same script by a path with ".." does not match, so deliver writes the resolved path.
+        self.assertFalse(allowed(f"python3 {sample}/skills/deliver/../../github/scripts/task_branch.py push delivery-1"))
         self.assertEqual(sorted(deny), [f"Edit(/{sample}/**)", f"Write(/{sample}/**)"])
         self.assertTrue(all(rule.split("(", 1)[1].startswith("//") for rule in deny))
 
