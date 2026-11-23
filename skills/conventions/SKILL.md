@@ -55,7 +55,7 @@ From the design document, note for each part: its location, its language, and ev
 For each language in the design, choose one formatter and one linter.
 
 - With a stack profile: use its tools and defaults. Adapt a default only to the design or the size of the project, and say why under "Based on".
-- Without one: choose the formatter and linter most widely used for the language, at its newest stable release, confirmed from its official source (its releases or its package registry) at the time you choose it, never from memory, and one that supports the part's runtime version in the design's "Stack" (ADR 0054 in keyturn's `docs/adr/`). List each choice, with its version, under "Assumed defaults".
+- Without one: choose the formatter and linter most widely used for the language, at its newest stable release that is older than the waiting period, confirmed from its official source (its releases or its package registry) at the time you choose it, never from memory, and one that supports the part's runtime version in the design's "Stack" (ADR 0054 in keyturn's `docs/adr/`). It is used only once the design lists it with a passing check, which covers the supply-chain items of the design's dependency check. List each choice, with its version, under "Assumed defaults".
 - For a project-specific pattern the linter cannot express (for example, "every query on the tasks table includes the user ID"), add a custom static-analysis rule, such as a Semgrep rule.
 
 Then sort every tool by its kind (ADR 0015), and write the kind in "Tool kind":
