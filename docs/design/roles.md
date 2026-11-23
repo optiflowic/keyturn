@@ -26,7 +26,7 @@ The architect turns requirements into a design that fits their size and nature.
 - For each meaningful decision, lists the realistic alternatives, picks one, and records why.
 - Scales the design to the project: a small tool gets a simple structure; a larger or multi-user system gets the separation, boundaries, and security controls it needs.
 - Writes a threat model covering how the deliverable could be attacked or misused.
-- Once the developer's work has started, answers the developer's questions about what the design leaves open in `design-answers.md`, without changing the design ([ADR 0058](../adr/0058-design-answers-during-implement.md)).
+- Once the developer's work has started, answers the developer's questions about what the design leaves open in `design-answers.md`, in its own words, as points the design left open, without copying the questions or changing the design ([ADR 0058](../adr/0058-design-answers-during-implement.md)).
 - The reviewer checks the implementation against these decisions and against the readability rules.
 
 ## Who checks what
