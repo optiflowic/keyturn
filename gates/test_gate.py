@@ -558,6 +558,41 @@ class GateTest(unittest.TestCase):
         self.commit("developer")
         self.assert_fails(self.gate(), "FAIL install-scripts [app]: installed packages not compared with the lock file: setup failed")
 
+    def test_an_allowance_a_conventions_commit_adds_allows_nothing_after_a_later_design_commit(self):
+        self.scripts()
+        roles = self.start_before_the_documents()
+        self.allow_scripts("native@2.0.0")
+        conventions = self.commit("conventions: its own allowance")
+        self.put("keyturn/internal/design.md", DESIGN + "\nRedone.\n")
+        design = self.commit("design: redone after conventions")
+        named = [*self.others(roles), "--others", f"conventions:{conventions}", "--others", f"design:{design}"]
+        self.put("app/deps.lock", "native@2.0.0\n")
+        self.commit("developer: the package")
+        self.assert_fails(self.gate(*named), "FAIL install-scripts [app]: app/deps.lock: native@2.0.0 runs scripts on install")
+
+    def test_an_allowance_at_the_base_still_allows_after_a_design_commit(self):
+        self.scripts()
+        self.allow_scripts("native@2.0.0")
+        roles = self.start_before_the_documents()
+        self.put("app/deps.lock", "native@2.0.0\n")
+        self.commit("developer: the package")
+        result = self.gate(*self.others(roles))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_a_lock_file_read_through_a_symbolic_link_fails(self):
+        self.scripts()
+        self.write_profile(dict(json.loads((self.profiles / "fake" / "profile.json").read_text()),
+                                pinned={"files": ["deps.lock"], "lock": "deps.lock",
+                                        "read": [sys.executable, "-c", "import sys; print(sys.stdin.read())"]}))
+        self.git("mv", "app", "frontend")
+        os.symlink("frontend", self.root / "app")
+        self.base = self.commit("the part's folder is a link")
+        self.put("frontend/deps.lock", "native@2.0.0\n")
+        self.commit("developer: the package")
+        result = self.gate()
+        self.assert_fails(result, "FAIL install-scripts [app]: app/deps.lock at the base: app is a symbolic link")
+        self.assert_fails(result, "FAIL pinned-tools [app]: app/deps.lock at the base: app is a symbolic link")
+
     def test_a_lock_file_that_cannot_be_read_fails(self):
         self.scripts(read=[sys.executable, "-c", "import sys; sys.exit('not a lock file')"])
         self.put("app/src/main.py", "print('developer')\n")

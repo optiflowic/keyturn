@@ -163,6 +163,17 @@ def file_at(root: Path, commit: str, path: str) -> str | None:
     return result.stdout.decode("utf-8", errors="replace")
 
 
+def symlink_on(root: Path, commit: str, path: str) -> str:
+    """The first folder or file on a path that is a symbolic link at a commit, or "". `git show` cannot read a file
+    through a link, and reads a link itself as its target's name, so a lock file is read only on a path without one."""
+    names = [name for name in path.split("/") if name not in ("", ".")]
+    for end in range(1, len(names) + 1):
+        prefix = "/".join(names[:end])
+        if git(root, "ls-tree", "-z", commit, "--", prefix).startswith("120000 "):
+            return prefix
+    return ""
+
+
 def name_status(root: Path, old: str, new: str) -> list[str]:
     """Every path one diff adds, changes, deletes, or renames (a rename gives both its old and new path)."""
     fields = git(root, "diff", "--name-status", "-z", "-M", "--no-ext-diff", old, new).split("\0")
@@ -633,6 +644,11 @@ def check_pinned(root: Path, reference: str, where: str, head: str, parts: list[
         if part.profile["pinned"] is None:
             continue
         lock = in_part(part, part.profile["pinned"]["lock"])
+        links = [f"{lock} at {name}: {link} is a symbolic link, so the lock file is not read through it"
+                 for name, commit in ((where, reference), ("the head", head)) if (link := symlink_on(root, commit, lock))]
+        if links:
+            results.append(Result("pinned-tools", part.path, False, links))
+            continue
         before, why_before = pinned_versions(part, file_at(root, reference, lock) or "", timeout)
         after, why_after = pinned_versions(part, file_at(root, head, lock) or "", timeout)
         if before is None or after is None:
@@ -670,6 +686,23 @@ def unmarked_scripts(trees: Trees, part: Part) -> list[str]:
     return lines
 
 
+def architect_allowances(root: Path, base: str, reference: str, others: dict[str, str]) -> dict[str, str]:
+    """The "- Allows install scripts:" lines accepted at the reference, without any that a commit of another role than
+    spec or design added last: a design commit after a conventions commit must not make the conventions commit's own
+    allowance count (ADR 0056). Each commit up to the reference is compared with the one before it."""
+    allowed = accepted_adrs(root, reference).scripts
+    if reference == base:
+        return allowed
+    previous, added_by = set(accepted_adrs(root, base).scripts), {}
+    for commit, _ in range_commits(root, base, reference):
+        now = set(accepted_adrs(root, commit).scripts)
+        for value in now - previous:
+            added_by[value] = others.get(commit, "")
+        previous = now
+    # A line at the base and never removed since has no entry: it counts.
+    return {value: number for value, number in allowed.items() if added_by.get(value, "design") in ("spec", "design")}
+
+
 def check_install_scripts(root: Path, base: str, head: str, parts: list[Part], others: dict[str, str],
                           trees: Trees) -> list[Result]:
     """Every package with an install script in the lock file at the head that was not there, at that version, at the base
@@ -677,12 +710,17 @@ def check_install_scripts(root: Path, base: str, head: str, parts: list[Part], o
     the head has an install script that the lock file does not mark (ADR 0056)."""
     timeout = trees.timeout
     reference, where = architect_commit(root, base, head, others)
-    allowed = accepted_adrs(root, reference).scripts
+    allowed = architect_allowances(root, base, reference, others)
     results = []
     for part in parts:
         if part.profile["install_scripts"] is None:
             continue
         lock = in_part(part, part.profile["install_scripts"]["lock"])
+        links = [f"{lock} at {name}: {link} is a symbolic link, so the lock file is not read through it"
+                 for name, commit in (("the base", base), ("the head", head)) if (link := symlink_on(root, commit, lock))]
+        if links:
+            results.append(Result("install-scripts", part.path, False, links))
+            continue
         found = {}
         for name, commit in (("the base", base), ("the head", head)):
             output, why = read_lock(part.profile["install_scripts"]["read"], file_at(root, commit, lock) or "", timeout)
