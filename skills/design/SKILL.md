@@ -1,13 +1,13 @@
 ---
 name: design
-description: Act as keyturn's architect. Turn approved requirements into a design document, decision records (ADRs), and a threat model that covers every misuse case in the requirements, then explain the main decisions to the client in a design summary and ask what only the client can decide on decision cards, in one batch. Use when approved requirements need a design, when they change, or when the client answers a design question.
+description: Act as keyturn's architect. Turn approved requirements into a design document, decision records (ADRs), and a threat model that covers every misuse case in the requirements, then explain the main decisions to the client in a design summary and ask what only the client can decide on decision cards, in one batch. Use when approved requirements need a design, when they change, when the client answers a design question, or when the developer asks, once implement has started, what the design leaves open (answered in keyturn/internal/design-answers.md, without changing the design).
 ---
 
 # design
 
 Turn the requirements the client approved into a design that fits their size, record every meaningful decision, and write down how the deliverable could be attacked or misused and what stops it. This is keyturn's architect role. The developer builds only what the design covers, and the security role checks the implementation against the threat model.
 
-Everything this skill needs is in this file, the templates it names, and the scripts of the `project-config`, `spec`, and `localize` skills. The background is in keyturn's `docs/design/` ("Architect" in `roles.md`, `guardrails.md`, and "Client attention budget" in `documents.md`) and ADRs 0003, 0009, 0010, 0013, 0015, 0016, 0017, and 0018, for whoever has them; the procedure does not depend on reading them.
+Everything this skill needs is in this file, the templates it names, and the scripts of the `project-config`, `spec`, and `localize` skills. The background is in keyturn's `docs/design/` ("Architect" in `roles.md`, `guardrails.md`, and "Client attention budget" in `documents.md`) and ADRs 0003, 0009, 0010, 0013, 0015, 0016, 0017, 0018, and 0058, for whoever has them; the procedure does not depend on reading them.
 
 ## Rules
 
@@ -24,7 +24,8 @@ Everything this skill needs is in this file, the templates it names, and the scr
 - `keyturn/client/requirements.md` and `keyturn/client/approvals.md`: the approved requirements, and the record of their approval.
 - A stack profile from `profiles/<stack>/` in keyturn (two folders above this skill's folder): its `README.md` says what it approves and checks, where QA's tests live, and what it does not check. Profiles exist for `go` and `react-spa`; any other stack has none (step 3).
 - The project's existing documents, if any: `keyturn/internal/design.md`, `keyturn/internal/threat-model.md`, `keyturn/internal/adr/`, `keyturn/client/design-summary.md`, and decision cards `keyturn/client/decision-card-<n>.md`.
-- The templates, in keyturn's `templates/` (two folders above this skill's folder), not in the project: `internal/design.md`, `internal/adr.md`, `internal/threat-model.md`, `client/design-summary.md`, and `client/decision-card.md`. Follow every comment in them.
+- The templates, in keyturn's `templates/` (two folders above this skill's folder), not in the project: `internal/design.md`, `internal/adr.md`, `internal/threat-model.md`, `client/design-summary.md`, `client/decision-card.md`, and `internal/design-answers.md`. Follow every comment in them.
+- For "Answering a question from implement": the developer's questions, as `deliver` (or the person) gives them, the documents' commit, and the round; for an answer the maintainer gave, their words.
 
 ## Outputs
 
@@ -35,6 +36,7 @@ All committed on the current branch (with `deliver`, that is the task's branch).
 - `keyturn/internal/threat-model.md`, in English.
 - `keyturn/client/design-summary.md`, in the document language (step 1).
 - `keyturn/client/decision-card-<n>.md`, one per question to the client, in the document language, numbered in order after the project's existing cards. Only when there is a question.
+- `keyturn/internal/design-answers.md`, in English: only when answering the developer's questions once `implement` has started ("Answering a question from implement"), and then nothing else.
 
 In English-only mode, the translations the client reads, under `.keyturn/i18n/<lang>/`, kept locally and never committed.
 
@@ -222,6 +224,17 @@ When the requirements change (a new approved version), when a step is rerun, or 
 - Never change or reuse a T-n, ADR, or card number. A changed decision that was accepted gets a new ADR that supersedes it, and replaces its entry in the design summary, with "Agreement" back to waiting if it needs agreement.
 - A changed misuse case, or a changed requirement a threat comes from, means the threat is checked again. A risk the client accepted no longer holds when its threat, its severity, or its requirement changes, and needs a new card.
 - Then check and send as in steps 6 and 7.
+
+### Answering a question from implement
+
+Once the first `implement` step has started, the requirements, the design, the ADRs, the threat model, the conventions, and the client's documents do not change inside the task (ADR 0031 and ADR 0058 in keyturn's `docs/adr/`). Some questions the developer meets while building ask only what those documents leave open (for example, the module path of a Go part). Answer those in `keyturn/internal/design-answers.md`, and change nothing else. When you are asked to answer such questions, run steps 1 and 2, then this procedure instead of steps 3 to 9.
+
+1. **Read the documents at the documents' commit** you were given (`git show <commit>:<path>`): the requirements, `design.md`, the ADRs, the threat model, the conventions, and the earlier answers in `keyturn/internal/design-answers.md` at `HEAD`, if there are any. Run `git status --porcelain`: if it prints anything, stop and report it; nothing of anyone else's is committed with the answers.
+2. **Decide, for each question, whether it can be answered here.** It can only when the documents leave it open and any answer within them fits. It cannot when its answer would change a requirement or an acceptance criterion, an area the work may change, QA's folders, an external interface, the data model, a dependency or its version, a threat or its mitigation, or a decision an ADR or the design records; when it would allow a suppression or an install script (only an accepted ADR does); when it is something the client must agree to (step 4, "What the client must agree to"); or when it would contradict an earlier answer. A question for `spec` (what a requirement means) or `conventions` (a rule) is not yours either. Never stretch an answer to fit: a question that cannot be answered here goes to the maintainer.
+3. **Write the answers you can give**: one entry per question, from `templates/internal/design-answers.md`, numbered after the last `A-n` (start the file from the template when it does not exist). Write the question as the developer asked it, an answer specific enough to build from, why it changes nothing (the document that leaves it open), "Answered by: the architect", the documents' commit in full, the round, and the date. Never change or remove an earlier entry.
+4. **An answer the maintainer gave** (when `deliver` passes it on, after you could not answer): write it as an entry the same way, with their words as the answer, "Answered by: the maintainer", and only after the check of item 2: the maintainer may not decide for the client or change the approved documents either. If it would cross item 2, do not write it, and report which part it would change.
+5. **Commit** `keyturn/internal/design-answers.md` alone, when it changed: `git add -- keyturn/internal/design-answers.md`, then `git commit -m "docs(design): answer the developer's questions in round <n>" -- keyturn/internal/design-answers.md`. Nothing else is committed in this procedure.
+6. **Report**: the commit (or that nothing was committed), each answer by its `A-n`, and each question you did not answer, with what it would change or which role it is for.
 
 ## When inputs are missing
 

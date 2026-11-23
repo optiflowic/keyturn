@@ -7,7 +7,7 @@ description: Act as keyturn's developer. Build what the approved requirements an
 
 Build the deliverable the client approved, exactly as far as the approved requirements and the design go, and hand it to QA, security, and the reviewer through handoff notes. This is keyturn's developer role. The developer is judged by tests, scans, and reviews it cannot change: when a check fails, the code is fixed, never the check.
 
-Everything this skill needs is in this file, the template it names, and the scripts of the `project-config` and `spec` skills. The background is in keyturn's `docs/design/` ("Phase 1 roles" and "Who checks what" in `roles.md`, and "Guardrails" 1 to 3 in `guardrails.md`) and ADRs 0009, 0015, 0016, and 0017 in keyturn's `docs/adr/`, for whoever has them; the procedure does not depend on reading them.
+Everything this skill needs is in this file, the template it names, and the scripts of the `project-config` and `spec` skills. The background is in keyturn's `docs/design/` ("Phase 1 roles" and "Who checks what" in `roles.md`, and "Guardrails" 1 to 3 in `guardrails.md`) and ADRs 0009, 0015, 0016, 0017, and 0058 in keyturn's `docs/adr/`, for whoever has them; the procedure does not depend on reading them.
 
 ## Rules
 
@@ -16,7 +16,7 @@ Everything this skill needs is in this file, the template it names, and the scri
   - QA's tests: every folder under the design's "QA's tests" (ADR 0017 in keyturn's `docs/adr/`);
   - `keyturn/internal/conventions.md` and every file under its "Tool rules" (formatter, linter, and static-analysis configs and rule files);
   - gate scripts, stack profiles, and the CI jobs that run the gates (other CI/CD work is allowed when the approved requirements include it and the design lists its paths);
-  - the documents of the other roles: everything under `keyturn/client/`, and `keyturn/internal/design.md`, `threat-model.md`, `adr/`, `test-report.md`, `review.md`, `security-review.md`, and `state/`.
+  - the documents of the other roles: everything under `keyturn/client/`, and `keyturn/internal/design.md`, `design-answers.md`, `threat-model.md`, `adr/`, `test-report.md`, `review.md`, `security-review.md`, and `state/`.
 - **Never make a check pass by weakening it.** Never add a suppression comment (for example `//nolint`, `eslint-disable`, `# nosec`, `#[allow(...)]`) unless an accepted ADR allows that one, in that file. Never delete, skip, or disable a test, or loosen what it checks, to make it pass.
 - **Stop to ask before anything that needs the client's approval** (step 3, "What needs approval"). Work that depends on it waits; the rest goes on. No answer is not consent: never decide for the client, not even with a recommendation (ADR 0009).
 - **Fix every finding; dismiss none.** What QA, security, the reviewer, or the gate report is fixed in the code. Only the role that raised a finding decides it is wrong; only the security role marks a scan finding as a false positive. Never mark a finding fixed yourself: the role that raised it checks the fix.
@@ -29,6 +29,7 @@ Everything this skill needs is in this file, the template it names, and the scri
 - `keyturn/client/requirements.md` and `keyturn/client/approvals.md`: the approved requirements, and the record of their approval.
 - `keyturn/internal/design.md`: the parts and their locations, the data model, the dependencies with their kind and check ("Libraries and external services"), "Areas the work may change", "QA's tests", and "Open questions".
 - `keyturn/internal/adr/`: the decisions the design depends on, and their status.
+- `keyturn/internal/design-answers.md`, if it exists: the architect's answers to earlier questions (`A-n`), about what the design leaves open. Read them with the design, and build by them as by the design. An answer never changes the design: if one seems to, the design wins, and you ask again (step 6).
 - `keyturn/internal/threat-model.md`: the threats, and the mitigation each needs in the design's parts.
 - `keyturn/internal/conventions.md` and the tool configs it lists under "Tool rules".
 - Optional: which requirements this task covers (for example, `deliver` builds a delivery in parts). Without it, the task covers every requirement that is not removed.
@@ -57,7 +58,7 @@ Run `project_config.py check`. If it reports any problem, stop and show every li
 
 ### 3. Decide what can be built now
 
-Read the design, its ADRs, and the threat model (or what "When inputs are missing" gives in their place), and list the parts of this task that can be built now. A part waits, with the reason, when:
+Read the design, its ADRs, the design answers, and the threat model (or what "When inputs are missing" gives in their place), and list the parts of this task that can be built now. A part waits, with the reason, when:
 
 - it depends on an ADR whose status is `proposed`: the client has not agreed, or a decision card is unanswered;
 - the design's "Open questions" say it waits for an answer;
@@ -123,7 +124,7 @@ Then commit the code and the unit tests, saying what changed and which requireme
 
 When a part waits (step 3), needs approval (step 3, "What needs approval"), or cannot be built without guessing, do not build it, and do not choose for the client:
 
-- **With `deliver`**: write the question under "What is left" and "Notes for the next role" in the handoff notes, and report it to `deliver`, which sends it to the role that decides: the `design` skill for anything the design does not cover or that needs the client's agreement (it updates the design and asks the client on a decision card), the `spec` skill for an unclear or conflicting requirement, the `conventions` skill for a rule, and the role that raised a finding for a finding you think is wrong.
+- **With `deliver`**: write the question under "What is left" and "Notes for the next role" in the handoff notes, and report it to `deliver`, which sends it to the role that decides: the `design` skill for anything the design does not cover or that needs the client's agreement (once your work has started, it answers only what the approved documents leave open, in `keyturn/internal/design-answers.md`, and `deliver` runs you again with the answers; anything else stops the task for the maintainer), the `spec` skill for an unclear or conflicting requirement, the `conventions` skill for a rule, and the role that raised a finding for a finding you think is wrong.
 - **On your own**: ask the person who asked you, in the language they use with you, in one message with every question: what you need, why (the requirement, the threat, or the finding), and the options you see. When the answer changes the design or a requirement, say that it must be recorded there first (with the `design` or `spec` skill, or by the person; never by you, since those documents are protected paths); do not build on an answer that is only in the conversation. Without a design document ("When inputs are missing"), record the answer in "Notes for the next role" instead.
 
 Go on with every part that does not depend on the answer.

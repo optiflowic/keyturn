@@ -23,6 +23,7 @@ Everything this skill needs is in this file, the template it names, and the scri
 - `keyturn/config.json`: read with the `project-config` skill, only to check the approval (step 1).
 - The "How to run" section of `keyturn/internal/handoff.md`, and only that section: how to build, start, and test the deliverable, test accounts, and sample data.
 - From `keyturn/internal/design.md`: "QA's tests" (where tests go), "Libraries and external services" (which test tools are approved), "Stack", and the interfaces the design describes (the routes, pages, commands, or exported names in "Structure"). These say how to reach the deliverable, not what to test.
+- `keyturn/internal/design-answers.md`, if it exists: the architect's answers (`A-n`) to the developer's questions after the work started, about what the design leaves open. Read them with the design, for the same sections only: how to reach the deliverable, never what to test (ADR 0058 in keyturn's `docs/adr/`).
 - The ADRs in `keyturn/internal/adr/` that the "Libraries and external services" rows of test tools link to, to see whether the client agreed to them (step 4).
 - The lines `- Allows install scripts: <package>@<version>` of the accepted ADRs in `keyturn/internal/adr/`, to see which package's install script may run (step 6).
 - The requirements this task covers, from whoever runs QA (with `deliver`, the delivery's scope). Without it, ask; if nobody can say, test every acceptance criterion that is not removed.
