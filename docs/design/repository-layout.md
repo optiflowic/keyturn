@@ -22,7 +22,7 @@ gates/
 profiles/                 # stack profiles (one frontend + one backend first)
 templates/
   client/                 # requirements, design summary, acceptance guide, delivery report, decision card, approvals
-  internal/               # design, decisions, handoff, test report, review, task state
+  internal/               # design, design answers, decisions, handoff, test report, review, task state
 hooks/
   hooks.json              # Claude Code plugin hooks (must be at the plugin root); thin, they call adapters/claude/scripts/
 adapters/                 # everything only one tool uses (ADR 0020)
