@@ -52,6 +52,7 @@ R-5, R-6, and R-9 are planned for delivery 2, so that this delivery has no more 
 
 - The developer's first version changed a file outside the areas in the design (`web/vite.config.ts`). The gate flagged it; the design was updated to allow it only for the development server's address, and the change was reviewed again.
 - The design left open which name the server's code is published under, which the programmer needed while building it. The architect answered it without changing the design ([answer A-1](../internal/design-answers.md)).
+- The tester needed a way to move time forward to check that a sign-in block ends after 15 minutes. The architect's first answer could not be built within the rules for the code, so the maintainer had it withdrawn, and the architect gave another one that fits them ([answers A-2 to A-4](../internal/design-answers.md)). The programmer built that one, and the tester checked the block with it.
 
 ## Models and tools used
 
