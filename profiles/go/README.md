@@ -34,6 +34,10 @@ Install them before the gate runs; it stops with exit code 2 and says how when o
 
 Any other development tool, a test library such as `testify` included, is an other tool: it needs the client's agreement through the design.
 
+## Installing packages
+
+Go modules have no install scripts: `go get`, `go mod download`, `go build`, and `go test` run no code from a module when they download it, so a role installs them as usual ([ADR 0055](../../docs/adr/0055-installs-skip-install-scripts.md)). `go generate` runs commands that the code names, but only when someone runs it; it is not part of installing, and the gate never runs it.
+
 ## Where the rules go
 
 `conventions` writes the Go rules in the `golangci-lint` config (`.golangci.yml`, in v2's format):

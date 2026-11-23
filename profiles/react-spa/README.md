@@ -41,6 +41,12 @@ Install them before the gate runs; it stops with exit code 2 and says how when o
 
 Any other development tool is an other tool: it needs the client's agreement through the design. That includes a browser test tool (such as Playwright): the gate does not run one. The project template that `npm create vite` makes uses `oxlint` and TypeScript 7; with this profile, use ESLint and TypeScript 6 instead.
 
+## Installing packages
+
+Every role installs packages without running their install scripts ([ADR 0055](../../docs/adr/0055-installs-skip-install-scripts.md)): pass `--ignore-scripts` to every npm command that installs or changes packages (`npm install`, `npm ci`, `npm update`, `npm uninstall`, `npm dedupe`, `npm audit fix`) (for example `npm install --save-exact --ignore-scripts <package>@<version>`, or `npm ci --ignore-scripts` in a fresh clone), whatever another document says, and never `npx`, `npm exec`, `npm create`, or `npm init <initializer>`, which download a package and run it. It skips each package's `preinstall`, `install`, and `postinstall` scripts, and the part's own lifecycle scripts in `package.json` (such as `prepare`). Vite, Vitest, and the profile's tools work without them, as the gate's setup shows.
+
+A package that runs scripts on install has `"hasInstallScript": true` in its entry in `package-lock.json`, direct or indirect. Its script runs only when an accepted ADR of the project has the line `- Allows install scripts: <package>@<version>` for the version the lock file names, and then alone, in the part's folder: `npm rebuild --ignore-scripts=false <package>@<version>` (`--ignore-scripts=false` makes it run the script even where a person's own npm config sets `ignore-scripts`). It also runs the scripts of the dependencies the package bundles in its tarball (`bundleDependencies`), which the line allows with it, as part of that package. Never run `npm rebuild` without a package, which runs every package's script. A package whose script the deliverable needs, without such a line, is reported to the architect.
+
 ## Where the rules go
 
 `conventions` writes every rule in these files, in the part's folder:
@@ -78,5 +84,6 @@ Each delivery report made with this profile lists these under "What was not veri
 - **Code that runs during the tests and the build**: the tests run the application's code, which can change what the test tools do (for example, by changing `expect`); `vite build` runs `vite.config.ts` and its plugins; the packages' own code runs in every check. The gate does not stop code that changes how the checks run; the review and the security review read it.
 - **Type checking**: `tsc` checks the files `tsconfig.json` reaches. JavaScript files are linted but not type-checked, unless the conventions turn on `checkJs`.
 - **Browsers**: no test runs in a real browser; `jsdom` stands in for one. A page that works in `jsdom` and fails in a browser is not found.
+- **Install scripts**: the gate never runs them, but it does not find a new package that has one, so a package with a script can enter the lock file without an ADR that allows it, until the gate checks it (#166).
 - **The Node.js version**: the gate uses the Node.js on `PATH`, whatever the design's "Stack" or `engines` in `package.json` asks for (fixing it waits for #133).
 - **Structure and secure defaults**: this profile does not give a recommended project structure or secure defaults yet; the architect takes them from React's and Vite's own documentation and says so in the stack's ADR.
