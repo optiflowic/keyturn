@@ -114,6 +114,21 @@ class PermissionSettings(unittest.TestCase):
             self.assertNotIn("*", path)
             self.assertTrue((ROOT / path.replace(PLUGIN + "/", "")).is_file(), path)
 
+    def test_the_rules_filled_in_with_a_path_match_the_scripts_and_the_folder_only(self):
+        # The person replaces the placeholder with an absolute path (ADR 0052): the Bash rules must then match the
+        # scripts there only, and the Edit and Write rules must become absolute ("//"), not relative to the settings file.
+        sample = "/Users/me/keyturn"
+        allow = [rule.replace(PLUGIN, sample)[len("Bash("):-1] for rule in self.settings["permissions"]["allow"]]
+        deny = [rule.replace(PLUGIN, sample) for rule in self.settings["permissions"]["deny"] if PLUGIN in rule]
+        def allowed(command):
+            return any(fnmatch.fnmatchcase(command, pattern) for pattern in allow)
+        for script in ("task_branch.py", "post_findings.py", "merge.py"):
+            self.assertTrue(allowed(f"python3 {sample}/github/scripts/{script} delivery-1"), script)
+            self.assertFalse(allowed(f"python3 /tmp/keyturn/github/scripts/{script} delivery-1"), script)
+        self.assertFalse(allowed(f"python3 {sample}/gates/gate.sh --task delivery-1"))
+        self.assertEqual(sorted(deny), [f"Edit(/{sample}/**)", f"Write(/{sample}/**)"])
+        self.assertTrue(all(rule.split("(", 1)[1].startswith("//") for rule in deny))
+
     def test_edits_under_the_plugin_folder_are_denied(self):
         # ADR 0052: an allowed script is only as safe as the script, so the file tools (and the shell writes Claude Code
         # checks against these rules) cannot change it. "/" before the path makes it absolute ("//...").
