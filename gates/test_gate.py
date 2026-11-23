@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -23,6 +24,7 @@ PROFILE = {
     "count_tests": [sys.executable, "-c", "import pathlib; print(len(list(pathlib.Path('.').rglob('test_*.txt'))))"],
     "versions": [sys.executable, "-c", "print('fake 1.0'); print('helper 2.3')"],
     "pinned": None,
+    "install_scripts": None,
     "source_files": ["*.py"],
     "suppressions": [r"#\s*noqa"],
     "protected": [".lintrc"],
@@ -431,6 +433,172 @@ class GateTest(unittest.TestCase):
         self.commit("developer: a newer linter")
         self.assert_fails(self.gate(*named), "FAIL pinned-tools [app]: lint: 2.0 at the conventions commit")
 
+    # Prints the lines of app/unmarked.txt at the head, as the profile's "installed" command prints each installed package
+    # whose script the lock file does not mark.
+    UNMARKED = [sys.executable, "-c", "import pathlib; p = pathlib.Path('unmarked.txt'); print(p.read_text() if p.exists() else '')"]
+
+    def scripts(self, read: list[str] | None = None, installed: list[str] | None = None, **profile) -> None:
+        """Give the stand-in profile a lock file, app/deps.lock, whose lines are the "<package>@<version>" of each package
+        with an install script."""
+        self.write_profile(dict(PROFILE, **profile, install_scripts={
+            "lock": "deps.lock", "read": read or [sys.executable, "-c", "import sys; print(sys.stdin.read())"],
+            "installed": installed or self.UNMARKED}))
+
+    def allow_scripts(self, value: str, status: str = "accepted") -> None:
+        self.put("keyturn/internal/adr/0002-native-module.md",
+                 f"# 0002. Build a native module\n\n- Status: {status}\n- Allows install scripts: {value}\n\n## Context\n")
+
+    def test_a_new_package_with_an_install_script_fails(self):
+        self.scripts()
+        self.put("app/deps.lock", "old@1.0.0\n")
+        self.base = self.commit("a package that was there")
+        self.put("app/deps.lock", "old@1.0.0\nnative@2.0.0\n")
+        self.commit("developer: a package with a script")
+        result = self.gate()
+        self.assert_fails(result, "FAIL install-scripts [app]: app/deps.lock: native@2.0.0 runs scripts on install")
+        self.assertNotIn("old@1.0.0", result.stdout)
+
+    def test_a_package_with_a_script_already_at_the_base_passes(self):
+        self.scripts()
+        self.put("app/deps.lock", "old@1.0.0\n")
+        self.base = self.commit("a package that was there")
+        self.put("app/src/main.py", "print('developer')\n")
+        self.commit("developer: code only")
+        result = self.gate()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("PASS install-scripts [app]: ok", result.stdout)
+
+    def test_a_new_version_of_a_package_with_a_script_fails(self):
+        self.scripts()
+        self.put("app/deps.lock", "native@1.0.0\n")
+        self.base = self.commit("a package that was there")
+        self.put("app/deps.lock", "native@1.1.0\n")
+        self.commit("developer: a newer version")
+        self.assert_fails(self.gate(), "FAIL install-scripts [app]: app/deps.lock: native@1.1.0 runs scripts on install")
+
+    def test_a_lock_file_missing_at_the_base_reads_as_no_packages(self):
+        self.scripts()
+        self.put("app/deps.lock", "native@1.0.0\n")
+        self.commit("developer: the first lock file")
+        self.assert_fails(self.gate(), "FAIL install-scripts [app]: app/deps.lock: native@1.0.0 runs scripts on install")
+
+    def test_a_package_an_adr_accepted_at_the_base_allows_passes(self):
+        self.scripts()
+        self.allow_scripts("`@scope/native@2.0.0`")
+        self.base = self.commit("design: allow the script")
+        self.put("app/deps.lock", "@scope/native@2.0.0\n")
+        self.commit("developer: the package")
+        result = self.gate()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("PASS install-scripts [app]: @scope/native@2.0.0: allowed by ADR-0002", result.stdout)
+
+    def test_an_adr_for_another_version_allows_nothing(self):
+        self.scripts()
+        self.allow_scripts("native@2.0.0")
+        self.base = self.commit("design: allow the script")
+        self.put("app/deps.lock", "native@2.0.1\n")
+        self.commit("developer: another version")
+        self.assert_fails(self.gate(), "FAIL install-scripts [app]: app/deps.lock: native@2.0.1 runs scripts on install")
+
+    def test_an_adr_that_is_not_accepted_allows_nothing(self):
+        self.scripts()
+        self.allow_scripts("native@2.0.0", status="proposed")
+        self.base = self.commit("design: a proposed allowance")
+        self.put("app/deps.lock", "native@2.0.0\n")
+        self.commit("developer: the package")
+        self.assert_fails(self.gate(), "FAIL install-scripts [app]: app/deps.lock: native@2.0.0 runs scripts on install")
+
+    def test_an_adr_the_developer_adds_allows_no_install_script(self):
+        self.scripts()
+        self.allow_scripts("native@2.0.0")
+        self.put("app/deps.lock", "native@2.0.0\n")
+        self.commit("developer: the package and its own allowance")
+        self.assert_fails(self.gate(), "FAIL install-scripts [app]: app/deps.lock: native@2.0.0 runs scripts on install")
+
+    def test_an_adr_of_the_design_commit_named_with_others_allows_the_script(self):
+        self.scripts()
+        roles = self.start_before_the_documents()
+        self.allow_scripts("native@2.0.0")
+        named = [*self.others(roles), "--others", f"design:{self.commit('design: allow the script')}"]
+        self.put("app/deps.lock", "native@2.0.0\n")
+        self.commit("developer: the package")
+        result = self.gate(*named)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("PASS install-scripts [app]: native@2.0.0: allowed by ADR-0002", result.stdout)
+
+    def test_an_allowance_a_conventions_commit_adds_allows_nothing(self):
+        read = [sys.executable, "-c", "import sys; print(sys.stdin.read())"]
+        self.write_profile(dict(PROFILE, pinned={"files": ["deps.lock"], "lock": "deps.lock", "read": read},
+                                install_scripts={"lock": "deps.lock", "read": read, "installed": self.UNMARKED}))
+        roles = self.start_before_the_documents()
+        self.allow_scripts("native@2.0.0")
+        self.put("app/deps.lock", "native@2.0.0\n")
+        named = [*self.others(roles), "--others", f"conventions:{self.commit('conventions: a tool and its own allowance')}"]
+        result = self.gate(*named)
+        self.assert_fails(result, "FAIL install-scripts [app]: app/deps.lock: native@2.0.0 runs scripts on install, "
+                                  "and no ADR accepted at the design commit")
+
+    def test_an_installed_package_whose_script_the_lock_file_does_not_mark_fails(self):
+        self.scripts()
+        self.put("app/deps.lock", "old@1.0.0\n")
+        self.base = self.commit("a package that was there")
+        self.put("app/unmarked.txt", "node_modules/sneaky: runs postinstall on install\n")
+        self.commit("developer: a lock file without the mark")
+        self.assert_fails(self.gate(), "FAIL install-scripts [app]: node_modules/sneaky: runs postinstall on install")
+
+    def test_a_comparison_that_cannot_run_fails(self):
+        self.scripts(installed=[sys.executable, "-c", "import sys; sys.exit('broken lock file')"])
+        self.put("app/src/main.py", "print('developer')\n")
+        self.commit("developer")
+        self.assert_fails(self.gate(), "FAIL install-scripts [app]: installed packages not compared with the lock file (exit 1)")
+
+    def test_a_failing_setup_fails_the_comparison(self):
+        self.scripts(setup=[[sys.executable, "-c", "import sys; sys.exit('cannot install')"]])
+        self.put("app/src/main.py", "print('developer')\n")
+        self.commit("developer")
+        self.assert_fails(self.gate(), "FAIL install-scripts [app]: installed packages not compared with the lock file: setup failed")
+
+    def test_an_allowance_a_conventions_commit_adds_allows_nothing_after_a_later_design_commit(self):
+        self.scripts()
+        roles = self.start_before_the_documents()
+        self.allow_scripts("native@2.0.0")
+        conventions = self.commit("conventions: its own allowance")
+        self.put("keyturn/internal/design.md", DESIGN + "\nRedone.\n")
+        design = self.commit("design: redone after conventions")
+        named = [*self.others(roles), "--others", f"conventions:{conventions}", "--others", f"design:{design}"]
+        self.put("app/deps.lock", "native@2.0.0\n")
+        self.commit("developer: the package")
+        self.assert_fails(self.gate(*named), "FAIL install-scripts [app]: app/deps.lock: native@2.0.0 runs scripts on install")
+
+    def test_an_allowance_at_the_base_still_allows_after_a_design_commit(self):
+        self.scripts()
+        self.allow_scripts("native@2.0.0")
+        roles = self.start_before_the_documents()
+        self.put("app/deps.lock", "native@2.0.0\n")
+        self.commit("developer: the package")
+        result = self.gate(*self.others(roles))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_a_lock_file_read_through_a_symbolic_link_fails(self):
+        self.scripts()
+        self.write_profile(dict(json.loads((self.profiles / "fake" / "profile.json").read_text()),
+                                pinned={"files": ["deps.lock"], "lock": "deps.lock",
+                                        "read": [sys.executable, "-c", "import sys; print(sys.stdin.read())"]}))
+        self.git("mv", "app", "frontend")
+        os.symlink("frontend", self.root / "app")
+        self.base = self.commit("the part's folder is a link")
+        self.put("frontend/deps.lock", "native@2.0.0\n")
+        self.commit("developer: the package")
+        result = self.gate()
+        self.assert_fails(result, "FAIL install-scripts [app]: app/deps.lock at the base: app is a symbolic link")
+        self.assert_fails(result, "FAIL pinned-tools [app]: app/deps.lock at the base: app is a symbolic link")
+
+    def test_a_lock_file_that_cannot_be_read_fails(self):
+        self.scripts(read=[sys.executable, "-c", "import sys; sys.exit('not a lock file')"])
+        self.put("app/src/main.py", "print('developer')\n")
+        self.commit("developer")
+        self.assert_fails(self.gate(), "FAIL install-scripts [app]: app/deps.lock at the base: not a lock file")
+
     def test_a_conventions_commit_may_not_change_another_part_file(self):
         self.pin()
         roles = self.start_before_the_documents()
@@ -630,6 +798,12 @@ class GateTest(unittest.TestCase):
         result = self.gate()
         self.assertEqual(result.returncode, 2)
         self.assertIn("profile fake: checks: must be a non-empty list", result.stderr)
+
+    def test_a_profile_with_a_broken_install_scripts_field_stops_the_gate(self):
+        self.write_profile(dict(PROFILE, install_scripts={"lock": "../deps.lock", "read": [], "installed": []}))
+        result = self.gate()
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("profile fake: install_scripts: must be null, or", result.stderr)
 
     def test_a_base_that_is_not_an_ancestor_stops_the_gate(self):
         self.git("checkout", "-q", "-b", "other", self.base)
@@ -891,6 +1065,67 @@ class ShippedProfiles(unittest.TestCase):
                 self.assertEqual(module.profile_problems(folder.name, profile), [])
                 self.assertTrue((folder / "README.md").is_file())
 
+
+    @unittest.skipUnless(shutil.which("node"), "needs Node.js")
+    def test_react_spa_reads_every_package_with_an_install_script_but_the_part_itself(self):
+        profile = json.loads((GATE.parent.parent / "profiles" / "react-spa" / "profile.json").read_text(encoding="utf-8"))
+        lock = {"lockfileVersion": 3, "packages": {
+            "": {"name": "app", "hasInstallScript": True},
+            "node_modules/plain": {"version": "1.0.0"},
+            "node_modules/native": {"version": "2.0.0", "hasInstallScript": True},
+            "node_modules/a/node_modules/@scope/deep": {"version": "3.1.0", "hasInstallScript": True}}}
+        read = profile["install_scripts"]["read"]
+        result = subprocess.run(read, input=json.dumps(lock), capture_output=True, text=True, check=True)
+        self.assertEqual(result.stdout.split(), ["native@2.0.0", "@scope/deep@3.1.0"])
+        empty = subprocess.run(read, input="", capture_output=True, text=True, check=True)
+        self.assertEqual(empty.stdout, "")
+
+    @unittest.skipUnless(shutil.which("node"), "needs Node.js")
+    def test_react_spa_finds_an_installed_script_that_the_lock_file_does_not_mark(self):
+        profile = json.loads((GATE.parent.parent / "profiles" / "react-spa" / "profile.json").read_text(encoding="utf-8"))
+        installed = profile["install_scripts"]["installed"]
+        with tempfile.TemporaryDirectory() as folder:
+            part = Path(folder)
+
+            def package(key: str, manifest: dict, gyp: bool = False) -> None:
+                (part / key).mkdir(parents=True)
+                (part / key / "package.json").write_text(json.dumps(manifest), encoding="utf-8")
+                if gyp:
+                    (part / key / "binding.gyp").write_text("{}", encoding="utf-8")
+
+            def compare(packages: dict) -> list[str]:
+                (part / "package-lock.json").write_text(json.dumps({"lockfileVersion": 3, "packages": packages}), encoding="utf-8")
+                result = subprocess.run(installed, cwd=part, capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                return result.stdout.splitlines()
+
+            package("node_modules/plain", {"name": "plain", "scripts": {"test": "x", "prepare": "x"}})
+            package("node_modules/marked", {"name": "marked", "scripts": {"postinstall": "node setup.js"}})
+            package("node_modules/a/node_modules/deep", {"name": "deep", "scripts": {"preinstall": "x", "install": "y"}})
+            package("node_modules/gyp", {"name": "gyp"}, gyp=True)
+            package("node_modules/no-gyp", {"name": "no-gyp", "gypfile": False}, gyp=True)
+            package("node_modules/prebuilt", {"name": "prebuilt"})
+            honest = {"": {"name": "app", "scripts": {"postinstall": "x"}},
+                      "node_modules/plain": {"version": "1.0.0"},
+                      "node_modules/marked": {"version": "1.0.0", "hasInstallScript": True},
+                      "node_modules/a/node_modules/deep": {"version": "1.0.0", "hasInstallScript": True},
+                      "node_modules/gyp": {"version": "1.0.0", "hasInstallScript": True},
+                      "node_modules/no-gyp": {"version": "1.0.0"},
+                      # a mark with no script in the installed manifest (as fsevents has) is left to install-scripts
+                      "node_modules/prebuilt": {"version": "1.0.0", "hasInstallScript": True},
+                      # an optional package for another platform is not installed
+                      "node_modules/other-os": {"version": "1.0.0", "optional": True}}
+            self.assertEqual(compare(honest), [])
+            edited = {key: {k: v for k, v in entry.items() if k != "hasInstallScript"} for key, entry in honest.items()}
+            self.assertEqual(compare(edited), [
+                "node_modules/marked: runs postinstall on install, but package-lock.json does not mark it with hasInstallScript",
+                "node_modules/a/node_modules/deep: runs preinstall, install on install, but package-lock.json does not mark it "
+                "with hasInstallScript",
+                "node_modules/gyp: runs node-gyp rebuild (it has a binding.gyp) on install, but package-lock.json does not mark "
+                "it with hasInstallScript"])
+            (part / "package-lock.json").unlink()
+            result = subprocess.run(installed, cwd=part, capture_output=True, text=True)
+            self.assertEqual((result.returncode, result.stdout), (0, ""))
 
 if __name__ == "__main__":
     unittest.main()

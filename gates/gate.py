@@ -13,6 +13,11 @@ Checks, in this order, each reported as one PASS or FAIL line:
                    (or at the newest spec, design, or conventions commit named with --others)
   pinned-tools     the profile's tools in a part's lock file are at the versions of the newest conventions commit named with
                    --others, or of the base (profiles with "pinned" only)
+  install-scripts  no package with an install script in a part's lock file at the head that is not at the base, unless
+                   an ADR accepted at the newest spec or design commit named with --others, or at the base, allows it
+                   ("- Allows install scripts: <package>@<version>", ADR 0056); and, after the setup at the head, no
+                   installed package whose own package.json has an install script that the lock file does not mark
+                   (profiles with "install_scripts" only)
   test-count       no part has fewer tests at the head than at the base
   <profile check>  each check its profile names (build, test, lint, ...), run in the part's folder at the head,
                    after the profile's setup commands (for example, installing dependencies)
@@ -77,7 +82,8 @@ ROLE_PATHS = {
     "merge": ["keyturn/client/approvals.md", "keyturn/client/decision-card-*.md"],
 }
 
-PROFILE_FIELDS = {"name", "tools", "setup", "checks", "count_tests", "versions", "pinned", "source_files", "suppressions", "protected"}
+PROFILE_FIELDS = {"name", "tools", "setup", "checks", "count_tests", "versions", "pinned", "install_scripts", "source_files",
+                  "suppressions", "protected"}
 NAME_RE = re.compile(r"[a-z0-9][a-z0-9-]*")
 ADR_REF_RE = re.compile(r"\bADR-(\d{4})\b")
 EXIT_PASS, EXIT_FAIL, EXIT_SETUP = 0, 1, 2
@@ -155,6 +161,17 @@ def file_at(root: Path, commit: str, path: str) -> str | None:
     if result.returncode != 0:
         return None
     return result.stdout.decode("utf-8", errors="replace")
+
+
+def symlink_on(root: Path, commit: str, path: str) -> str:
+    """The first folder or file on a path that is a symbolic link at a commit, or "". `git show` cannot read a file
+    through a link, and reads a link itself as its target's name, so a lock file is read only on a path without one."""
+    names = [name for name in path.split("/") if name not in ("", ".")]
+    for end in range(1, len(names) + 1):
+        prefix = "/".join(names[:end])
+        if git(root, "ls-tree", "-z", commit, "--", prefix).startswith("120000 "):
+            return prefix
+    return ""
 
 
 def name_status(root: Path, old: str, new: str) -> list[str]:
@@ -316,6 +333,12 @@ def profile_problems(name: str, profile: object) -> list[str]:
             and pinned["lock"] in pinned["files"] and all(isinstance(name, str) and is_plain_name(name) for name in pinned["files"])):
         problems.append(f"{where}: pinned: must be null, or {{\"files\", \"lock\", \"read\"}}: file names in the part's folder, "
                         "the lock file among them, and a command")
+    scripts = profile["install_scripts"]
+    if scripts is not None and not (
+            isinstance(scripts, dict) and set(scripts) == {"lock", "read", "installed"} and is_command(scripts["read"])
+            and is_command(scripts["installed"]) and isinstance(scripts["lock"], str) and is_plain_name(scripts["lock"])):
+        problems.append(f"{where}: install_scripts: must be null, or {{\"lock\", \"read\", \"installed\"}}: a file name in the "
+                        "part's folder, and two commands")
     for key in ("source_files", "suppressions", "protected"):
         value = profile[key]
         if not isinstance(value, list) or not all(isinstance(item, str) and item for item in value):
@@ -417,14 +440,17 @@ class Allowed:
     ("- Allows in <pattern>: <text>", ADR 0038), as (pattern, text, ADR number)."""
     named: dict[str, list[str]] = field(default_factory=dict)
     placed: list[tuple[str, str, str]] = field(default_factory=list)
+    # "- Allows install scripts: <package>@<version>" (ADR 0055, ADR 0056): by "<package>@<version>", the ADR number.
+    scripts: dict[str, str] = field(default_factory=dict)
 
 
 def accepted_adrs(root: Path, base: str) -> Allowed:
     """What the project's ADRs accepted at a commit allow: the base, or the newest commit named as a document role's
     (ADR 0032), so that no ADR the developer's commits add can approve anything.
 
-    Only the lines before the first "## " heading count: "- Status: accepted", and one "- Allows: <text>" or
-    "- Allows in <path pattern>: <text>" line per suppression it allows.
+    Only the lines before the first "## " heading count: "- Status: accepted", one "- Allows: <text>" or
+    "- Allows in <path pattern>: <text>" line per suppression it allows, and one "- Allows install scripts:
+    <package>@<version>" line per package whose install script it allows.
     """
     listing = git(root, "ls-tree", "-z", "--name-only", f"{base}:{ADR_DIR}") if file_at(root, base, ADR_DIR) is not None else ""
     allowed = Allowed()
@@ -440,6 +466,9 @@ def accepted_adrs(root: Path, base: str) -> Allowed:
             for pattern, value in re.findall(r"^- Allows in `?([^`:\s]+)`?: (.+)$", header, re.M):
                 if allowed_text(value):
                     allowed.placed.append((pattern, allowed_text(value), number))
+            for value in re.findall(r"^- Allows install scripts: (.+)$", header, re.M):
+                if allowed_text(value):
+                    allowed.scripts.setdefault(allowed_text(value), number)
     return allowed
 
 
@@ -581,18 +610,26 @@ def in_part(part: Part, name: str) -> str:
     return name if part.path == "." else f"{part.path}/{name}"
 
 
-def pinned_versions(part: Part, text: str, timeout: float) -> tuple[dict[str, str] | None, str]:
-    """The versions the profile's `pinned.read` reads from a lock file's text ("" when there is none), by tool name."""
-    with tempfile.TemporaryDirectory(prefix="keyturn-pinned-") as folder:
+def read_lock(command: list[str], text: str, timeout: float) -> tuple[str | None, str]:
+    """What a profile's command prints for a lock file's text ("" when there is none), run in an empty folder, or None
+    and why it failed."""
+    with tempfile.TemporaryDirectory(prefix="keyturn-lock-") as folder:
         try:
-            result = subprocess.run(part.profile["pinned"]["read"], cwd=folder, input=text, capture_output=True, text=True,
-                                    timeout=timeout, env=ENV)
+            result = subprocess.run(command, cwd=folder, input=text, capture_output=True, text=True, timeout=timeout, env=ENV)
         except (OSError, subprocess.TimeoutExpired) as error:
             return None, str(error)
     if result.returncode != 0:
         return None, (result.stdout + result.stderr).strip() or f"exit {result.returncode}"
+    return result.stdout, ""
+
+
+def pinned_versions(part: Part, text: str, timeout: float) -> tuple[dict[str, str] | None, str]:
+    """The versions the profile's `pinned.read` reads from a lock file's text ("" when there is none), by tool name."""
+    output, why = read_lock(part.profile["pinned"]["read"], text, timeout)
+    if output is None:
+        return None, why
     versions = {}
-    for line in result.stdout.splitlines():
+    for line in output.splitlines():
         name, _, version = line.strip().partition(" ")
         if name:
             versions[name] = version.strip()
@@ -607,6 +644,11 @@ def check_pinned(root: Path, reference: str, where: str, head: str, parts: list[
         if part.profile["pinned"] is None:
             continue
         lock = in_part(part, part.profile["pinned"]["lock"])
+        links = [f"{lock} at {name}: {link} is a symbolic link, so the lock file is not read through it"
+                 for name, commit in ((where, reference), ("the head", head)) if (link := symlink_on(root, commit, lock))]
+        if links:
+            results.append(Result("pinned-tools", part.path, False, links))
+            continue
         before, why_before = pinned_versions(part, file_at(root, reference, lock) or "", timeout)
         after, why_after = pinned_versions(part, file_at(root, head, lock) or "", timeout)
         if before is None or after is None:
@@ -616,6 +658,83 @@ def check_pinned(root: Path, reference: str, where: str, head: str, parts: list[
         changed = [f"{name}: {before.get(name) or 'not installed'} at {where}, {after.get(name) or 'not installed'} at the head"
                    for name in sorted(set(before) | set(after)) if (before.get(name) or "") != (after.get(name) or "")]
         results.append(Result("pinned-tools", part.path, not changed, changed))
+    return results
+
+
+def architect_commit(root: Path, base: str, head: str, others: dict[str, str]) -> tuple[str, str]:
+    """The newest commit in the range named as spec's or design's, or else the base, and how to name it in a result. Only
+    the architect writes "- Allows install scripts:" (ADR 0055), so a conventions commit, which may write ADRs too, is
+    not where those lines are read (ADR 0056)."""
+    reference, where = base, "the base"
+    for commit, _ in range_commits(root, base, head):
+        if others.get(commit) in ("spec", "design"):
+            reference, where = commit, f"the {others[commit]} commit {commit[:12]}"
+    return reference, where
+
+
+def unmarked_scripts(trees: Trees, part: Part) -> list[str]:
+    """What the profile's `installed` command prints, run in the part's folder at the head after the setup: one line per
+    installed package whose own manifest has an install script that the lock file does not mark (ADR 0056). The setup
+    checked each package against the lock file's integrity hash, so the manifest it reads is the published one."""
+    problem = trees.prepare("head", part)
+    if problem:
+        return [f"installed packages not compared with the lock file: {problem}"]
+    code, output = run(part.profile["install_scripts"]["installed"], trees.paths["head"] / part.path, trees.timeout)
+    lines = [line.strip() for line in output.splitlines() if line.strip()]
+    if code != 0:
+        return [f"installed packages not compared with the lock file (exit {code}): {output or 'no output'}"]
+    return lines
+
+
+def architect_allowances(root: Path, base: str, reference: str, others: dict[str, str]) -> dict[str, str]:
+    """The "- Allows install scripts:" lines accepted at the reference, without any that a commit of another role than
+    spec or design added last: a design commit after a conventions commit must not make the conventions commit's own
+    allowance count (ADR 0056). Each commit up to the reference is compared with the one before it."""
+    allowed = accepted_adrs(root, reference).scripts
+    if reference == base:
+        return allowed
+    previous, added_by = set(accepted_adrs(root, base).scripts), {}
+    for commit, _ in range_commits(root, base, reference):
+        now = set(accepted_adrs(root, commit).scripts)
+        for value in now - previous:
+            added_by[value] = others.get(commit, "")
+        previous = now
+    # A line at the base and never removed since has no entry: it counts.
+    return {value: number for value, number in allowed.items() if added_by.get(value, "design") in ("spec", "design")}
+
+
+def check_install_scripts(root: Path, base: str, head: str, parts: list[Part], others: dict[str, str],
+                          trees: Trees) -> list[Result]:
+    """Every package with an install script in the lock file at the head that was not there, at that version, at the base
+    is allowed by an ADR accepted at the newest spec or design commit, or else at the base; and no package installed at
+    the head has an install script that the lock file does not mark (ADR 0056)."""
+    timeout = trees.timeout
+    reference, where = architect_commit(root, base, head, others)
+    allowed = architect_allowances(root, base, reference, others)
+    results = []
+    for part in parts:
+        if part.profile["install_scripts"] is None:
+            continue
+        lock = in_part(part, part.profile["install_scripts"]["lock"])
+        links = [f"{lock} at {name}: {link} is a symbolic link, so the lock file is not read through it"
+                 for name, commit in (("the base", base), ("the head", head)) if (link := symlink_on(root, commit, lock))]
+        if links:
+            results.append(Result("install-scripts", part.path, False, links))
+            continue
+        found = {}
+        for name, commit in (("the base", base), ("the head", head)):
+            output, why = read_lock(part.profile["install_scripts"]["read"], file_at(root, commit, lock) or "", timeout)
+            if output is None:
+                results.append(Result("install-scripts", part.path, False, [f"{lock} at {name}: {why}"]))
+                break
+            found[name] = {line.strip() for line in output.splitlines() if line.strip()}
+        else:
+            new = sorted(found["the head"] - found["the base"])
+            hits = [f"{lock}: {package} runs scripts on install, and no ADR accepted at {where} has "
+                    f"\"- Allows install scripts: {package}\"" for package in new if package not in allowed]
+            hits += unmarked_scripts(trees, part)
+            details = hits or [f"{package}: allowed by ADR-{allowed[package]}" for package in new]
+            results.append(Result("install-scripts", part.path, not hits, details))
     return results
 
 
@@ -852,6 +971,7 @@ def gate(base_rev: str, head_rev: str, profiles_dir: Path, timeout: float,
             results = [check_protected(changed_paths(root, base, head, skip), protected_patterns(parts, qa))]
             results += check_suppressions(root, base, head, parts, others, documents)
             results += check_pinned(root, *conventions_commit(root, base, head, others), head, parts, timeout)
+            results += check_install_scripts(root, base, head, parts, others, trees)
             results += check_test_count(trees, parts)
             results += check_profile(trees, parts)
             versions = read_versions(trees, parts)
