@@ -30,7 +30,7 @@ AI agents sometimes suggest packages that do not exist or that imitate popular o
 
 These are safety guardrails that must always be on, so unlike quality gates they **are** enforced with each tool's own mechanisms (permission rules, sandbox settings, and hooks). The adapters ship recommended settings for each tool.
 
-During the MVP ([Phases](phases.md#mvp), [ADR 0025](../adr/0025-mvp-first.md)), agents run without a sandbox: the adapter ships only permission rules that block the plain push and merge commands (agents push through keyturn's scripts) and destructive commands, the workflow of ADR 0048 detects a push to the default branch that went around them (and branch protection blocks it, where the plan has it), and network access and credentials are limited only by how the person runs it. Every delivery report made during that time says so under "What was not verified".
+During the MVP ([Phases](phases.md#mvp), [ADR 0025](../adr/0025-mvp-first.md)), agents run without a sandbox: the adapter ships only permission rules that block the plain push and merge commands (agents push through keyturn's scripts, which the rules allow by their full path, with edits to the plugin's folder denied, [ADR 0052](../adr/0052-permission-rules-allow-the-github-scripts.md)) and destructive commands, the workflow of ADR 0048 detects a push to the default branch that went around them (and branch protection blocks it, where the plan has it), and network access and credentials are limited only by how the person runs it. Every delivery report made during that time says so under "What was not verified".
 
 ## 5. Budgets and escalation
 

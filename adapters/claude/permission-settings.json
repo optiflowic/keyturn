@@ -1,5 +1,10 @@
 {
   "permissions": {
+    "allow": [
+      "Bash(python3 <path to the keyturn plugin>/github/scripts/task_branch.py *)",
+      "Bash(python3 <path to the keyturn plugin>/github/scripts/post_findings.py *)",
+      "Bash(python3 <path to the keyturn plugin>/github/scripts/merge.py *)"
+    ],
     "deny": [
       "Bash(git push *)",
       "Bash(git reset --hard *)",
@@ -55,7 +60,9 @@
       "Bash(gh secret*)",
       "Bash(gh workflow*)",
       "Bash(gh run*)",
-      "Bash(security*)"
+      "Bash(security*)",
+      "Edit(/<path to the keyturn plugin>/**)",
+      "Write(/<path to the keyturn plugin>/**)"
     ]
   }
 }
