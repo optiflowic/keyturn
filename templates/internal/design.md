@@ -25,9 +25,11 @@ The stack profile used, from profiles/. If no profile fits, write "No profile" a
 the gate's coverage is then limited, and the delivery report must say so.
 Name each profile and its folder exactly as in the form below (for example `go` for `api/`, `react-spa` for `web/`):
 deliver writes the gate's `parts` in keyturn/config.json from this line, and stops when it cannot read it.
+The runtime line names one exact version per part, never a lower bound (ADR 0054 in keyturn).
 -->
 
 - Stack profile: <`profile` for `folder/`, one per part, separated by commas | `profile` alone, for the whole repository | No profile: the stack>
+- Runtime: <runtime and exact version for `folder/`, one per part, separated by commas (for example Go 1.27.4 for `api/`, Node.js 26.13.1 for `web/`)>, confirmed from the official sources on <date>
 - Repository structure: <one repository | monorepo | several repositories>, see <link to the ADR>
 
 ## Structure

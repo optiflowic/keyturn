@@ -5,7 +5,8 @@
 # refuses their pushes that change it (ADR 0042). Before committing it:
 #   - set KEYTURN_COMMIT to the full SHA of the keyturn commit whose gate and profiles check the project;
 #   - keep the tool steps of the profiles in the project's keyturn/config.json ("parts"), and remove the others;
-#   - for a go part, set go-version-file to that part's go.mod.
+#   - for a go part, set go-version-file to that part's go.mod;
+#   - for a react-spa part, set node-version to the Node.js version in the design's "Stack" (keyturn/internal/design.md).
 # On a plan with branch protection, then make the checks "keyturn gate" and "keyturn conditions" required on the default
 # branch, with GitHub Actions as their expected source (github/README.md). "keyturn conditions" fails until the client's
 # acceptance is recorded.
@@ -88,11 +89,11 @@ jobs:
       - name: Install golangci-lint
         run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0
 
-      # For a part with the react-spa profile: Node.js 22 or later, an LTS release.
+      # For a part with the react-spa profile: the Node.js version the design's "Stack" names (ADR 0054).
       - name: Set up Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 22
+          node-version: 26.13.1
 
       - name: Run the gate
         env:

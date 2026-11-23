@@ -1,8 +1,8 @@
 {
   "name": "react-spa",
   "tools": [
-    {"command": "node", "install": "install Node.js 22 or later (an LTS release) from https://nodejs.org/ (it includes npm)"},
-    {"command": "npm", "install": "npm comes with Node.js: install Node.js 22 or later from https://nodejs.org/ and put its bin folder on PATH"}
+    {"command": "node", "install": "install Node.js at the version the design names (the newest LTS release) from https://nodejs.org/ (it includes npm), and put it first on PATH"},
+    {"command": "npm", "install": "npm comes with Node.js: install Node.js at the version the design names from https://nodejs.org/ and put its bin folder first on PATH"}
   ],
   "setup": [
     ["sh", "-c", "rm -rf node_modules || exit 1; if [ -f package.json ]; then exec npm ci --ignore-scripts --no-audit --no-fund; fi"]

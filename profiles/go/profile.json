@@ -1,7 +1,7 @@
 {
   "name": "go",
   "tools": [
-    {"command": "go", "install": "install Go 1.24 or later from https://go.dev/dl/ (it includes gofmt and go vet)"},
+    {"command": "go", "install": "install Go at the version the design names (the newest stable release) from https://go.dev/dl/ (it includes gofmt and go vet)"},
     {"command": "gofmt", "install": "gofmt comes with Go: install Go from https://go.dev/dl/ and put its bin folder on PATH"},
     {"command": "golangci-lint", "install": "install golangci-lint v2 (2.0 or later): https://golangci-lint.run/docs/welcome/install/"}
   ],

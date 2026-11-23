@@ -14,6 +14,8 @@ Each profile defines:
 
 Profiles live in `profiles/<stack>/`, each as a `profile.json` that the gate reads ([ADR 0028](../adr/0028-gate-interface.md)). A project names the profile of each of its folders in `keyturn/config.json` (`parts`). Add one profile at a time, and only after the previous ones work well. Some stacks have much weaker mechanical security checks than others (e.g., Neovim plugins); the profile must say so honestly rather than pretend coverage exists.
 
+A profile names no fixed version of its runtime or its tools. Every version is the newest stable release at the time it is chosen, the runtime's the newest LTS release (or the newest stable one when it has none), confirmed from its official source; the design names one runtime version per part and checks each dependency against it, and an older version has its reason in an ADR ([ADR 0054](../adr/0054-newest-stable-versions-checked-against-the-runtime.md)).
+
 ## Planned profiles
 
 | Area | Profiles |

@@ -29,7 +29,7 @@ The gate looks for the `golangci-lint` config in the part's folder, then in each
 
 Install them before the gate runs; it stops with exit code 2 and says how when one is missing.
 
-- **Toolchain** (covered by approving the stack, ADR 0015): Go 1.24 or later, with `gofmt` and `go vet`, and the standard library's `testing` and `net/http/httptest` for tests.
+- **Toolchain** (covered by approving the stack, ADR 0015): Go at the version the design names (the newest stable release, since Go has no LTS release, [ADR 0054](../../docs/adr/0054-newest-stable-versions-checked-against-the-runtime.md); 1.24 at least, for the `tool` directive), with `gofmt` and `go vet`, and the standard library's `testing` and `net/http/httptest` for tests.
 - **Profile tools** (approved by this profile, ADR 0015; the design still lists each with its kind and a passing check): `golangci-lint` v2 (2.0 or later), with the linters it ships (for example `staticcheck`, `errcheck`, `unused`, `gocyclo`, `funlen`, `nestif`, `depguard`, and `forbidigo`).
 
 Any other development tool, a test library such as `testify` included, is an other tool: it needs the client's agreement through the design.
