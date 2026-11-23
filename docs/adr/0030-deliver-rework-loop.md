@@ -1,6 +1,6 @@
 # 0030. `deliver` sends work back on a failing gate, a failing test, and high or medium findings, up to a set number of rounds
 
-- Status: accepted; a medium finding of `review` that the client accepted on a decision card no longer sends the work back, superseded by [0042](0042-pm-merges-on-machine-checked-conditions.md); a rating finding of the security review no longer sends the work back, and a question QA asks for the design does, superseded by [0060](0060-design-answers-for-qa-and-threat-ratings.md)
+- Status: accepted; a medium finding of `review` that the client accepted on a decision card no longer sends the work back, superseded by [0042](0042-pm-merges-on-machine-checked-conditions.md); a rating finding of the security review no longer sends the work back, and a question QA asks for the design does, superseded by [0060](0060-design-answers-for-qa-and-threat-ratings.md); a finding of `review` at a design answer no longer sends the work back, superseded by [0061](0061-answer-findings-stop-for-the-maintainer.md)
 - Date: 2026-11-21
 
 ## Context
