@@ -14,8 +14,8 @@ Checks, in this order, each reported as one PASS or FAIL line:
   pinned-tools     the profile's tools in a part's lock file are at the versions of the newest conventions commit named with
                    --others, or of the base (profiles with "pinned" only)
   install-scripts  no package with an install script in a part's lock file at the head that is not at the base, unless
-                   an accepted ADR allows it ("- Allows install scripts: <package>@<version>", ADR 0056; profiles with
-                   "install_scripts" only)
+                   an ADR accepted at the newest spec or design commit named with --others, or at the base, allows it
+                   ("- Allows install scripts: <package>@<version>", ADR 0056; profiles with "install_scripts" only)
   test-count       no part has fewer tests at the head than at the base
   <profile check>  each check its profile names (build, test, lint, ...), run in the part's folder at the head,
                    after the profile's setup commands (for example, installing dependencies)
@@ -643,11 +643,23 @@ def check_pinned(root: Path, reference: str, where: str, head: str, parts: list[
     return results
 
 
-def check_install_scripts(root: Path, base: str, head: str, parts: list[Part], documents: str,
+def architect_commit(root: Path, base: str, head: str, others: dict[str, str]) -> tuple[str, str]:
+    """The newest commit in the range named as spec's or design's, or else the base, and how to name it in a result. Only
+    the architect writes "- Allows install scripts:" (ADR 0055), so a conventions commit, which may write ADRs too, is
+    not where those lines are read (ADR 0056)."""
+    reference, where = base, "the base"
+    for commit, _ in range_commits(root, base, head):
+        if others.get(commit) in ("spec", "design"):
+            reference, where = commit, f"the {others[commit]} commit {commit[:12]}"
+    return reference, where
+
+
+def check_install_scripts(root: Path, base: str, head: str, parts: list[Part], others: dict[str, str],
                           timeout: float) -> list[Result]:
     """Every package with an install script in the lock file at the head that was not there, at that version, at the base
-    is allowed by an ADR accepted at the documents' commit (ADR 0056)."""
-    allowed = accepted_adrs(root, documents).scripts
+    is allowed by an ADR accepted at the newest spec or design commit, or else at the base (ADR 0056)."""
+    reference, where = architect_commit(root, base, head, others)
+    allowed = accepted_adrs(root, reference).scripts
     results = []
     for part in parts:
         if part.profile["install_scripts"] is None:
@@ -662,7 +674,7 @@ def check_install_scripts(root: Path, base: str, head: str, parts: list[Part], d
             found[name] = {line.strip() for line in output.splitlines() if line.strip()}
         else:
             new = sorted(found["the head"] - found["the base"])
-            hits = [f"{lock}: {package} runs scripts on install, and no accepted ADR has "
+            hits = [f"{lock}: {package} runs scripts on install, and no ADR accepted at {where} has "
                     f"\"- Allows install scripts: {package}\"" for package in new if package not in allowed]
             details = hits or [f"{package}: allowed by ADR-{allowed[package]}" for package in new]
             results.append(Result("install-scripts", part.path, not hits, details))
@@ -902,7 +914,7 @@ def gate(base_rev: str, head_rev: str, profiles_dir: Path, timeout: float,
             results = [check_protected(changed_paths(root, base, head, skip), protected_patterns(parts, qa))]
             results += check_suppressions(root, base, head, parts, others, documents)
             results += check_pinned(root, *conventions_commit(root, base, head, others), head, parts, timeout)
-            results += check_install_scripts(root, base, head, parts, documents, timeout)
+            results += check_install_scripts(root, base, head, parts, others, timeout)
             results += check_test_count(trees, parts)
             results += check_profile(trees, parts)
             versions = read_versions(trees, parts)

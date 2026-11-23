@@ -20,7 +20,8 @@ npm's lock file marks every package that runs scripts on install with `"hasInsta
 Option 1. This adds a field to the profiles of [ADR 0028](0028-gate-interface.md), [ADR 0037](0037-gate-records-tool-versions.md), and [ADR 0040](0040-profile-tools-at-conventions-versions.md), and a check:
 
 - A profile has one more field, `install_scripts`: `null` (for `go`), or `{"lock", "read"}`: the lock file in the part's folder, and a command that reads its text on standard input and prints one `<package>@<version>` line per package that runs scripts on install (for `react-spa`, every entry of `package-lock.json` with `"hasInstallScript": true`, wherever it is installed, except the part's own entry, `""`).
-- A new check, `install-scripts`, per part with the field, after `pinned-tools`: every line read from the lock file at the head that is not among those read at the base (a new package, or a new version of one) fails it, unless an ADR accepted at the commit the gate reads the ADRs at (the base, or the newest commit named as `spec`'s, `design`'s, or `conventions`', [ADR 0032](0032-gate-base-is-where-the-task-branch-left.md)) has the line `- Allows install scripts: <package>@<version>` for exactly that line, in the lines before its first `##` heading, next to `- Status: accepted` (ADR 0055). The value may be in backticks. A lock file missing at a commit reads as no packages.
+- A new check, `install-scripts`, per part with the field, after `pinned-tools`: every line read from the lock file at the head that is not among those read at the base (a new package, or a new version of one) fails it, unless an ADR accepted at the newest commit named as `spec`'s or `design`'s, or else at the base, has the line `- Allows install scripts: <package>@<version>` for exactly that line, in the lines before its first `##` heading, next to `- Status: accepted` (ADR 0055). The value may be in backticks. A lock file missing at a commit reads as no packages.
+- The lines are read there, not at the newest `conventions` commit where the suppressions' ADRs are read ([ADR 0032](0032-gate-base-is-where-the-task-branch-left.md)): only the architect writes them (ADR 0055), and a `conventions` commit, which may write ADRs and installs the profile's tools, must not allow its own tools' scripts.
 - The check reads committed files only, and runs no installation and no network request.
 - The part's own lifecycle scripts (`preinstall`, `install`, `postinstall`, and `prepare` in its `package.json`) are not checked: the gate and the roles never run them, and the review reads changes to `package.json`.
 
@@ -28,7 +29,7 @@ Option 1. This adds a field to the profiles of [ADR 0028](0028-gate-interface.md
 
 - A package with a script that nobody allowed is found in the change that adds it, by the check the developer cannot change, before the client's own installs run it.
 - The lock file already has the mark for every package, indirect ones included, which the design does not list ([ADR 0018](0018-direct-dependencies-in-the-design.md)); reading it costs one small command per part.
-- Reading the allowing line where the gate reads the suppressions' ADRs keeps one rule: no ADR that the developer's commits add approves anything.
+- Reading the allowing line at the architect's newest commit keeps the rule of the suppressions' ADRs, that no ADR the developer's commits add approves anything, and adds that the role which installs the profile's tools cannot approve their scripts either.
 
 ## Consequences
 

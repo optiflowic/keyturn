@@ -521,6 +521,18 @@ class GateTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("PASS install-scripts [app]: native@2.0.0: allowed by ADR-0002", result.stdout)
 
+    def test_an_allowance_a_conventions_commit_adds_allows_nothing(self):
+        read = [sys.executable, "-c", "import sys; print(sys.stdin.read())"]
+        self.write_profile(dict(PROFILE, pinned={"files": ["deps.lock"], "lock": "deps.lock", "read": read},
+                                install_scripts={"lock": "deps.lock", "read": read}))
+        roles = self.start_before_the_documents()
+        self.allow_scripts("native@2.0.0")
+        self.put("app/deps.lock", "native@2.0.0\n")
+        named = [*self.others(roles), "--others", f"conventions:{self.commit('conventions: a tool and its own allowance')}"]
+        result = self.gate(*named)
+        self.assert_fails(result, "FAIL install-scripts [app]: app/deps.lock: native@2.0.0 runs scripts on install, "
+                                  "and no ADR accepted at the design commit")
+
     def test_a_lock_file_that_cannot_be_read_fails(self):
         self.scripts(read=[sys.executable, "-c", "import sys; sys.exit('not a lock file')"])
         self.put("app/src/main.py", "print('developer')\n")
