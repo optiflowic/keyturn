@@ -15,7 +15,9 @@ Checks, in this order, each reported as one PASS or FAIL line:
                    --others, or of the base (profiles with "pinned" only)
   install-scripts  no package with an install script in a part's lock file at the head that is not at the base, unless
                    an ADR accepted at the newest spec or design commit named with --others, or at the base, allows it
-                   ("- Allows install scripts: <package>@<version>", ADR 0056; profiles with "install_scripts" only)
+                   ("- Allows install scripts: <package>@<version>", ADR 0056); and, after the setup at the head, no
+                   installed package whose own package.json has an install script that the lock file does not mark
+                   (profiles with "install_scripts" only)
   test-count       no part has fewer tests at the head than at the base
   <profile check>  each check its profile names (build, test, lint, ...), run in the part's folder at the head,
                    after the profile's setup commands (for example, installing dependencies)
@@ -322,10 +324,10 @@ def profile_problems(name: str, profile: object) -> list[str]:
                         "the lock file among them, and a command")
     scripts = profile["install_scripts"]
     if scripts is not None and not (
-            isinstance(scripts, dict) and set(scripts) == {"lock", "read"} and is_command(scripts["read"])
-            and isinstance(scripts["lock"], str) and is_plain_name(scripts["lock"])):
-        problems.append(f"{where}: install_scripts: must be null, or {{\"lock\", \"read\"}}: a file name in the part's folder, "
-                        "and a command")
+            isinstance(scripts, dict) and set(scripts) == {"lock", "read", "installed"} and is_command(scripts["read"])
+            and is_command(scripts["installed"]) and isinstance(scripts["lock"], str) and is_plain_name(scripts["lock"])):
+        problems.append(f"{where}: install_scripts: must be null, or {{\"lock\", \"read\", \"installed\"}}: a file name in the "
+                        "part's folder, and two commands")
     for key in ("source_files", "suppressions", "protected"):
         value = profile[key]
         if not isinstance(value, list) or not all(isinstance(item, str) and item for item in value):
@@ -654,10 +656,26 @@ def architect_commit(root: Path, base: str, head: str, others: dict[str, str]) -
     return reference, where
 
 
+def unmarked_scripts(trees: Trees, part: Part) -> list[str]:
+    """What the profile's `installed` command prints, run in the part's folder at the head after the setup: one line per
+    installed package whose own manifest has an install script that the lock file does not mark (ADR 0056). The setup
+    checked each package against the lock file's integrity hash, so the manifest it reads is the published one."""
+    problem = trees.prepare("head", part)
+    if problem:
+        return [f"installed packages not compared with the lock file: {problem}"]
+    code, output = run(part.profile["install_scripts"]["installed"], trees.paths["head"] / part.path, trees.timeout)
+    lines = [line.strip() for line in output.splitlines() if line.strip()]
+    if code != 0:
+        return [f"installed packages not compared with the lock file (exit {code}): {output or 'no output'}"]
+    return lines
+
+
 def check_install_scripts(root: Path, base: str, head: str, parts: list[Part], others: dict[str, str],
-                          timeout: float) -> list[Result]:
+                          trees: Trees) -> list[Result]:
     """Every package with an install script in the lock file at the head that was not there, at that version, at the base
-    is allowed by an ADR accepted at the newest spec or design commit, or else at the base (ADR 0056)."""
+    is allowed by an ADR accepted at the newest spec or design commit, or else at the base; and no package installed at
+    the head has an install script that the lock file does not mark (ADR 0056)."""
+    timeout = trees.timeout
     reference, where = architect_commit(root, base, head, others)
     allowed = accepted_adrs(root, reference).scripts
     results = []
@@ -676,6 +694,7 @@ def check_install_scripts(root: Path, base: str, head: str, parts: list[Part], o
             new = sorted(found["the head"] - found["the base"])
             hits = [f"{lock}: {package} runs scripts on install, and no ADR accepted at {where} has "
                     f"\"- Allows install scripts: {package}\"" for package in new if package not in allowed]
+            hits += unmarked_scripts(trees, part)
             details = hits or [f"{package}: allowed by ADR-{allowed[package]}" for package in new]
             results.append(Result("install-scripts", part.path, not hits, details))
     return results
@@ -914,7 +933,7 @@ def gate(base_rev: str, head_rev: str, profiles_dir: Path, timeout: float,
             results = [check_protected(changed_paths(root, base, head, skip), protected_patterns(parts, qa))]
             results += check_suppressions(root, base, head, parts, others, documents)
             results += check_pinned(root, *conventions_commit(root, base, head, others), head, parts, timeout)
-            results += check_install_scripts(root, base, head, parts, others, timeout)
+            results += check_install_scripts(root, base, head, parts, others, trees)
             results += check_test_count(trees, parts)
             results += check_profile(trees, parts)
             versions = read_versions(trees, parts)
