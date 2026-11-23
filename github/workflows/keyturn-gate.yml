@@ -106,7 +106,7 @@ jobs:
           KEYTURN_DOCUMENTS: ${{ vars.KEYTURN_DOCUMENTS }}
         run: |
           .keyturn-ci/gates/gate.sh --task "${HEAD_REF#task/}" --default-branch "origin/$DEFAULT_BRANCH" \
-            --documents-vouched "$KEYTURN_DOCUMENTS"
+            --documents-vouched="$KEYTURN_DOCUMENTS"
 
   conditions:
     # The merge conditions (ADR 0046): no open high or medium finding, and the client's acceptance of the documents at
@@ -158,4 +158,4 @@ jobs:
           KEYTURN_DOCUMENTS: ${{ vars.KEYTURN_DOCUMENTS }}
         run: |
           .keyturn-ci/gates/conditions.sh --task "${HEAD_REF#task/}" --default-branch "origin/$DEFAULT_BRANCH" \
-            --documents-vouched "$KEYTURN_DOCUMENTS"
+            --documents-vouched="$KEYTURN_DOCUMENTS"
