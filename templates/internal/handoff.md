@@ -50,6 +50,7 @@ A change outside the areas is not made: the developer stops before it and asks f
 <!--
 Everything the next role needs to build, start, and test the deliverable: commands, configuration, test accounts, sample data.
 Never write a real secret here; say where to find it.
+Install packages without install scripts (for npm, `npm ci --ignore-scripts`), and give each script an accepted ADR allows as a step of its own (for npm, `npm rebuild <package>@<version>`) (keyturn's ADR 0055).
 This is the only section given to QA and security.
 -->
 
