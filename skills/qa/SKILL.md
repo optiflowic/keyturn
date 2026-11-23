@@ -66,6 +66,7 @@ Learn that interface only from:
 
 - the requirements and acceptance criteria: what a person does and sees, including the exact labels and messages they quote;
 - the interfaces the design describes: routes, pages, commands, exported names;
+- the design answers, for the same: what they say about how a test reaches the deliverable (for example, the names a page's parts are exported under, or a clock a test can set), above all the answers to your questions (ADR 0060 in keyturn's `docs/adr/`);
 - "How to run": the address, the commands, the test accounts, and the sample data;
 - the running deliverable, observed from outside: what its pages show in a browser (text, labels, roles), what it answers over HTTP, what its command line prints for `--help`, and the documentation of a library's exported names (for example, `go doc` on an exported package, which shows signatures and comments, not bodies).
 
