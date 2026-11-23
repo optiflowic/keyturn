@@ -55,10 +55,14 @@ Without a specification, use one row per observed behavior instead, with a short
 <!--
 Everything that was not tested, and why: criteria that cannot be tested automatically (these go to the client's acceptance guide or the security review),
 missing test environments, and behavior outside the acceptance criteria.
+When part of a criterion was not tested because the design leaves open how a test reaches the deliverable (how a test finds a part of it, or controls time or data),
+add a line under the item that starts with "Question for the design:" and says, in your own words, what the design leaves open, never how the code is built.
+With `deliver`, the architect answers it before the next round (ADR 0060 in keyturn's `docs/adr/`).
 Leave "None." only when every criterion was tested.
 -->
 
 - <what was not tested>: <why>
+  - Question for the design: <what the design leaves open that a test needs, only when the design leaves it open; otherwise delete this line>
 
 ## Test counts
 
