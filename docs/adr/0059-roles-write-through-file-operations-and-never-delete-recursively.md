@@ -30,7 +30,7 @@ Option 1. Every role that writes files or runs commands in a task (`spec`, `desi
 - A role never deletes recursively (`rm -r`, `rm -rf`, `find ... -delete`) and never runs `git clean` with `-d`, `-x`, or `-X`. Inside the repository it deletes one path per command: `git rm -- <file>` for a tracked file, `rm -f -- <file>` or `git clean -f -- <path>` for what Git does not track; the latter removes an untracked folder too.
 - Unrelated actions are not bundled in one command, so that a command the tool refuses stops only that action.
 
-`deliver`'s "Interrupted outputs" and `conventions`' put-back of an install use `git clean -f -- <path>` for an untracked folder too. What Git ignores stays: Git does not show it, the gate runs in temporary worktrees and never reads it, and the next install updates it. A folder that only a removed, uncommitted `.gitignore` ignored shows as untracked afterwards, and is removed the same way.
+`deliver`'s "Interrupted outputs" and `conventions`' put-back of an install use `git clean -f -- <path>` for an untracked folder too. Each first removes the uncommitted files the step wrote (a `.gitignore` among them), then removes every untracked folder `git status --porcelain` shows, again until none is left: a folder that only a removed `.gitignore` ignored (the step's own, or one a package ships) shows as untracked once that file is gone. What a committed `.gitignore` ignores stays: Git does not show it, and the gate runs in temporary worktrees and never reads it.
 
 ## Reasons
 
@@ -43,5 +43,5 @@ Option 1. Every role that writes files or runs commands in a task (`spec`, `desi
 
 - The role skills get one more rule each; `deliver` and `conventions` name `git clean -f -- <path>` for folders.
 - Scratch folders pile up in the machine's temporary folder until the system clears it.
-- Ignored files an interrupted step left (such as `node_modules`) stay in the working tree. They do not change what is committed or what the gate checks; a role that runs the deliverable locally installs again, which updates them.
+- Ignored files an interrupted step left (such as `node_modules`) stay in the working tree. They do not change what the gate checks, which runs in temporary worktrees. A later install in the same folder may reuse them where no lock file is committed, so a new lock file can differ from a fresh resolution; the gate's checks of the lock file still apply.
 - Agents can still write a command another way; the rules match the text only, as ADR 0036 says. The rule makes the skills lead to the allowed commands; it does not enforce them.
