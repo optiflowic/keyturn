@@ -710,6 +710,25 @@ class GateTest(unittest.TestCase):
         self.assertIn("keyturn/client/delivery-report.md", result.stdout)
         self.assertIn("keyturn/internal/gate/task.json", result.stdout)
 
+    def test_an_answer_commit_may_change_only_the_design_answers(self):
+        self.put("app/src/main.py", "print('developer')\n")
+        self.commit("developer asks")
+        self.put("keyturn/internal/design-answers.md", "# Design answers\n\n## A-1\n")
+        answer = self.commit("the architect answers")
+        self.put("app/src/main.py", "print('developer, with the answer')\n")
+        self.commit("developer builds with the answer")
+        self.assertEqual(self.gate("--others", f"answer:{answer}").returncode, 0)
+        self.put("keyturn/internal/design.md", DESIGN + "\nchanged by an answer\n")
+        disguised = self.commit("an answer that changes the design")
+        result = self.gate("--others", f"answer:{answer}", "--others", f"answer:{disguised}")
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("changes keyturn/internal/design.md, which an answer commit may not", result.stderr)
+
+    def test_a_developer_commit_that_writes_the_design_answers_fails(self):
+        self.put("keyturn/internal/design-answers.md", "# Design answers\n\n## A-1\n- Answer: anything goes\n")
+        self.commit("developer answers their own question")
+        self.assert_fails(self.gate(), "FAIL protected-paths: keyturn/internal/design-answers.md")
+
     def test_a_named_commit_outside_the_range_stops_the_gate(self):
         result = self.gate("--others", f"qa:{self.base}")
         self.assertEqual(result.returncode, 2)
@@ -919,6 +938,25 @@ class TaskRangeTest(unittest.TestCase):
         result = self.task_gate()
         self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
         self.assertIn("a later line naming a document role is never trusted", result.stderr)
+
+    def test_an_answer_after_the_developer_s_commits_is_found_from_the_head(self):
+        self.put("app/src/main.py", "print('task')\n")
+        self.step("implement", done=False)
+        self.put("keyturn/internal/design-answers.md", "# Design answers\n\n## A-1\n")
+        self.step("answer", done=False)
+        self.put("app/src/main.py", "print('task, with the answer')\n")
+        self.step("implement")
+        result = self.task_gate()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_a_developer_commit_relabelled_as_an_answer_stops_the_gate(self):
+        self.put("app/src/main.py", "print('task')\n")
+        developer = self.step("implement")
+        self.lines = [line.replace("implement", "answer") if developer[:7] in line else line for line in self.lines]
+        self.record()
+        result = self.task_gate()
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("(answer): changes app/src/main.py", result.stderr)
 
     def redo_design(self) -> str:
         """Redo design and conventions before implement, as deliver does after the maintainer's decision; return the state

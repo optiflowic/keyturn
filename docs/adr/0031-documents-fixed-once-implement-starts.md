@@ -1,6 +1,6 @@
 # 0031. During the MVP, a task runs alone, and its requirements, design, and conventions are fixed once `implement` starts
 
-- Status: accepted
+- Status: accepted; that every question from `implement` for `design` stops the task superseded by [0058](0058-design-answers-during-implement.md) (a question that only a gap in the design raises is answered inside the task, without changing the design)
 - Date: 2026-11-21
 
 ## Context

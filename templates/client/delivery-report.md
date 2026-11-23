@@ -91,6 +91,7 @@ Leave the section with "None known." only when there is nothing to report.
 <!--
 Every safety guardrail that stopped or flagged something during the task, and how it was resolved:
 for example, a change outside the approved scope, an attempt to weaken a check, the rework limit, a budget limit, or a usage limit, and whether the maintainer decided to go on before its reset.
+Also every point the design left open that was answered after the work started, without changing the design (`keyturn/internal/design-answers.md`, ADR 0058 in keyturn's `docs/adr/`): what was left open, in plain words, and who answered it (the architect or the maintainer).
 Leave the section with "None." when nothing was triggered.
 -->
 

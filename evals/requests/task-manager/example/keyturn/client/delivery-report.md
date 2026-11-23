@@ -51,6 +51,7 @@ R-5, R-6, and R-9 are planned for delivery 2, so that this delivery has no more 
 ## Guardrails triggered
 
 - The developer's first version changed a file outside the areas in the design (`web/vite.config.ts`). The gate flagged it; the design was updated to allow it only for the development server's address, and the change was reviewed again.
+- The design left open which name the server's code is published under, which the programmer needed while building it. The architect answered it without changing the design ([answer A-1](../internal/design-answers.md)).
 
 ## Models and tools used
 

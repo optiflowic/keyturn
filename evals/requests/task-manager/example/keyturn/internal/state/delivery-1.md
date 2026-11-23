@@ -46,6 +46,8 @@ Delivery 1 is done: the client accepted it, and the pull request is merged. The 
 - `c2e6a9490d77165021aa86ad78556983eb42de92`: deliver, round 1
 - `3d5e7a1464974925b6d36c0104ff54f817f8f2bd`: implement, round 1
 - `4e1c9a75e25b5e94e200599714f3b855cd7c4c22`: implement, round 1
+- `6e18997125df73c7be7998fe47bf797c8ebc7ba0`: deliver, round 1
+- `d84e81c3f598897b69a45b472eb69ee64e3e5559`: answer, round 1
 - `4f8d2c048a5ca20a1469a5e98387bdc338417e4d`: deliver, round 1
 - `5b2f0d65d6fd8b86aa42edab9110de5903a026b8`: deliver, round 1
 - `6a8c3e210e24fe5f5793f2ec500b689f3ac58271`: implement, round 1

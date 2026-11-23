@@ -100,6 +100,11 @@ class TemplateTest(unittest.TestCase):
         self.assertTrue(any("the round should be 1 or more" in p for p in problems), problems)
         self.assertTrue(any('should be "- `<commit>`: <step>, round <n>"' in p for p in problems), problems)
 
+    def test_commits_may_name_the_architect_s_answers(self):
+        answered = STOPPED.replace("- `3d5e7a1`: implement, round 1",
+                                   "- `3d5e7a1`: implement, round 1\n- `4e1c9a7`: answer, round 1")
+        self.assertEqual(check(answered), [])
+
     def test_commits_may_be_none_but_not_empty(self):
         self.assertEqual(check(STOPPED.replace("- `3d5e7a1`: implement, round 1", "None.")), [])
         self.assertIn('Commits: should say "None." when no commit is listed',

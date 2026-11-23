@@ -52,12 +52,12 @@ One row per step, in the order deliver runs them. Do not remove rows; a step tha
 ## Commits
 
 <!--
-Every commit made on the task branch since it left the default branch, oldest first, one line each: the commit (its full hash, never a short one: ADR 0043 in keyturn's `docs/adr/`), the step that made it, and the round (1 for the first round, one more for each rework). Commits made before spec (the configuration) are listed as "spec". deliver's own state commits are listed as "deliver"; since a commit cannot name itself, each one is listed by the next state commit. resume lists the state commit it resumes from (the one that recorded the stop), and its own resume commit is listed by deliver's next state commit.
+Every commit made on the task branch since it left the default branch, oldest first, one line each: the commit (its full hash, never a short one: ADR 0043 in keyturn's `docs/adr/`), the step that made it, and the round (1 for the first round, one more for each rework). Commits made before spec (the configuration) are listed as "spec". The architect's answers to the developer's questions during implement (keyturn/internal/design-answers.md) are listed as "answer", which is not a step (ADR 0058 in keyturn's `docs/adr/`). deliver's own state commits are listed as "deliver"; since a commit cannot name itself, each one is listed by the next state commit. resume lists the state commit it resumes from (the one that recorded the stop), and its own resume commit is listed by deliver's next state commit.
 deliver adds a step's lines when the step ends. The list is a record only: the gate's range starts where the task branch left the default branch (git merge-base), deliver passes the other roles' commits to the gate and the reviews, and the gate checks that each one changes only what its role may write (ADR 0029 and ADR 0032 in keyturn's `docs/adr/`).
 Leave the section with "None." only until the first state commit after "started" lists it.
 -->
 
-- `<commit>`: <step name from the table above>, round <n>
+- `<commit>`: <step name from the table above, or answer>, round <n>
 
 ## Open questions
 
@@ -75,7 +75,7 @@ Leave the section with "None." when there is nothing waiting.
 
 <!--
 One line per stop and per resume, newest last. Never edit or remove a line.
-For a usage limit, say which window and when it resets. A resume before that reset, by the maintainer's decision, says so on its line: "resumed: in the step, from which commit (before the usage limit resets at YYYY-MM-DDTHH:MMZ, by the maintainer's decision: what they decided)" (ADR 0053 in keyturn's `docs/adr/`). A redo of spec, design, or conventions before implement, and the maintainer's vouch for the redone documents, are said on the resume's line too: "(redo of <steps> before implement, by the maintainer's decision: what they decided)" and "(documents vouched for at `<full SHA>`, by the maintainer's decision)" (ADR 0057).
+For a usage limit, say which window and when it resets. A resume before that reset, by the maintainer's decision, says so on its line: "resumed: in the step, from which commit (before the usage limit resets at YYYY-MM-DDTHH:MMZ, by the maintainer's decision: what they decided)" (ADR 0053 in keyturn's `docs/adr/`). A redo of spec, design, or conventions before implement, and the maintainer's vouch for the redone documents, are said on the resume's line too: "(redo of <steps> before implement, by the maintainer's decision: what they decided)" and "(documents vouched for at `<full SHA>`, by the maintainer's decision)" (ADR 0057). So is the maintainer's answer to the developer's questions that the architect did not answer: "(answer to implement's questions, by the maintainer: their answer, in one line)" (ADR 0058).
 -->
 
 - <YYYY-MM-DDTHH:MMZ>: <started | stopped: reason, in the step | resumed: in the step, from which commit | done | closed: why, in the step>
