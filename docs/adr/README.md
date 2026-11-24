@@ -78,3 +78,4 @@ See "Architecture decision records" in [`docs/design/documents.md`](../design/do
 | [0060](0060-design-answers-for-qa-and-threat-ratings.md) | The design answers also answer QA's questions, and correct a threat's rating by the maintainer's decision | accepted |
 | [0061](0061-answer-findings-stop-for-the-maintainer.md) | A review finding at a design answer stops the task for the maintainer, and never sends the work back | accepted |
 | [0062](0062-design-answers-withdrawn-by-the-maintainer-s-decision.md) | An earlier design answer may be withdrawn, by the maintainer's decision only, with a new entry | accepted |
+| [0063](0063-unreadable-usage-waits-for-the-maintainer.md) | A usage check that cannot read the usage stops the task waiting for the maintainer | accepted |
