@@ -32,13 +32,13 @@ Option 1.
 
 - An answer that cannot stand no longer ends the task: the maintainer, the only one outside the task who may decide about the approved documents' answers, can take it back, and the architect can answer the gap again.
 - Entries are still only added, so the file keeps the whole record: what each role read, and when it changed. The gate checks that the answers' commits change only that file; nothing about it changes.
-- Withdrawing a raised rating would lower it, which ADR 0060 forbids. Withdrawing anything else makes no check weaker: the approved documents are still the same, and the answers still only fill what they leave open.
-- Known gap, as in ADR 0058: the gate reads the `answer` commits from the head, so a developer could commit a withdrawal of their own and list it as `answer`. The gate reads nothing from the answers. Voiding an answer only takes away what was added to the design, so the reviewers judge the work against the design alone. A withdrawn raise is reported as a finding and still read as standing.
+- Withdrawing a raised rating would lower it, which ADR 0060 forbids. A withdrawal by the maintainer's decision changes no approved document: the answers still only fill what they leave open.
+- Known gap, accepted for the MVP: a withdrawal can make a check weaker, and a developer can commit one. In CI, the gate reads the `answer` commits from the head (as in ADR 0058), and the maintainer's decision is only a line in "History", on the same branch. So a developer could commit a withdrawal of their own, list it as `answer`, and add a matching line. Withdrawing an answer to QA with nothing in its place leaves the criteria that needed it `not tested`, which sends no work back, and `review` closes a finding at the withdrawn answer. Having `review` or `security-review` check "History" would not help, since the developer can commit that too. What limits it: `deliver`'s own gate run fails a developer's commit that changes the answers; a withdrawn raise is still read as standing, and reported; and the delivery report lists every withdrawal, so the client and the maintainer see it. The gap is recorded in #119; checking withdrawals against a record the maintainer keeps outside the branch is #184.
 
 ## Consequences
 
 - `templates/internal/design-answers.md` gets a withdrawal form, and the worked example in `evals/requests/task-manager/example/` a withdrawal entry.
 - `resume` records the maintainer's decision. `deliver` runs `design` for it and goes on as above. `design` writes the withdrawal and, when it can, a new answer. `implement`, `qa`, `security-review`, and `review` read the withdrawn answer as void.
 - A withdrawal after the checks costs a rework round.
-- The delivery report lists a withdrawal among the answers, under "Guardrails triggered".
+- The delivery report lists every withdrawal under "Guardrails triggered": which answer, why, what took its place, and the criteria left `not tested` because of it.
 - Nothing under `gates/` or `github/` changes, so a task running on a workflow from ADR 0058 on can go on after the plugin is updated.
