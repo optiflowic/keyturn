@@ -1,6 +1,6 @@
 # 0064. QA runs the gate on its own tests and fixes what fails in them, also by the maintainer's decision, outside the rounds of rework
 
-- Status: accepted
+- Status: accepted; the consequence that a gate failure only in QA's folders still goes back to the developer when nobody decides otherwise superseded by [0065](0065-gate-marks-failures-only-in-qa-s-folders.md)
 - Date: 2026-11-25
 - Supersedes: in [0030](0030-deliver-rework-loop.md), that every failure of the gate after `implement` goes back to the developer (a run of `qa` by the maintainer's decision comes first, and does not count as a round)
 

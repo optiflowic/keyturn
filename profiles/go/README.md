@@ -21,6 +21,8 @@ Every `go` and `golangci-lint` command runs with `GOWORK=off` and `GOFLAGS=-mod=
 
 No `setup` step: `go build` and `go test` download the modules that `go.mod` and `go.sum` name.
 
+A check that fails only because of QA's folders is marked on its line, `FAIL <check> [<part>] (QA's folders only): ...`, and with `qa_only` in the log: the gate runs a failing check once more with QA's files removed from the head's worktree, and marks it when it passes then; a `suppressions` check is marked when every finding is in QA's folders ([ADR 0065](../../docs/adr/0065-gate-marks-failures-only-in-qa-s-folders.md)). `deliver` gives a marked failure to QA instead of the developer. The exit code stays 1.
+
 The gate also records the versions of Go and `golangci-lint` that ran (`go version` and `golangci-lint --version`), in its output and its log ([ADR 0037](../../docs/adr/0037-gate-records-tool-versions.md)). It does not pin them: any `golangci-lint` v2 on `PATH` is used.
 
 The gate looks for the `golangci-lint` config in the part's folder, then in each folder above it up to the repository root, and passes the first one it finds with `--config`. Without one, it passes `--no-config`, and `golangci-lint` runs its default linters: a config outside the repository (in a folder above it, or in the home folder) is never used. The config is the standards role's (`conventions`): every limit and rule `conventions` sets for Go goes there.
