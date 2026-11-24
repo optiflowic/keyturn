@@ -24,6 +24,13 @@ Checks, in this order, each reported as one PASS or FAIL line:
 
 Then one VERSIONS line per part: the versions of the tools its checks ran, as its profile reads them (recorded, never judged).
 
+A failing check that fails only because of QA's folders (from the design's "QA's tests") is marked on its line, as
+`FAIL <check> [<part>] (QA's folders only): ...`, and with "qa_only" in the log (ADR 0065): a profile check that passes when
+the head is checked again, in a new worktree with QA's files removed, in the same order as the first time (only in a part
+that has some of them, when the part's setup worked and the check did not time out), and a `suppressions` check whose
+every finding is in QA's folders. protected-paths, pinned-tools,
+install-scripts, and test-count are never marked. The exit code stays 1.
+
 Exit codes: 0 every check passed; 1 at least one check failed; 2 the gate could not run (setup error).
 Needs Python 3.9 or later and Git. Uses only the standard library.
 """
@@ -90,6 +97,8 @@ PROFILE_FIELDS = {"name", "tools", "setup", "checks", "count_tests", "versions",
 NAME_RE = re.compile(r"[a-z0-9][a-z0-9-]*")
 ADR_REF_RE = re.compile(r"\bADR-(\d{4})\b")
 EXIT_PASS, EXIT_FAIL, EXIT_SETUP = 0, 1, 2
+# The mark on a FAIL line whose check fails only because of QA's folders (ADR 0065).
+QA_ONLY_MARK = "(QA's folders only)"
 # The roles that write the documents the developer is judged against. Their commits all come before the developer's
 # (ADR 0031), and the gate reads the design and the ADRs at the newest of them (ADR 0032).
 DOCUMENT_ROLES = ("spec", "design", "conventions")
@@ -113,11 +122,14 @@ class Result:
     part: str | None
     passed: bool
     details: list[str] = field(default_factory=list)
+    # A failure only in QA's folders (ADR 0065): the developer may not change them, so deliver gives it to QA.
+    qa_only: bool = False
 
     def line(self) -> str:
         where = f" [{self.part}]" if self.part is not None else ""
+        mark = f" {QA_ONLY_MARK}" if self.qa_only else ""
         summary = "; ".join(self.details) if self.details else "ok"
-        return f"{'PASS' if self.passed else 'FAIL'} {self.check}{where}: {summary}"
+        return f"{'PASS' if self.passed else 'FAIL'} {self.check}{where}{mark}: {summary}"
 
 
 @dataclass
@@ -482,7 +494,7 @@ def allowed_text(value: str) -> str:
 
 
 def check_suppressions(root: Path, base: str, head: str, parts: list[Part], others: dict[str, str],
-                       documents: str) -> list[Result]:
+                       documents: str, qa: list[str]) -> list[Result]:
     # QA's commits are checked too: a suppression in QA's tests needs an ADR as the developer's does (ADR 0029).
     skip = {commit for commit, role in others.items() if role != "qa"}
     if others:  # commit by commit, leaving out the other roles' commits
@@ -494,7 +506,7 @@ def check_suppressions(root: Path, base: str, head: str, parts: list[Part], othe
     results = []
     for part in parts:
         patterns = [re.compile(pattern) for pattern in part.profile["suppressions"]]
-        hits = []
+        hits, paths = [], set()
         for path, number, text in added:
             name = PurePosixPath(path).name
             # A file outside every part is checked by every profile: nothing else builds or lints it.
@@ -514,8 +526,15 @@ def check_suppressions(root: Path, base: str, head: str, parts: list[Part], othe
                     else:
                         reason = f"ADR-{', ADR-'.join(named)} has no \"- Allows:\" line that this line contains"
                     hits.append(f"{path}:{number}: {text.strip()} ({reason})")
-        results.append(Result("suppressions", part.path, not hits, hits))
+                    paths.add(path)
+        # Marked when every finding is in QA's folders: QA writes them, and the developer may not change them (ADR 0065).
+        qa_only = bool(hits) and all(in_qa(path, qa) for path in paths)
+        results.append(Result("suppressions", part.path, not hits, hits, qa_only))
     return results
+
+
+def in_qa(path: str, qa: list[str]) -> bool:
+    return any(matches(path, pattern) for pattern in qa)
 
 
 def run(command: list[str], cwd: Path, timeout: float) -> tuple[int, str]:
@@ -545,11 +564,15 @@ def count_tests(part: Part, tree: Path, timeout: float) -> tuple[int | None, str
 class Trees:
     """Fresh worktrees of the base and the head, so that only committed files are checked, and each part set up once in each."""
 
-    def __init__(self, root: Path, base: str, head: str, temp: Path, timeout: float):
+    def __init__(self, root: Path, base: str | None, head: str, temp: Path, timeout: float,
+                 names: tuple[str, ...] = ("base", "head")):
+        """With `names`, the folders' names under `temp`: one name (and no base) for a head alone, called "head"."""
         self.root, self.timeout = root, timeout
-        self.paths = {"base": temp / "base", "head": temp / "head"}
-        for name, commit in (("base", base), ("head", head)):
-            git(root, "worktree", "add", "--detach", "--quiet", str(self.paths[name]), commit)
+        self.paths = {}
+        for key, name, commit in zip(("head",) if len(names) == 1 else ("base", "head"), names,
+                                     (head,) if len(names) == 1 else (base, head)):
+            self.paths[key] = temp / name
+            git(root, "worktree", "add", "--detach", "--quiet", str(self.paths[key]), commit)
         self.prepared: dict[tuple[str, str], str] = {}
 
     def remove(self) -> None:
@@ -607,6 +630,41 @@ def check_profile(trees: Trees, parts: list[Part]) -> list[Result]:
             details = [] if code == 0 else [f"exit {code}: {output or 'no output'}"]
             results.append(Result(check["name"], part.path, code == 0, details))
     return results
+
+
+def mark_qa_only(root: Path, head: str, temp: Path, trees: Trees, parts: list[Part], qa: list[str],
+                 results: list[Result]) -> None:
+    """Mark each failing profile check that passes when the head is checked again without QA's files (ADR 0065).
+
+    The second run is in a new worktree of the head with QA's files (as Git tracks them) removed, and repeats what the
+    first run did there, in the same order: each part's setup, its install-scripts comparison, its test count, then every
+    check of every part. So a check runs again in the state it first ran in, and never sees what a later check or part
+    made the first time (another part's build output, a warm cache). Only a failing check of a part that holds some of
+    QA's files, whose setup worked, and whose first run did not time out can be marked: removing nothing tells nothing,
+    a check that never ran has no result to compare, and a timeout may pass on a second run for other reasons."""
+    by_path = {part.path: part for part in parts}
+    failing = [result for result in results if not result.passed and not trees.prepare("head", by_path[result.part])
+               and not result.details[0].startswith("exit 124:")]
+    if not failing:
+        return
+    removed = [path for path in filter(None, git(trees.paths["head"], "ls-files", "-z").split("\0")) if in_qa(path, qa)]
+    failing = [result for result in failing if any(by_path[result.part].contains(path) for path in removed)]
+    if not failing:
+        return
+    again = Trees(root, None, head, temp, trees.timeout, names=("without-qa",))
+    try:
+        git(again.paths["head"], "--literal-pathspecs", "rm", "-q", "-f", "--pathspec-from-file=-", "--pathspec-file-nul",
+            input_text="\0".join(removed) + "\0")
+        for part in parts:  # as check_install_scripts and check_test_count did at the head
+            if part.profile["install_scripts"] is not None:
+                unmarked_scripts(again, part)
+        for part in parts:
+            count_in(again, "head", part)
+        passed = {(result.check, result.part) for result in check_profile(again, parts) if result.passed}
+    finally:
+        again.remove()
+    for result in failing:
+        result.qa_only = (result.check, result.part) in passed
 
 
 def in_part(part: Part, name: str) -> str:
@@ -1025,12 +1083,20 @@ def gate(base_rev: str, head_rev: str, profiles_dir: Path, timeout: float,
             check_tools(parts)
             skip = set(others)
             results = [check_protected(changed_paths(root, base, head, skip), protected_patterns(parts, qa))]
-            results += check_suppressions(root, base, head, parts, others, documents)
+            results += check_suppressions(root, base, head, parts, others, documents, qa)
             results += check_pinned(root, *conventions_commit(root, base, head, others), head, parts, timeout)
             results += check_install_scripts(root, base, head, parts, others, trees)
             results += check_test_count(trees, parts)
-            results += check_profile(trees, parts)
+            profile_results = check_profile(trees, parts)
+            results += profile_results
             versions = read_versions(trees, parts)
+            try:
+                mark_qa_only(root, head, Path(temp), trees, parts, qa, profile_results)
+            except Exception:  # any problem here only leaves the lines unmarked
+                # The mark only adds to a failure: when it cannot be found, the lines stay unmarked and the exit code
+                # stays 1 (ADR 0065).
+                for result in profile_results:
+                    result.qa_only = False
         finally:
             trees.remove()
     return base, head, results, versions
@@ -1079,7 +1145,8 @@ def main() -> int:
     print(f"gate: {'passed' if passed else 'failed'} ({base[:12]}..{head[:12]})")
     if args.log is not None:
         record = {"base": base, "head": head, "passed": passed,
-                  "checks": [{"check": r.check, "part": r.part, "passed": r.passed, "details": r.details} for r in results],
+                  "checks": [{"check": r.check, "part": r.part, "passed": r.passed, "qa_only": r.qa_only, "details": r.details}
+                             for r in results],
                   "versions": versions}
         try:
             args.log.write_text(json.dumps(record, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")

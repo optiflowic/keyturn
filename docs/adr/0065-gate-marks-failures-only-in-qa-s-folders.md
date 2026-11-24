@@ -1,0 +1,41 @@
+# 0065. The gate marks failures only in QA's folders, and `deliver` gives them to QA in the same round, without counting a round
+
+- Status: accepted
+- Date: 2026-11-25
+- Supersedes: in [0028](0028-gate-interface.md), the result line and the log's fields (a failing check may carry a mark, and each check in the log has `qa_only`); in [0030](0030-deliver-rework-loop.md), that every failure of the gate after `implement` sends the work back to the developer (a failure only in QA's folders goes on with `qa`); in [0064](0064-qa-runs-the-gate-on-its-tests-and-fixes-them.md), the consequence that such a failure still goes back to the developer when nobody decides otherwise
+
+## Context
+
+QA writes its tests in folders the developer may not change ([ADR 0017](0017-qa-tests-in-their-own-folder.md)), and the gate runs every check of a part on the whole part, QA's tests included ([ADR 0028](0028-gate-interface.md)). In a rehearsal of `deliver`, the gate after `implement` failed twice on QA's `api/qa/qa_test.go`: lint findings in QA's test, and a QA test that needed another part's build output. The developer could change nothing there, so each run of `implement` left the code as it was, and `deliver` still sent the work back each time ([ADR 0030](0030-deliver-rework-loop.md)). The task used up its rounds of rework and stopped.
+
+[ADR 0064](0064-qa-runs-the-gate-on-its-tests-and-fixes-them.md) made QA run the gate on its own commits, and let the maintainer decide that QA fixes its tests. A failure in QA's folders that QA's own run did not catch (for example, one that only shows with the developer's next change) still went back to the developer when nobody decided. The `deliver` step already stops for the maintainer when its final gate fails after the developer's head passed, but `implement` had no such case, and in a later round QA's commits come before the developer's head, so that case would not apply either.
+
+The question is how `deliver` tells a failure that is only QA's from one that is the developer's, without trusting a role's report and without reading the code itself.
+
+## Options considered
+
+1. **`deliver` reads the `FAIL` lines and decides from the file names in them.** No change to the gate, but each tool writes its findings in its own form, a test failure names a test rather than a file, and a failure in a developer's file can show up under a QA test (a QA test that fails because the developer's code is wrong). `deliver` would be judging code.
+2. **The gate tells which failures are only in QA's folders**, by running the failing check again with QA's folders removed: when it passes then, nothing outside QA's folders makes it fail. The judgment is mechanical, and the same for every profile. It costs one more run of each failing check.
+3. **QA always runs before the gate.** Then QA's tests would be checked with the developer's head before the gate, but QA would test a change that may not build, and the order of the steps (ADR 0030) would change for every task.
+
+## Decision
+
+Option 2, decided by the maintainer on 2026-11-25.
+
+- **In the gate.** After every check and the versions, when a profile check failed in a part that holds some of QA's files (the files tracked at the head under a path from the design's "QA's tests"), the gate checks out the head again in a new worktree, removes QA's files there, and repeats in it what the first run did at the head, in the same order: each part's setup, the install-scripts comparison, the test count, and every check of every part. So each check runs again in the state it first ran in, never with what a later check or part made the first time (for example, another part's build output). When a failing check passes there, the failure is only in QA's folders, and its line is marked: `FAIL <check> [<part>] (QA's folders only): <details>`, with the details of the first run. The log has `qa_only` on every check (`true` only on a marked one). A `suppressions` check is marked when every finding is in QA's folders. Never marked: `protected-paths` (a developer's change to QA's folders is the developer's), `test-count`, `pinned-tools`, and `install-scripts` (each judges the range, not the files), a check that did not run because the part's setup failed, a check whose first run timed out (a second run may pass only because a cache is warm), and a check of a part that holds none of QA's files (removing nothing tells nothing, and a flaky check would pass by chance). The exit code stays 1.
+- **In `implement`.** When every failing check of the gate after `implement` is marked, `deliver` does not send the work back and does not add to `Rework`: it records the step as done with the marked checks in "Notes" and goes on with `qa` in the same round, giving it the marked `FAIL` lines. QA fixes what is its own, and runs the gate on its commits ([ADR 0064](0064-qa-runs-the-gate-on-its-tests-and-fixes-them.md)); a failing QA test that matches its criterion stays `fail`, and the test report sends the work back, as any QA failure does. When some lines are marked and some are not, the work goes back, and the developer gets only the unmarked lines; the marked ones are QA's, and reach `qa` from the gate of the round in which only they are left.
+- **In the `deliver` step.** A final gate whose failing checks are all marked stops for the maintainer, as a final gate that fails after the developer's head does, so that QA's fixes cannot loop. The maintainer may then decide that QA fixes its tests (ADR 0064).
+
+## Reasons
+
+The gate already checks out the head in a clean worktree and knows QA's folders from the design at the documents' commit, which no commit in the range can narrow. Running a check without QA's files is a question the gate can answer the same way for any tool, where reading the tools' messages would be different for each one and would ask `deliver` to judge code. Running again in the worktree the checks already used would be cheaper, but a check would then see what later checks and parts left there, so a developer's failure that depends on another part's build output would pass and be marked (decided by the maintainer on 2026-11-25 after the review, in place of a rerun in the head's worktree); a new worktree costs a second setup, which for a Node.js part means installing every package again, only when a check failed in a part with QA's files. Keeping the exit code at 1 keeps every caller that only reads it (CI, `merge.py`) as it is: a failure is still a failure. Giving the marked failures to QA in the same round keeps the developer's rounds for the developer's work, and the stop in the `deliver` step bounds what QA's fixes can cost.
+
+## Consequences
+
+- When a check fails in a part with QA's files, the head is set up and checked once more, so such a failing gate takes about twice as long.
+- A check that fails by chance and passes on the second run is marked in a part with QA's files. QA then finds nothing of its own to fix; the next gate (in the `deliver` step, or the next round) runs it again, and a stop or a round follows as usual.
+- A QA test that fails because the deliverable does not meet its criterion passes once QA's files are removed, so it is marked too. The round then goes on with `qa`, `security-review`, and `review` on that head instead of going back at once, and the test report sends the work back after them, counting the round: one more run of those three roles than before, which the decision accepts so that the developer never gets a failure that is QA's.
+- If the removal or a rerun cannot be done (for example, Git cannot create the new worktree), no line is marked, and the exit code stays 1.
+- A failure that removing QA's files hides but that the developer could fix (for example, a developer's module that fails only when a QA test loads it) is marked; QA's test of it then fails in QA's run, and the test report sends the work back.
+- The marking reaches a project's CI only when its `KEYTURN_COMMIT` moves. `deliver` runs the gate from the plugin, so a task run with this version gets it locally; CI with an older gate fails with the same exit code, and passes once QA's tests are fixed.
+- `gates/gate.py`, its tests, the profiles' `README.md`, `skills/deliver/SKILL.md`, and `skills/qa/SKILL.md` follow this.

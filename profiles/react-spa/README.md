@@ -23,6 +23,8 @@ Each tool runs from the part's `node_modules`, by its own package's file (for ex
 
 The gate reads each config from the part's folder only: the ESLint config (`eslint.config.js`, or `.mjs`, `.cjs`, `.ts`, `.mts`, `.cts`) and the Vitest config (`vitest.config.ts`, or `.mts`, `.cts`, `.js`, `.mjs`, `.cjs`) must be there, and the gate fails the check without them. The Prettier config is passed with `--config` when the part has one (`.prettierrc` in any of its forms, or `prettier.config.*`); without one, Prettier's defaults apply, and a config above the part, in `package.json`, or in `.editorconfig` is never used. The configs load their plugins from the part's `node_modules`, which is why they live in the part's folder.
 
+A check that fails only because of QA's folders is marked on its line, `FAIL <check> [<part>] (QA's folders only): ...`, and with `qa_only` in the log: the gate checks the head once more in a new worktree with QA's files removed, in the same order, and marks a failing check that passes there; a `suppressions` check is marked when every finding is in QA's folders ([ADR 0065](../../docs/adr/0065-gate-marks-failures-only-in-qa-s-folders.md)). `deliver` gives a marked failure to QA instead of the developer. The exit code stays 1.
+
 The gate also records the versions of Node.js, npm, Vite, Vitest, ESLint, TypeScript, and Prettier that ran, in its output and its log ([ADR 0037](../../docs/adr/0037-gate-records-tool-versions.md)). It does not pin them: they are the ones the project's lock file names.
 
 ## Tools

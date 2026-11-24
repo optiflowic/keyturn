@@ -352,6 +352,126 @@ class GateTest(unittest.TestCase):
         self.commit("break the build")
         self.assert_fails(self.gate(), "FAIL build [app]: exit 1")
 
+    # Failures only in QA's folders (ADR 0065)
+
+    def with_lint(self) -> None:
+        """A profile whose "lint" fails while a .txt file in the part says BAD."""
+        lint = {"name": "lint", "run": [sys.executable, "-c",
+                                        "import pathlib, sys; sys.exit(1 if any('BAD' in p.read_text() "
+                                        "for p in pathlib.Path('.').rglob('*.txt')) else 0)"]}
+        self.write_profile(dict(PROFILE, checks=PROFILE["checks"] + [lint]))
+
+    def test_a_check_that_fails_only_in_qa_s_folders_is_marked(self):
+        self.with_lint()
+        self.put("app/src/main.py", "print('developer')\n")
+        self.commit("developer")
+        self.put("app/qa/test_qa.txt", "BAD")
+        qa = self.commit("QA's test")
+        log = Path(self.tmp.name) / "gate.json"
+        result = self.gate("--others", f"qa:{qa}", "--log", str(log))
+        self.assert_fails(result, "FAIL lint [app] (QA's folders only): exit 1")
+        self.assertIn("PASS build [app]: ok", result.stdout)
+        self.assertTrue(result.stdout.splitlines()[-1].startswith("gate: failed"))
+        record = json.loads(log.read_text(encoding="utf-8"))
+        self.assertEqual([(c["check"], c["qa_only"]) for c in record["checks"] if not c["passed"]], [("lint", True)])
+        self.assertFalse(any(c["qa_only"] for c in record["checks"] if c["passed"]))
+
+    def test_a_failure_in_the_developer_s_files_is_never_marked(self):
+        self.with_lint()
+        self.put("app/src/test_one.txt", "BAD")
+        self.commit("developer")
+        result = self.gate()
+        self.assert_fails(result, "FAIL lint [app]: exit 1")
+        self.assertNotIn("QA's folders only", result.stdout)
+
+    def test_a_failure_in_both_the_developer_s_files_and_qa_s_is_not_marked(self):
+        self.with_lint()
+        self.put("app/src/test_one.txt", "BAD")
+        self.commit("developer")
+        self.put("app/qa/test_qa.txt", "BAD")
+        qa = self.commit("QA's test")
+        result = self.gate("--others", f"qa:{qa}")
+        self.assert_fails(result, "FAIL lint [app]: exit 1")
+        self.assertNotIn("QA's folders only", result.stdout)
+
+    def test_only_the_checks_that_fail_because_of_qa_s_folders_are_marked(self):
+        self.with_lint()
+        self.put("app/BROKEN", "")
+        self.commit("developer breaks the build")
+        self.put("app/qa/test_qa.txt", "BAD")
+        qa = self.commit("QA's test")
+        result = self.gate("--others", f"qa:{qa}")
+        self.assert_fails(result, "FAIL build [app]: exit 1")
+        self.assertIn("FAIL lint [app] (QA's folders only): exit 1", result.stdout)
+
+    def test_a_developer_change_to_qa_s_folders_fails_protected_paths_unmarked(self):
+        self.with_lint()
+        self.put("app/qa/test_qa.txt", "BAD")
+        self.commit("developer writes in QA's folder")
+        result = self.gate()
+        self.assert_fails(result, "FAIL protected-paths: app/qa/test_qa.txt")
+        self.assertIn("FAIL lint [app] (QA's folders only): exit 1", result.stdout)
+
+    def test_a_drop_in_the_test_count_in_qa_s_folders_is_not_marked(self):
+        self.git("rm", "-q", "app/qa/test_qa.txt")
+        self.put("keyturn/internal/test-report.md", "# Test report\n")
+        qa = self.commit("QA removes a test")
+        self.assert_fails(self.gate("--others", f"qa:{qa}"), "FAIL test-count [app]: 2 tests at the base, 1 at the head")
+
+    def test_a_check_that_did_not_run_after_a_failed_setup_is_not_marked(self):
+        self.write_profile(dict(PROFILE, setup=[[sys.executable, "-c", "import sys; sys.exit(3)"]]))
+        self.put("app/qa/test_qa.txt", "x")
+        qa = self.commit("QA's test")
+        result = self.gate("--others", f"qa:{qa}")
+        self.assert_fails(result, "FAIL build [app]: not run: setup failed (exit 3)")
+        self.assertNotIn("QA's folders only", result.stdout)
+
+    def test_a_failure_in_a_part_without_qa_s_files_is_not_marked(self):
+        # The tool part's check fails while app/qa has a file, but tool holds none of QA's files: it is not run again.
+        self.write_profile(dict(PROFILE, checks=[{"name": "build", "run": [
+            sys.executable, "-c", "import pathlib, sys; sys.exit(1 if pathlib.Path('../app/qa/test_qa.txt').exists() "
+                                  "and pathlib.Path('NEEDS_NO_QA').exists() else 0)"]}]))
+        self.put("keyturn/config.json", json.dumps({"client_language": "en", "english_only": True, "parts": [
+            {"path": "app", "profile": "fake"}, {"path": "tool", "profile": "fake"}]}))
+        self.base = self.commit("add a part")
+        self.put("tool/NEEDS_NO_QA", "")
+        self.commit("developer")
+        result = self.gate()
+        self.assert_fails(result, "FAIL build [tool]: exit 1")
+        self.assertNotIn("QA's folders only", result.stdout)
+
+    def test_a_failure_that_a_later_part_s_output_would_hide_is_not_marked(self):
+        # "web" makes OUT; "app" fails without ../web/OUT. app runs first, so its failure is the developer's, whatever
+        # web left in the worktree after: the second run starts again from a clean checkout, in the same order.
+        self.write_profile(dict(PROFILE, checks=[{"name": "build", "run": [
+            sys.executable, "-c", "import pathlib, sys; here = pathlib.Path.cwd().name\n"
+                                  "if here == 'web': pathlib.Path('OUT').write_text('x')\n"
+                                  "else: sys.exit(0 if pathlib.Path('../web/OUT').exists() else 1)"]}]))
+        self.put("keyturn/config.json", json.dumps({"client_language": "en", "english_only": True, "parts": [
+            {"path": "app", "profile": "fake"}, {"path": "web", "profile": "fake"}]}))
+        self.put("web/index.txt", "")
+        self.base = self.commit("add a part")
+        self.put("app/src/main.py", "print('developer')\n")
+        self.commit("developer")
+        result = self.gate()
+        self.assert_fails(result, "FAIL build [app]: exit 1")
+        self.assertNotIn("QA's folders only", result.stdout)
+
+    def test_a_suppression_in_the_developer_s_files_too_is_not_marked(self):
+        self.put("app/src/check.py", "import os  # noqa\n")
+        self.commit("developer")
+        self.put("app/qa/check.py", "import os  # noqa\n")
+        qa = self.commit("QA's test with a suppression")
+        result = self.gate("--others", f"qa:{qa}")
+        self.assert_fails(result, "FAIL suppressions [app]: ")
+        self.assertNotIn("QA's folders only", result.stdout)
+
+    def test_qa_s_files_with_special_names_are_removed_for_the_rerun(self):
+        self.with_lint()
+        self.put("app/qa/[x]*.txt", "BAD")
+        qa = self.commit("QA's test")
+        self.assert_fails(self.gate("--others", f"qa:{qa}"), "FAIL lint [app] (QA's folders only): exit 1")
+
     # Other roles' commits (ADR 0029)
 
     def qa_commit(self) -> str:
@@ -768,7 +888,8 @@ class GateTest(unittest.TestCase):
     def test_a_suppression_in_a_qa_commit_is_still_found(self):
         self.put("app/qa/check.py", "import os  # noqa\n")
         qa = self.commit("QA's test with a suppression")
-        self.assert_fails(self.gate("--others", f"qa:{qa}"), "FAIL suppressions [app]: app/qa/check.py:1:")
+        # Every finding is in QA's folders, so the line is marked (ADR 0065).
+        self.assert_fails(self.gate("--others", f"qa:{qa}"), "FAIL suppressions [app] (QA's folders only): app/qa/check.py:1:")
 
     def test_an_unknown_role_stops_the_gate(self):
         result = self.gate("--others", f"developer:{self.base}")
