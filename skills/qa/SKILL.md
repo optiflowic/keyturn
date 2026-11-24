@@ -1,13 +1,13 @@
 ---
 name: qa
-description: Act as keyturn's QA. Write tests from the approved requirements only, never from the implementation or the developer's reasoning, in the test folders the design gives QA, through the deliverable's exported or external interfaces (HTTP, the browser, the command line); run them, and report a result for every acceptance criterion, what was not tested and why, and the test counts in test-report.md. Use when a deliverable needs testing against its acceptance criteria, when the developer has fixed a reported failure, or when someone wants tests of the current behavior without a specification.
+description: Act as keyturn's QA. Write tests from the approved requirements only, never from the implementation or the developer's reasoning, in the test folders the design gives QA, through the deliverable's exported or external interfaces (HTTP, the browser, the command line); run them, run keyturn's gate on its own commits and fix what fails in its own tests, and report a result for every acceptance criterion, what was not tested and why, and the test counts in test-report.md. Use when a deliverable needs testing against its acceptance criteria, when the developer has fixed a reported failure, when the gate failed on QA's tests and QA is to fix them, or when someone wants tests of the current behavior without a specification.
 ---
 
 # qa
 
 Check that the deliverable does what the approved requirements say, by writing and running tests for every acceptance criterion, and report what passed, what failed, and what was not tested. This is keyturn's QA role. QA judges the developer's work, so it never sees how the work was built or why the developer thinks it is correct: what to test comes from the requirements alone.
 
-Everything this skill needs is in this file, the template it names, and the scripts of the `project-config` and `spec` skills. The background is in keyturn's `docs/design/` (design principle 5 in `principles.md`, "Who checks what" and "Roles are usable on their own" in `roles.md`, and `guardrails.md`) and ADRs 0015 and 0017 in keyturn's `docs/adr/`, for whoever has them; the procedure does not depend on reading them.
+Everything this skill needs is in this file, the template it names, keyturn's gate, and the scripts of the `project-config` and `spec` skills. The background is in keyturn's `docs/design/` (design principle 5 in `principles.md`, "Who checks what" and "Roles are usable on their own" in `roles.md`, and `guardrails.md`) and ADRs 0015 and 0017 in keyturn's `docs/adr/`, for whoever has them; the procedure does not depend on reading them.
 
 ## Rules
 
@@ -16,6 +16,7 @@ Everything this skill needs is in this file, the template it names, and the scri
 - **Only QA's folders.** Write tests, and the test tool's configuration, only in the folders listed under "QA's tests" in the design (ADR 0017 in keyturn's `docs/adr/`). Change nothing else in the repository. The developer may not change these folders, and the gate checks this by path alone.
 - **Only approved test tools.** Use only the test tools the design lists, with their kind and a passed check, and the tools that ship with the language toolchain (step 4, ADR 0015 in keyturn's `docs/adr/`). Never add a tool or a library to the project; report a missing one to the architect.
 - **Report, do not fix.** QA never changes the deliverable to make a test pass, and never weakens, skips, or disables a test to make it pass. A failure goes to the developer through the report.
+- **Your tests pass the gate.** The gate runs every check of a part on the whole part, your tests included, and the developer may not change them. So before you report, run the gate on your own commits, and fix what fails in your own work (step 8): a finding in your tests, or a test that relies on something the gate does not have. A test that fails because the deliverable does not meet its criterion is a result, never fixed (ADR 0064 in keyturn's `docs/adr/`).
 - **Files through the file operations, and no recursive deletes.** Write and change files with the file operations of the tool you run in, never through the shell (a redirection such as `>`, `tee`, a here-document, or a text editor run from the shell that rewrites a file in place, such as `sed -i` or `perl -i`; the tools this skill or the conventions tell you to run, such as a formatter's write mode, the package manager, or keyturn's scripts, are not this). When you need a scratch folder (for example, to try a config on a small sample), create a new one outside the repository each time (`mktemp -d`) and leave it there; never delete one to start again. Never delete recursively (`rm -r`, `rm -rf`, `find ... -delete`), and never run `git clean` with `-d`, `-x`, or `-X`. Inside the repository, delete one path per command: `git rm -- ':(literal)<file>'` for a tracked file, `rm -f -- <file>` or `git clean -f -- ':(literal)<path>'` for what Git does not track (with a path, it removes an untracked folder too, and leaves what Git ignores). Git reads a path as a pattern, so a name with `*`, `?`, or `[` would match other files too: give every path to a Git command that deletes or puts back files as `:(literal)<path>`. Do not bundle unrelated actions in one command: a command the tool refuses stops all of it (ADR 0059 in keyturn's `docs/adr/`).
 
 ## Inputs
@@ -30,17 +31,19 @@ Everything this skill needs is in this file, the template it names, and the scri
 - The requirements this task covers, from whoever runs QA (with `deliver`, the delivery's scope). Without it, ask; if nobody can say, test every acceptance criterion that is not removed.
 - An existing `keyturn/internal/test-report.md` and the tests in QA's folders, when this is a rerun.
 - `templates/internal/test-report.md` in keyturn (two folders above this skill's folder), not in the project. Follow every comment in it.
+- keyturn's gate, `gates/gate.sh` in keyturn (two folders above this skill's folder), run in step 8.
+- When you are run to fix your tests after the gate failed on them (with `deliver`, by the maintainer's decision): the gate's `FAIL` lines, and what the maintainer decided you fix ("Fixing your tests after the gate failed on them").
 
 ## Outputs
 
-All committed on the current branch (with `deliver`, that is the task's branch), in one commit. This skill does not create or switch branches, and does not push.
+All committed on the current branch (with `deliver`, that is the task's branch): in one commit, followed by one commit for each fix the gate's runs need (step 8). This skill does not create or switch branches, and does not push.
 
 - Tests, only in the folders listed under "QA's tests" in `design.md`.
 - `keyturn/internal/test-report.md`, always in English.
 
 ## Procedure
 
-Below, `project_config.py` and `approval.py` mean the full paths of the scripts of the `project-config` and `spec` skills (in `scripts/` of each skill's folder, next to this one). Run them from inside the project's repository.
+Below, `project_config.py` and `approval.py` mean the full paths of the scripts of the `project-config` and `spec` skills (in `scripts/` of each skill's folder, next to this one), and `gate.sh` the full path of keyturn's `gates/gate.sh` (two folders above this skill's folder). Run them from inside the project's repository.
 
 ### 1. Check that the requirements are approved
 
@@ -96,6 +99,7 @@ For every acceptance criterion in scope, write one or more tests:
 - **Test the whole expected result.** Every part of "Expected result" is checked, including the case that goes wrong (a refused password, a page that says "Task not found", input kept exactly as typed). Use the numbers and wording the criterion and its requirements give. An expected result such as "the delivery report shows that R-4 was tested and passed" means: test R-4 through the interface.
 - **Name the criterion.** Every test names the `AC-n` it checks, in its name or in a comment next to it, so a failure points to the requirement.
 - **Keep tests independent and repeatable.** Each test creates the data it needs (for example, its own accounts) and does not depend on the order tests run in or on data another test left. Keep them fast; when a check would need a long real wait (for example, a block that ends after 15 minutes), use only what "How to run" or the design answers that are not withdrawn provide to shorten it, or mark it "not tested" and say what is needed (step 3).
+- **Rely only on what the gate has.** The gate checks out the commit in a clean worktree and runs each part's checks in that part's folder, one part after another. So a test relies only on files committed in the repository and on what its own part's setup and checks make, never on another part's build output (for example, the web part's `dist/` folder for a server in another part), a file Git ignores or does not track, or data an earlier run left (a database, an upload). They are in your working tree, so such a test passes for you and fails in the gate. When a test needs another part's output (for example, the pages a server serves), reach it through what the design or the design answers give for it (for example, a folder for the web files passed to the server), with a folder the test makes in a temporary directory; that the server serves the real build is then not tested here: say so under "Untested areas", for the client's acceptance guide. When the design gives no such way, ask a `Question for the design:` (step 3).
 - **Only in QA's folders.** Create a folder from "QA's tests" if it does not exist. Put the test tool's configuration there too, when the tool can read it from there. If the runner needs something outside QA's folders (a manifest entry, a script, a configuration at the root), do not change it: report it in step 9.
 
 ### 6. Run the tests
@@ -119,7 +123,7 @@ Start from `templates/internal/test-report.md`, write `keyturn/internal/test-rep
 - **Untested areas**: every "not tested" criterion with its reason (not in this task, a missing interface, tool, or test environment, or something only a person can judge, which belongs in the client's acceptance guide), and behavior the criteria do not cover that a reader could assume was tested.
 - **Test counts**: the number of tests that ran, the total first and then by runner in parentheses (for example, "39 (32 Go, 7 browser)"), because the gate reads the first number; skipped or disabled tests, and which, from the runners' output; coverage when the runner measures it, and how (for example, across packages with `go test -coverpkg=./...`, because QA's Go tests are in a package of their own), or `not measured`.
 
-### 8. Check and commit
+### 8. Check, commit, and run the gate
 
 Check that:
 
@@ -129,16 +133,38 @@ Check that:
 
 Commit the tests and the report together, with a message such as `test(qa): test delivery 1 against its acceptance criteria`. This is the step's checkpoint: a rerun starts from these files.
 
+Then run the gate on your commits, as the gate after the next `implement` will run it on them (ADR 0064 in keyturn's `docs/adr/`):
+
+1. Run `gate.sh --base <the tested commit> --head HEAD --others qa:<commit> ...`, with the tested commit from step 6 and one `--others qa:<commit>` for each of your commits since it, each with its full hash (`git rev-list <the tested commit>..HEAD`). It checks out the head in a clean worktree, so it sees only what is committed, and runs every check of every part (lint, format, the tests, and the others its stack profile names), your tests included. It runs for a while: let it finish.
+2. **Exit 0**: go on with step 9.
+3. **Exit 1**: read every `FAIL` line. These are yours to fix:
+   - a finding located in QA's folders or in the report: a lint, format, vet, or type error in your test files, a suppression comment in one (the gate checks your commits for them as it checks the developer's), or a test file that does not compile;
+   - a test of yours that passed in your run (step 6) but fails here: it relies on something the gate's checkout does not have ("Rely only on what the gate has", step 5).
+
+   Fix them only by changing your tests, in QA's folders: write the test so that the finding goes away (for example, split a long test into smaller ones), never with a suppression comment, a change to a tool's configuration, or a weaker check. These are not yours: a test that fails in your run too and matches its criterion (it stays `fail`, step 6), a failure in a file outside QA's folders, and a drop in the test count that "Summary" explains (a removed criterion, or a test taken out because its design answer was withdrawn). Do not fix them; report them in step 9 with their `FAIL` lines.
+
+   After a fix, run your tests again as in step 6 (items 3 to 5), on the same tested commit, write the report again when a result or a count changed, check as above, commit the fix alone (`test(qa): fix QA's tests for the gate`), and run the gate again as in item 1, with every commit of yours since the tested commit. Run it at most three times in all; when something of yours still fails after the third, stop fixing, and report it in step 9.
+4. **Exit 2**: the gate could not run (for example, a tool is missing, or `parts` is not in `keyturn/config.json`). Do not try to fix the gate or install its tools: report what it printed in step 9.
+
 ### 9. Report
 
 Tell whoever asked for the tests (the client, the developer, or `deliver`, which records the step in the task's state file):
 
-- the commit of the outputs, and the tested commit;
+- the commits of the outputs (the first, then each fix for the gate), and the tested commit;
+- what the gate on your commits gave (step 8): passed; or the `FAIL` lines left, and for each, whether it is only a criterion that fails (a test of yours that fails in your run too) or something of yours you could not fix; or that it could not run, with what it printed;
 - how many criteria pass, fail, and were not tested, and each failure in one line, for the developer;
 - what is missing and who can provide it: interfaces the design does not describe and test tools that are not approved (the architect), and steps missing from "How to run" or approved tools that are not installed (the developer);
 - each `Question for the design:` line of the report, with the criteria it keeps from being fully tested.
 
 This skill does not write the task's state file.
+
+### Fixing your tests after the gate failed on them
+
+When whoever runs QA gives you the gate's `FAIL` lines on your tests (with `deliver`, by the maintainer's decision, with what the maintainer decided you fix; ADR 0064 in keyturn's `docs/adr/`), this is a rerun, as below, that starts by fixing them:
+
+1. Read the existing report and the tests in QA's folders, and "How to run" again, as in any rerun. Do not read anything else to understand a line: a `FAIL` line names a file and what is wrong with it, or a test and what it got.
+2. For each line, decide as in step 8, item 3, whether it is yours. Fix the ones that are, in QA's folders only, as that item says, keeping to what the maintainer decided where it says how (never with a suppression comment or a weaker check). A test that fails because the deliverable does not meet its criterion is not fixed: it stays `fail`. A line that is not yours is reported in step 9.
+3. Then go on from step 6 with the current `HEAD` as the tested commit: rerun every test, write the report again, check and commit (step 8, which runs the gate), and report (step 9), saying for each line you were given whether you fixed it, and how in one line, or why it is not yours.
 
 ### Rerunning after a fix
 
