@@ -26,8 +26,9 @@ Then one VERSIONS line per part: the versions of the tools its checks ran, as it
 
 A failing check that fails only because of QA's folders (from the design's "QA's tests") is marked on its line, as
 `FAIL <check> [<part>] (QA's folders only): ...`, and with "qa_only" in the log (ADR 0065): a profile check that passes when
-it runs again in the head's worktree with QA's files removed (only in a part that has some of them, and only when the
-part's setup worked), and a `suppressions` check whose every finding is in QA's folders. protected-paths, pinned-tools,
+the head is checked again, in a new worktree with QA's files removed, in the same order as the first time (only in a part
+that has some of them, when the part's setup worked and the check did not time out), and a `suppressions` check whose
+every finding is in QA's folders. protected-paths, pinned-tools,
 install-scripts, and test-count are never marked. The exit code stays 1.
 
 Exit codes: 0 every check passed; 1 at least one check failed; 2 the gate could not run (setup error).
@@ -563,11 +564,15 @@ def count_tests(part: Part, tree: Path, timeout: float) -> tuple[int | None, str
 class Trees:
     """Fresh worktrees of the base and the head, so that only committed files are checked, and each part set up once in each."""
 
-    def __init__(self, root: Path, base: str, head: str, temp: Path, timeout: float):
+    def __init__(self, root: Path, base: str | None, head: str, temp: Path, timeout: float,
+                 names: tuple[str, ...] = ("base", "head")):
+        """With `names`, the folders' names under `temp`: one name (and no base) for a head alone, called "head"."""
         self.root, self.timeout = root, timeout
-        self.paths = {"base": temp / "base", "head": temp / "head"}
-        for name, commit in (("base", base), ("head", head)):
-            git(root, "worktree", "add", "--detach", "--quiet", str(self.paths[name]), commit)
+        self.paths = {}
+        for key, name, commit in zip(("head",) if len(names) == 1 else ("base", "head"), names,
+                                     (head,) if len(names) == 1 else (base, head)):
+            self.paths[key] = temp / name
+            git(root, "worktree", "add", "--detach", "--quiet", str(self.paths[key]), commit)
         self.prepared: dict[tuple[str, str], str] = {}
 
     def remove(self) -> None:
@@ -627,29 +632,39 @@ def check_profile(trees: Trees, parts: list[Part]) -> list[Result]:
     return results
 
 
-def mark_qa_only(trees: Trees, parts: list[Part], qa: list[str], results: list[Result]) -> None:
-    """Mark each failing profile check that passes when it runs again in the head's worktree with QA's files removed
-    (ADR 0065). Runs after every other check and the versions, since it changes the head's worktree. Only a part that
-    holds some of QA's files, and whose setup worked, is run again: removing nothing cannot tell anything, and a check
-    that never ran has no result to compare. The removed files are QA's at the head as Git tracks them."""
+def mark_qa_only(root: Path, head: str, temp: Path, trees: Trees, parts: list[Part], qa: list[str],
+                 results: list[Result]) -> None:
+    """Mark each failing profile check that passes when the head is checked again without QA's files (ADR 0065).
+
+    The second run is in a new worktree of the head with QA's files (as Git tracks them) removed, and repeats what the
+    first run did there, in the same order: each part's setup, its install-scripts comparison, its test count, then every
+    check of every part. So a check runs again in the state it first ran in, and never sees what a later check or part
+    made the first time (another part's build output, a warm cache). Only a failing check of a part that holds some of
+    QA's files, whose setup worked, and whose first run did not time out can be marked: removing nothing tells nothing,
+    a check that never ran has no result to compare, and a timeout may pass on a second run for other reasons."""
     by_path = {part.path: part for part in parts}
-    failing = [result for result in results if not result.passed and not trees.prepare("head", by_path[result.part])]
+    failing = [result for result in results if not result.passed and not trees.prepare("head", by_path[result.part])
+               and not result.details[0].startswith("exit 124:")]
     if not failing:
         return
-    tree = trees.paths["head"]
-    removed = [path for path in filter(None, git(tree, "ls-files", "-z").split("\0")) if in_qa(path, qa)]
-    if not removed:
+    removed = [path for path in filter(None, git(trees.paths["head"], "ls-files", "-z").split("\0")) if in_qa(path, qa)]
+    failing = [result for result in failing if any(by_path[result.part].contains(path) for path in removed)]
+    if not failing:
         return
-    git(tree, "--literal-pathspecs", "rm", "-q", "-f", "--pathspec-from-file=-", "--pathspec-file-nul",
-        input_text="\0".join(removed) + "\0")
+    again = Trees(root, None, head, temp, trees.timeout, names=("without-qa",))
+    try:
+        git(again.paths["head"], "--literal-pathspecs", "rm", "-q", "-f", "--pathspec-from-file=-", "--pathspec-file-nul",
+            input_text="\0".join(removed) + "\0")
+        for part in parts:  # as check_install_scripts and check_test_count did at the head
+            if part.profile["install_scripts"] is not None:
+                unmarked_scripts(again, part)
+        for part in parts:
+            count_in(again, "head", part)
+        passed = {(result.check, result.part) for result in check_profile(again, parts) if result.passed}
+    finally:
+        again.remove()
     for result in failing:
-        part = by_path[result.part]
-        # A first run that timed out is never marked: the rerun may pass only because a cache is warm now.
-        if not any(part.contains(path) for path in removed) or result.details[0].startswith("exit 124:"):
-            continue
-        check = next(check for check in part.profile["checks"] if check["name"] == result.check)
-        code, _ = run(check["run"], tree / part.path, trees.timeout)
-        result.qa_only = code == 0
+        result.qa_only = (result.check, result.part) in passed
 
 
 def in_part(part: Part, name: str) -> str:
@@ -1076,7 +1091,7 @@ def gate(base_rev: str, head_rev: str, profiles_dir: Path, timeout: float,
             results += profile_results
             versions = read_versions(trees, parts)
             try:
-                mark_qa_only(trees, parts, qa, profile_results)
+                mark_qa_only(root, head, Path(temp), trees, parts, qa, profile_results)
             except Exception:  # any problem here only leaves the lines unmarked
                 # The mark only adds to a failure: when it cannot be found, the lines stay unmarked and the exit code
                 # stays 1 (ADR 0065).

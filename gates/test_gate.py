@@ -440,6 +440,23 @@ class GateTest(unittest.TestCase):
         self.assert_fails(result, "FAIL build [tool]: exit 1")
         self.assertNotIn("QA's folders only", result.stdout)
 
+    def test_a_failure_that_a_later_part_s_output_would_hide_is_not_marked(self):
+        # "web" makes OUT; "app" fails without ../web/OUT. app runs first, so its failure is the developer's, whatever
+        # web left in the worktree after: the second run starts again from a clean checkout, in the same order.
+        self.write_profile(dict(PROFILE, checks=[{"name": "build", "run": [
+            sys.executable, "-c", "import pathlib, sys; here = pathlib.Path.cwd().name\n"
+                                  "if here == 'web': pathlib.Path('OUT').write_text('x')\n"
+                                  "else: sys.exit(0 if pathlib.Path('../web/OUT').exists() else 1)"]}]))
+        self.put("keyturn/config.json", json.dumps({"client_language": "en", "english_only": True, "parts": [
+            {"path": "app", "profile": "fake"}, {"path": "web", "profile": "fake"}]}))
+        self.put("web/index.txt", "")
+        self.base = self.commit("add a part")
+        self.put("app/src/main.py", "print('developer')\n")
+        self.commit("developer")
+        result = self.gate()
+        self.assert_fails(result, "FAIL build [app]: exit 1")
+        self.assertNotIn("QA's folders only", result.stdout)
+
     def test_a_suppression_in_the_developer_s_files_too_is_not_marked(self):
         self.put("app/src/check.py", "import os  # noqa\n")
         self.commit("developer")
