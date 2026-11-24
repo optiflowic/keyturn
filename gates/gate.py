@@ -644,7 +644,8 @@ def mark_qa_only(trees: Trees, parts: list[Part], qa: list[str], results: list[R
         input_text="\0".join(removed) + "\0")
     for result in failing:
         part = by_path[result.part]
-        if not any(part.contains(path) for path in removed):
+        # A first run that timed out is never marked: the rerun may pass only because a cache is warm now.
+        if not any(part.contains(path) for path in removed) or result.details[0].startswith("exit 124:"):
             continue
         check = next(check for check in part.profile["checks"] if check["name"] == result.check)
         code, _ = run(check["run"], tree / part.path, trees.timeout)
@@ -1076,7 +1077,7 @@ def gate(base_rev: str, head_rev: str, profiles_dir: Path, timeout: float,
             versions = read_versions(trees, parts)
             try:
                 mark_qa_only(trees, parts, qa, profile_results)
-            except (SetupError, UnicodeError):
+            except Exception:  # any problem here only leaves the lines unmarked
                 # The mark only adds to a failure: when it cannot be found, the lines stay unmarked and the exit code
                 # stays 1 (ADR 0065).
                 for result in profile_results:
