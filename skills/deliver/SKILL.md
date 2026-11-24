@@ -123,7 +123,7 @@ Run the steps in this order, from the current step on. Before each, note the hea
 #### review
 
 - **Before it**: when the last line of "History" is a resume with `withdraw A-<n>, by the maintainer's decision` and no `answer` commit is listed after it, or the `review` row's "Notes" say `questions for design (withdraw A-<n>)` (step 5, "Answer findings"), run "Withdrawing an answer" (step 6) first.
-- **Give it**: the same range, list of other roles' commits, and documents' commit, and, on a rerun, the commit of its earlier report: the newest commit listed as `review` under "Commits".
+- **Give it**: the same range, list of other roles' commits, and documents' commit, the newest commit listed as `answer` under "Commits" when it comes after the developer's head (the answers it reads are there, a withdrawal among them, ADR 0062), and, on a rerun, the commit of its earlier report: the newest commit listed as `review` under "Commits".
 
 After `qa`, `security-review`, and `review` are all done, go to step 5.
 
