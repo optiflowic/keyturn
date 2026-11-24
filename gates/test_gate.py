@@ -404,7 +404,7 @@ class GateTest(unittest.TestCase):
         self.assert_fails(result, "FAIL build [app]: exit 1")
         self.assertIn("FAIL lint [app] (QA's folders only): exit 1", result.stdout)
 
-    def test_a_developer_change_to_qa_s_folders_fails_unmarked(self):
+    def test_a_developer_change_to_qa_s_folders_fails_protected_paths_unmarked(self):
         self.with_lint()
         self.put("app/qa/test_qa.txt", "BAD")
         self.commit("developer writes in QA's folder")

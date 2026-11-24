@@ -1074,7 +1074,13 @@ def gate(base_rev: str, head_rev: str, profiles_dir: Path, timeout: float,
             profile_results = check_profile(trees, parts)
             results += profile_results
             versions = read_versions(trees, parts)
-            mark_qa_only(trees, parts, qa, profile_results)
+            try:
+                mark_qa_only(trees, parts, qa, profile_results)
+            except (SetupError, UnicodeError):
+                # The mark only adds to a failure: when it cannot be found, the lines stay unmarked and the exit code
+                # stays 1 (ADR 0065).
+                for result in profile_results:
+                    result.qa_only = False
         finally:
             trees.remove()
     return base, head, results, versions

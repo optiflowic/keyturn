@@ -34,6 +34,8 @@ The gate already checks out the head in a clean worktree and knows QA's folders 
 
 - Every failing profile check of a part with QA's files runs once more, so a failing gate takes longer.
 - A check that fails by chance and passes on the second run is marked in a part with QA's files. QA then finds nothing of its own to fix; the next gate (in the `deliver` step, or the next round) runs it again, and a stop or a round follows as usual.
+- A QA test that fails because the deliverable does not meet its criterion passes once QA's files are removed, so it is marked too. The round then goes on with `qa`, `security-review`, and `review` on that head instead of going back at once, and the test report sends the work back after them, counting the round: one more run of those three roles than before, which the decision accepts so that the developer never gets a failure that is QA's.
+- If the removal or a rerun cannot be done (for example, Git cannot change the head's worktree), no line is marked, and the exit code stays 1.
 - A failure that removing QA's files hides but that the developer could fix (for example, a developer's module that fails only when a QA test loads it) is marked; QA's test of it then fails in QA's run, and the test report sends the work back.
 - The marking reaches a project's CI only when its `KEYTURN_COMMIT` moves. `deliver` runs the gate from the plugin, so a task run with this version gets it locally; CI with an older gate fails with the same exit code, and passes once QA's tests are fixed.
 - `gates/gate.py`, its tests, the profiles' `README.md`, `skills/deliver/SKILL.md`, and `skills/qa/SKILL.md` follow this.
