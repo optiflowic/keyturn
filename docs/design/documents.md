@@ -39,7 +39,7 @@ If the client is asked too often, or given too much at once, they stop reading a
 Agents use these to hand off work. They can be as detailed as needed.
 
 - Design document and threat model
-- Design answers: what the design left open, answered for the developer or QA after the developer's work started, without changing the design, and threat ratings raised or explained by the maintainer's decision ([ADR 0058](../adr/0058-design-answers-during-implement.md), [ADR 0060](../adr/0060-design-answers-for-qa-and-threat-ratings.md))
+- Design answers: what the design left open, answered for the developer or QA after the developer's work started, without changing the design, threat ratings raised or explained by the maintainer's decision, and earlier answers withdrawn by the maintainer's decision, with a new entry that keeps every earlier one ([ADR 0058](../adr/0058-design-answers-during-implement.md), [ADR 0060](../adr/0060-design-answers-for-qa-and-threat-ratings.md), [ADR 0062](../adr/0062-design-answers-withdrawn-by-the-maintainer-s-decision.md))
 - Architecture decision records (see below)
 - Onboarding notes (existing repositories)
 - Handoff notes between roles
