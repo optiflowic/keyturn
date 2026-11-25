@@ -460,10 +460,13 @@ def check_open_questions(lines: list[tuple[int, str]], template: Template, state
     problems = []
     for number, line in content:
         waiting_since = re.search(r"since (\S+?)\.? Blocks: \S", line)
-        # The acceptance of a task is what the merge step waits for (ADR 0046): "- [acceptance of <task>](approvals)".
-        if not re.match(rf"- \[?((decision card|requirements version) \d+\b|design summary\b|acceptance of {TASK_RE.pattern}(?![a-z0-9-]))", line):
+        # The merge step waits for the acceptance of a task (ADR 0046), "- [acceptance of <task>](approvals)", and, after
+        # a delivery that was not accepted, for a card, "- [after not accepted (row <k>): decision card <n>](card)" (ADR 0047).
+        if not re.match(rf"- \[?((after not accepted \(row \d+\): )?decision card \d+\b|requirements version \d+\b|design summary\b"
+                        rf"|acceptance of {TASK_RE.pattern}(?![a-z0-9-]))", line):
             problems.append(f'line {number}: "{line}" should start with "- [decision card <n>](link)", "- [requirements version <n>](link)", '
-                            '"- [design summary](link)", or "- [acceptance of <task>](link)"')
+                            '"- [design summary](link)", "- [acceptance of <task>](link)", or '
+                            '"- [after not accepted (row <k>): decision card <n>](link)"')
         elif not waiting_since:
             problems.append(f'line {number}: "{line}" should say "since {TIME_FORM}. Blocks: ..."')
         else:

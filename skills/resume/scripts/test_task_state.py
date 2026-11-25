@@ -373,6 +373,16 @@ class ConsistencyTest(unittest.TestCase):
         self.assertTrue(any('should start with "- [decision card <n>](link)"' in problem and "acceptance of <task>" in problem
                             for problem in problems), problems)
 
+    def test_waiting_for_the_card_after_a_delivery_not_accepted(self):
+        # As "After a delivery is not accepted" in deliver's merge step writes it (ADR 0047).
+        text = (ACCEPTING.replace("when the client accepts: delivery-1", "when the client answers: decision card 3")
+                .replace("- [acceptance of delivery-1](../../client/approvals.md): ",
+                         "- [after not accepted (row 1): decision card 3](../../client/decision-card-3.md): "
+                         "what to do now that the client did not accept delivery-1. "))
+        self.assertEqual(check(text), [])
+        problems = check(text.replace("(row 1)", "(row one)"))
+        self.assertIn('Open questions: should list "decision card 3", which the task waits for', problems)
+
     def test_the_acceptance_waited_for_is_this_task_s(self):
         text = ACCEPTING.replace("when the client accepts: delivery-1", "when the client accepts: delivery-2")
         problems = check(text.replace("acceptance of delivery-1", "acceptance of delivery-2"))
