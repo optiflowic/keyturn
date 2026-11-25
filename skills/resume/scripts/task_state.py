@@ -460,8 +460,10 @@ def check_open_questions(lines: list[tuple[int, str]], template: Template, state
     problems = []
     for number, line in content:
         waiting_since = re.search(r"since (\S+?)\.? Blocks: \S", line)
-        if not re.match(r"- \[?((decision card|requirements version) \d+|design summary)\b", line):
-            problems.append(f'line {number}: "{line}" should start with "- [decision card <n>](link)", "- [requirements version <n>](link)", or "- [design summary](link)"')
+        # The acceptance of a task is what the merge step waits for (ADR 0046): "- [acceptance of <task>](approvals)".
+        if not re.match(rf"- \[?((decision card|requirements version) \d+\b|design summary\b|acceptance of {TASK_RE.pattern}(?![a-z0-9-]))", line):
+            problems.append(f'line {number}: "{line}" should start with "- [decision card <n>](link)", "- [requirements version <n>](link)", '
+                            '"- [design summary](link)", or "- [acceptance of <task>](link)"')
         elif not waiting_since:
             problems.append(f'line {number}: "{line}" should say "since {TIME_FORM}. Blocks: ..."')
         else:
@@ -545,8 +547,14 @@ def consistency_problems(state: StateFile, file_name: str | None) -> list[str]:
     if reason == "waiting for the maintainer" and can_continue and not can_continue.startswith("when the maintainer decides"):
         problems.append(f'field "Can continue": should say what the maintainer must decide ("when the maintainer decides: ..."), not "{can_continue}"')
     if can_continue and can_continue.startswith("when the client "):
-        waited_for = can_continue.split(": ", 1)[1]  # "decision card 2", "requirements version 1", or "design summary"
-        if not any(re.search(rf"\b{re.escape(waited_for)}\b", line) for line in state.open_questions):
+        waited_for = can_continue.split(": ", 1)[1]  # "decision card 2", "requirements version 1", "design summary", or a task
+        if can_continue.startswith("when the client accepts: "):
+            if task and waited_for != task:
+                problems.append(f'field "Can continue": should wait for the acceptance of this task, "{task}", not "{waited_for}"')
+            # Only the acceptance item names it: a task name may also appear in another item's text.
+            if not any(re.match(rf"- \[?acceptance of {re.escape(waited_for)}(?![a-z0-9-])", line) for line in state.open_questions):
+                problems.append(f'Open questions: should list "acceptance of {waited_for}", which the task waits for')
+        elif not any(re.search(rf"\b{re.escape(waited_for)}\b", line) for line in state.open_questions):
             problems.append(f'Open questions: should list "{waited_for}", which the task waits for')
     return problems
 

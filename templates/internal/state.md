@@ -62,7 +62,7 @@ Leave the section with "None." only until the first state commit after "started"
 ## Open questions
 
 <!--
-Everything waiting for the client, and the work that waits for it: decision cards, decisions in the design summary that wait for the client's agreement (one line for all of them), and requirements sent for approval (see approvals.md).
+Everything waiting for the client, and the work that waits for it: decision cards, decisions in the design summary that wait for the client's agreement (one line for all of them), requirements sent for approval, and a delivery sent for acceptance in the merge step (see approvals.md).
 A decision card is never decided for the client, and work does not start before the requirements are approved. During the MVP, implement starts only when nothing here is left (ADR 0031 in keyturn's `docs/adr/`).
 Leave the section with "None." when there is nothing waiting.
 -->
@@ -70,6 +70,7 @@ Leave the section with "None." when there is nothing waiting.
 - <decision card <n>: link>: <the question, in one line>. Waiting since <YYYY-MM-DDTHH:MMZ>. Blocks: <steps or requirements>
 - <requirements version <n>: link to approvals.md>: waiting for approval since <YYYY-MM-DDTHH:MMZ>. Blocks: <design and every later step>
 - <design summary: link>: waiting for agreement since <YYYY-MM-DDTHH:MMZ>. Blocks: <design and every later step>
+- <acceptance of <task>: link to approvals.md>: Waiting since <YYYY-MM-DDTHH:MMZ>. Blocks: merge
 
 ## History
 
