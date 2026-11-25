@@ -82,6 +82,23 @@ WAITING = (
                       "Waiting since 2026-11-08T03:20Z. Blocks: design and every later step")
 )
 
+# Stopped in merge, waiting for the client to accept the delivery, as item 2 of deliver's merge step writes it.
+ACCEPTING = (
+    STOPPED.replace("- Current step: implement", "- Current step: merge")
+    .replace("- Stopped because: usage limit", "- Stopped because: waiting for the client")
+    .replace("- Can continue: after 2026-11-08T15:30Z", "- Can continue: when the client accepts: delivery-1")
+    .replace("| implement | in progress | | | second round |", "| implement | done | | `3d5e7a1` | |")
+    .replace("| qa | not started | | | |", "| qa | done | | `8c6e2a0` | |")
+    .replace("| security-review | not started | | | |", "| security-review | done | | `91b7d4c` | |")
+    .replace("| review | not started | | | |", "| review | done | | `95a1f8e` | |")
+    .replace("| deliver | not started | | | |", "| deliver | done | | `c08d5e1` | |")
+    .replace("| merge | not started | | | |",
+             "| merge | in progress | [approvals.md](../../client/approvals.md) | `2f6a9d1` | sent for acceptance |")
+    .replace("None.", "- [acceptance of delivery-1](../../client/approvals.md): Waiting since 2026-11-08T21:40Z. Blocks: merge")
+    + "- 2026-11-08T15:41Z: resumed: in implement, from commit `4f8d2c0`\n"
+      "- 2026-11-08T21:40Z: stopped: waiting for the client, in merge (acceptance of delivery-1)\n"
+)
+
 
 def check(text: str, file_name: str | None = "delivery-1.md") -> list[str]:
     return task_state.check_state(text, task_state.read_template(TEMPLATE), file_name)[1]
@@ -338,6 +355,44 @@ class ConsistencyTest(unittest.TestCase):
         self.assertEqual(check(text), [])
         problems = check(text.replace("- [design summary](../../client/design-summary.md): ", "- [summary](../../client/design-summary.md): "))
         self.assertIn('Open questions: should list "design summary", which the task waits for', problems)
+
+    def test_waiting_for_the_acceptance_in_merge(self):
+        # As item 2 of deliver's merge step writes it (#192).
+        self.assertEqual(check(ACCEPTING), [])
+        self.assertEqual(check(ACCEPTING.replace("- [acceptance of delivery-1](../../client/approvals.md)",
+                                                 "- acceptance of delivery-1")), [])
+
+    def test_the_acceptance_must_be_an_open_question_of_this_task(self):
+        problems = check(ACCEPTING.replace("[acceptance of delivery-1]", "[acceptance of delivery-12]"))
+        self.assertIn('Open questions: should list "acceptance of delivery-1", which the task waits for', problems)
+        # The task's name elsewhere in another item is not the acceptance.
+        problems = check(ACCEPTING.replace("- [acceptance of delivery-1](../../client/approvals.md): ",
+                                           "- [decision card 3](../../client/decision-card-3.md): about delivery-1. "))
+        self.assertIn('Open questions: should list "acceptance of delivery-1", which the task waits for', problems)
+        problems = check(ACCEPTING.replace("[acceptance of delivery-1]", "[acceptance of Delivery 1]"))
+        self.assertTrue(any('should start with "- [decision card <n>](link)"' in problem and "acceptance of <task>" in problem
+                            for problem in problems), problems)
+
+    def test_waiting_for_the_card_after_a_delivery_not_accepted(self):
+        # As "After a delivery is not accepted" in deliver's merge step writes it (ADR 0047).
+        text = (ACCEPTING.replace("when the client accepts: delivery-1", "when the client answers: decision card 3")
+                .replace("- [acceptance of delivery-1](../../client/approvals.md): ",
+                         "- [after not accepted (row 1): decision card 3](../../client/decision-card-3.md): "
+                         "what to do now that the client did not accept delivery-1. "))
+        self.assertEqual(check(text), [])
+        problems = check(text.replace("(row 1)", "(row one)"))
+        self.assertIn('Open questions: should list "decision card 3", which the task waits for', problems)
+
+    def test_the_acceptance_waited_for_is_this_task_s(self):
+        text = ACCEPTING.replace("when the client accepts: delivery-1", "when the client accepts: delivery-2")
+        problems = check(text.replace("acceptance of delivery-1", "acceptance of delivery-2"))
+        self.assertEqual(problems, ['field "Can continue": should wait for the acceptance of this task, "delivery-1", not "delivery-2"'])
+
+    def test_the_acceptance_needs_the_time_and_what_it_blocks(self):
+        problems = check(ACCEPTING.replace("Waiting since 2026-11-08T21:40Z. Blocks: merge", "Waiting."))
+        self.assertTrue(any("should say \"since YYYY-MM-DDTHH:MMZ. Blocks: ...\"" in problem for problem in problems), problems)
+        problems = check(ACCEPTING.replace("Blocks: merge", "Blocks: shipping"))
+        self.assertTrue(any("shipping" in problem for problem in problems), problems)
 
     def test_waiting_for_the_maintainer_says_what_they_decide(self):
         text = (WAITING.replace("- Stopped because: waiting for the client", "- Stopped because: waiting for the maintainer")
