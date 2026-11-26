@@ -66,6 +66,12 @@ The standards role defines the coding conventions for a project and makes them c
 
 The PM and the architect must consider how a deliverable could be misused, not only how it should be used. This matters especially for security tools: a vulnerability scanner must only scan targets the user is authorized to test (e.g., by verifying domain ownership), and this must appear in the requirements.
 
+## Requirements must cover the look
+
+A client who does not read code judges a deliverable by its screens, so the requirements always say how the screens should look. The requirements have a required "Look" section: its baseline (`standard`, a tidy minimum, or `worked out`), the UI library (`none`, or its name), and the decision card that decided them; a deliverable without screens says so there. The look's criteria are ordinary requirements and acceptance criteria, and always include the tidy minimum (for example, labels next to or above their inputs with space between them, buttons with the same role the same size and lined up, no horizontal scroll at phone width, a visibly marked focused control).
+
+When the deliverable has screens, the PM asks the client once, on one decision card with a recommendation sent with the first version of the requirements, how far the look is worked out and whether a UI library is used, and which one. "Leave it to you" is a valid answer: keyturn takes the best practice at that time, and the card records that the client left it to keyturn. A UI library is a direct dependency, checked by the architect as any other ([Guardrails](guardrails.md) 3). See [ADR 0066](../adr/0066-requirements-ask-about-the-look-once.md).
+
 ## Later roles
 
 - Onboarder: reads an existing repository and documents it (existing-repository mode)
