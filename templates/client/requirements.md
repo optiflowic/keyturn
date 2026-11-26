@@ -100,6 +100,8 @@ Required. How the screens should look, so that they are judged by criteria the c
   space between them; buttons with the same role have the same size and line up; no horizontal scroll at phone width;
   a control you move to with the keyboard is visibly marked. "worked out", or a UI library, adds what it brings
   (for example, the same colors, type sizes, and spacing on every page), also as criteria a person can check.
+- Every delivery that ships screens checks the look's criteria on the screens it ships. The look's requirements are part of
+  every such delivery, never put off to a later one.
 -->
 
 - Look baseline: <standard | worked out | none (no screens)>
