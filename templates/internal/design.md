@@ -107,7 +107,8 @@ Required. How the screens are built to meet the requirements' "Look" section (AD
 - How the look's criteria are met: one row per acceptance criterion of the look, with the tokens and the rule that meet it.
 - The code uses the tokens for every spacing, type size, color, radius, control height, border width, and shadow; literal values
   of those kinds appear only in the token file (0, auto, inherit, and percentages are not such values). A token the code needs
-  and this table lacks is a question for the design, not a value the developer picks.
+  and this table lacks is a question for the design, not a value the developer picks; once implement has started,
+  a design answer may add it, on the scale the tokens already have (ADR 0068 in keyturn).
 -->
 
 - Look baseline: <standard | worked out>, from the requirements' "Look"
