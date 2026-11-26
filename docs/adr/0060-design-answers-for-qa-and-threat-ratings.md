@@ -1,6 +1,6 @@
 # 0060. The design answers also answer QA's questions, and correct a threat's rating by the maintainer's decision
 
-- Status: accepted
+- Status: accepted; what QA's questions may ask superseded by [0069](0069-qa-checks-the-screens-end-to-end-in-a-browser.md) (also the checked widths, when the design has none)
 - Date: 2026-11-24
 - Supersedes: in [0058](0058-design-answers-during-implement.md), that only the developer's questions are answered, and that an answer never changes a threat (an answer may raise a threat's rating, or give the reason it stands, by the maintainer's decision); in [0030](0030-deliver-rework-loop.md), what sends the work back (a rating finding of the security review does not; a question QA asks for the design does); in [0031](0031-documents-fixed-once-implement-starts.md), that a question from `qa` or a finding of `security-review` that needs `design` stops the task (QA's questions, and ratings by the maintainer's decision, are answered inside the task)
 

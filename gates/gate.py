@@ -2,7 +2,7 @@
 """keyturn's gate: run a project's stack-profile checks and the guardrail checks on a Git range. See ADR 0028.
 
 Usage (from inside the project's repository; the base and the head are checked out in temporary worktrees, so only committed files count):
-  gate.sh --base REV [--head REV] [--others ROLE:COMMIT ...] [--log FILE] [--profiles DIR] [--timeout-minutes N]
+  gate.sh --base REV [--head REV] [--others ROLE:COMMIT ...] [--evidence-task TASK] [--log FILE] [--profiles DIR] [--timeout-minutes N]
   gate.sh --task TASK --default-branch REV [--head REV] [--log FILE] [--profiles DIR] [--timeout-minutes N]
     (a task run by deliver, as in CI: the base and the other roles' commits are found from the branch and its state
     file, ADR 0043)
@@ -81,6 +81,7 @@ ROLE_PATHS = {
     "design": [DESIGN_PATH, THREAT_MODEL, f"{ADR_DIR}/**", "keyturn/client/design-summary.md",
                "keyturn/client/decision-card-*.md"],
     "conventions": ["keyturn/internal/conventions.md", f"{ADR_DIR}/**", CONFIG_PATH, "**/.gitignore"],
+    # ADR 0069 adds the images in the task's own evidence folder (EVIDENCE), when the gate knows the task.
     "qa": ["keyturn/internal/test-report.md"],
     "security-review": ["keyturn/internal/security-review.md", THREAT_MODEL],
     "review": ["keyturn/internal/review.md"],
@@ -93,6 +94,9 @@ ROLE_PATHS = {
     # judged against (ADR 0058).
     "answer": ["keyturn/internal/design-answers.md"],
 }
+
+# The images QA's checks of the screens leave as evidence, in the task's own folder (ADR 0069).
+EVIDENCE = "keyturn/client/evidence/{task}/*.png"
 
 PROFILE_FIELDS = {"name", "tools", "setup", "checks", "count_tests", "versions", "pinned", "install_scripts", "source_files",
                   "suppressions", "protected"}
@@ -869,7 +873,8 @@ def documents_commit(root: Path, base: str, head: str, others: dict[str, str]) -
     return documents
 
 
-def check_others(root: Path, base: str, head: str, others: dict[str, str], qa: list[str], configs: list[str]) -> None:
+def check_others(root: Path, base: str, head: str, others: dict[str, str], qa: list[str], configs: list[str],
+                 evidence: list[str]) -> None:
     """Stop unless each commit named as another role's is in the range and changes only what that role may write (ADR 0029)."""
     commits = dict(range_commits(root, base, head))
     problems = [f"{commit[:12]} ({role}): not in the range" for commit, role in others.items() if commit not in commits]
@@ -880,7 +885,7 @@ def check_others(root: Path, base: str, head: str, others: dict[str, str], qa: l
         if commit not in commits or len(commits[commit]) != 1:
             continue
         parent = commits[commit][0]
-        allowed = ROLE_PATHS[role] + {"qa": qa, "conventions": configs}.get(role, [])
+        allowed = ROLE_PATHS[role] + {"qa": qa + evidence, "conventions": configs}.get(role, [])
         outside = [path for path in name_status(root, parent, commit) if not any(matches(path, p) for p in allowed)]
         problems += [f"{commit[:12]} ({role}): changes {path}, which {'an' if role[0] in 'aeiou' else 'a'} {role} commit may not" for path in outside]
         if role == "security-review":
@@ -1067,7 +1072,7 @@ def vouched_version(root: Path, sha: str, state: str, commits: list[str], resolv
 
 
 def gate(base_rev: str, head_rev: str, profiles_dir: Path, timeout: float,
-         others_values: list[str]) -> tuple[str, str, list[Result], list[dict]]:
+         others_values: list[str], task: str | None = None) -> tuple[str, str, list[Result], list[dict]]:
     root = repo_root()
     base, head = commit_of(root, base_rev), commit_of(root, head_rev)
     if subprocess.run(["git", "-C", str(root), "merge-base", "--is-ancestor", base, head], env=ENV).returncode != 0:
@@ -1081,7 +1086,8 @@ def gate(base_rev: str, head_rev: str, profiles_dir: Path, timeout: float,
             qa = qa_folders(root, documents)
             configs = [f"**/{pattern}" for part in parts for pattern in part.profile["protected"]]
             configs += [in_part(part, name) for part in parts if part.profile["pinned"] for name in part.profile["pinned"]["files"]]
-            check_others(root, base, head, others, qa, configs)
+            evidence = [EVIDENCE.format(task=task)] if task is not None else []
+            check_others(root, base, head, others, qa, configs, evidence)
             check_tools(parts)
             skip = set(others)
             results = [check_protected(changed_paths(root, base, head, skip), protected_patterns(parts, qa))]
@@ -1118,6 +1124,9 @@ def main() -> int:
     parser.add_argument("--others", action="append", default=[], metavar="ROLE:COMMIT",
                         help="a commit in the range that is another role's (spec, design, conventions, qa, answer, security-review, review, deliver, merge); "
                              "repeat for each (ADR 0029, ADR 0032, ADR 0058)")
+    parser.add_argument("--evidence-task", metavar="TASK",
+                        help="with --base: the task whose evidence folder (keyturn/client/evidence/TASK/, images only) a qa "
+                             "commit may change (ADR 0069); with --task, that task's")
     parser.add_argument("--documents-vouched", default="", metavar="VALUE",
                         help="with --task: the value of the repository variable KEYTURN_DOCUMENTS (\"<task>:<full SHA> ...\"), "
                              "the state file version the maintainer vouched for after a redo of the documents (ADR 0057)")
@@ -1126,12 +1135,15 @@ def main() -> int:
         parser.error("--task needs --default-branch, and finds the other roles' commits itself (no --others)")
     if args.task is None and (args.default_branch is not None or args.documents_vouched):
         parser.error("--default-branch and --documents-vouched go with --task")
+    if args.evidence_task is not None and (args.task is not None or not TASK_RE.fullmatch(args.evidence_task)):
+        parser.error("--evidence-task goes with --base, and is a task name (lowercase letters and digits with single hyphens)")
 
     try:
         base_rev, others = args.base, args.others
         if args.task is not None:
             base_rev, others = task_range(repo_root(), args.task, args.default_branch, args.head, args.documents_vouched)
-        base, head, results, versions = gate(base_rev, args.head, args.profiles, args.timeout_minutes * 60, others)
+        task = args.task if args.task is not None else args.evidence_task
+        base, head, results, versions = gate(base_rev, args.head, args.profiles, args.timeout_minutes * 60, others, task)
     except SetupError as error:
         for problem in error.problems:
             print(f"setup error: {problem}", file=sys.stderr)

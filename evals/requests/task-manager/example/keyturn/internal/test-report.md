@@ -6,7 +6,7 @@
 
 ## Summary
 
-All 6 acceptance criteria in delivery 1 that tests can check pass (AC-1 to AC-4, AC-7, AC-9). AC-10 to AC-13 (the look) are in delivery 1 but were not tested: `jsdom` does not lay pages out, so the client checks them by hand. AC-5, AC-6, and AC-8 belong to delivery 2 and were not tested.
+All 10 acceptance criteria in delivery 1 pass (AC-1 to AC-4, AC-7, AC-9, and AC-10 to AC-13, the look, checked on the pages in a browser at the design's widths, with screenshots). AC-5, AC-6, and AC-8 belong to delivery 2 and were not tested.
 No failures in the final run.
 
 ## Results
@@ -22,24 +22,36 @@ No failures in the final run.
 | AC-7 | R-8 | pass | `api/qa/account_test.go`: `TestSignInBlockedAfterFiveFailures`, `TestBlockEndsAfterFifteenMinutes`, `TestSessionWorksWhileBlocked` |
 | AC-8 | R-9 | not tested | |
 | AC-9 | R-1 | pass | `api/qa/account_test.go`: `TestSignUpRejectsUsernameWithAt` |
-| AC-10 | R-10 | not tested | |
-| AC-11 | R-10 | not tested | |
-| AC-12 | R-10 | not tested | |
-| AC-13 | R-10 | not tested | |
+| AC-10 | R-10 | pass | `web/qa/e2e/look.spec.ts`: `AC-10: each label sits above its field with 4 px between them` (each page, each width) |
+| AC-11 | R-10 | pass | `web/qa/e2e/look.spec.ts`: `AC-11: every button is 44 px high and overlaps nothing` (each page, each width) |
+| AC-12 | R-10 | pass | `web/qa/e2e/look.spec.ts`: `AC-12: nothing runs off the side` (each page, each width) |
+| AC-13 | R-10 | pass | `web/qa/e2e/look.spec.ts`: `AC-13: every control shows a 2 px outline when reached with Tab` (each page, each width) |
 
 ## Failures
 
 None.
 
+## Look
+
+- Browser: Chrome Headless Shell, driven by Playwright, the E2E tool of the `react-spa` profile, at the versions pinned in `web/package.json` (the versions Playwright printed are not written in this example)
+- Screenshots: `keyturn/client/evidence/delivery-1/`
+
+| Criterion | Widths | Measured | Judged from the screenshots | Screenshots |
+|---|---|---|---|---|
+| AC-10 | 360, 599, 600, 1280 px | on the sign-up, sign-in, and task list pages, every label is above its field, at the same left edge, with 4 px (`--space-1`) between them, and 16 px (`--space-3`) between one field and the next: pass | it is clear which label belongs to which field: pass | `sign-up-360.png`, `sign-up-1280.png`, `sign-in-360.png`, `sign-in-1280.png`: each label above its field; `task-list-360.png`, `task-list-1280.png`: the title and due date fields with their labels, and the list |
+| AC-11 | 360, 599, 600, 1280 px | every button is 44 px high (`--control-height`), with 16 px (`--space-3`) inside on each side, and no button overlaps another or any text; the tasks of delivery 1 have no buttons, so the row of a task's buttons is checked in delivery 2: pass | the buttons of each form line up on the left under its fields, and the main button stands out: pass | the same six |
+| AC-12 | 360, 599, 600, 1280 px | no page scrolls sideways, no element ends past the right edge of the window, and each page's content is at most 640 px wide (`--page-max-width`) with 16 px (`--space-3`) on each side: pass | no text or button is cut off at 360 px; a long task title wraps inside its row: pass | `sign-up-360.png`, `sign-in-360.png`, `task-list-360.png`: each page at 360 px, with a long task title wrapped in its row |
+| AC-13 | 360, 599, 600, 1280 px | every link, field, and button reached with Tab shows a solid 2 px outline (`--focus-outline`) 2 px (`--focus-offset`) from it, the date field included: pass | the outline is clearly visible around the focused control: pass | `sign-up-360-focus.png`, `sign-up-1280-focus.png`, `sign-in-360-focus.png`, `sign-in-1280-focus.png`: the username field marked after one press of Tab; `task-list-360-focus.png`, `task-list-1280-focus.png`: the "Sign out" button marked after one press of Tab |
+
 ## Untested areas
 
 - AC-5 (R-5, Must), AC-6 (R-6, Must), AC-8 (R-9, Nice): not in delivery 1 (planned for delivery 2).
-- AC-10 to AC-13 (R-10, Must): the look of the pages; QA's web tests render them in `jsdom`, which does not lay them out, so no test can see where a label sits or whether a page scrolls sideways. The client checks them in checks 3 and 4 of the acceptance guide.
-- The pages in a real browser: QA's web tests render them in `jsdom`, with the API's answers stubbed; the client checks AC-1 and AC-3 in a browser in the acceptance guide.
+- The look in Firefox and Safari (R-10, Must): the pages were checked in Chromium only.
+- The pages' behavior in a real browser: QA's web tests render them in `jsdom`, with the API's answers stubbed, and the look tests only look at the pages; the client checks AC-1 and AC-3 in a browser in the acceptance guide.
 - The `Secure` cookie over HTTPS: the tests run on `localhost` without HTTPS. The client sets up HTTPS on their server.
 
 ## Test counts
 
-- Tests: 40 (33 Go, 7 web)
+- Tests: 91 (33 Go, 7 web, 51 browser)
 - Skipped or disabled tests: 0
-- Coverage: 84% (Go, measured across all packages with `-coverpkg=./...`, because the tests in `api/qa/` are in a package of their own); not measured (web)
+- Coverage: 84% (Go, measured across all packages with `-coverpkg=./...`, because the tests in `api/qa/` are in a package of their own); not measured (web, browser)

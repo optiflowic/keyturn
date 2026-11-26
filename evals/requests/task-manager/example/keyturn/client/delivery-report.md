@@ -22,7 +22,7 @@ Not verified: how the app behaves behind HTTPS on your server, which only you ca
 | R-4: See your tasks | delivered | AC-3 | |
 | R-7: Your tasks are private | delivered | AC-4 | covers adding and listing tasks; changing and deleting are checked again in delivery 2 |
 | R-8: Limit wrong passwords | delivered | AC-7 | |
-| R-10: The screens are tidy | delivered | AC-10 to AC-13 | on every page of this delivery; you check it in checks 3 and 4 of the acceptance guide, since the automatic tests cannot see how a page is laid out; the pages of delivery 2 are checked again then |
+| R-10: The screens are tidy | delivered | AC-10 to AC-13 | on every page of this delivery, checked by our tester in a web browser; the screenshots are under "The screens" in the acceptance guide; the pages of delivery 2 are checked again then |
 
 R-5, R-6, and R-9 are planned for delivery 2, so that this delivery has no more than five "Must check" items.
 
@@ -31,15 +31,15 @@ R-5, R-6, and R-9 are planned for delivery 2, so that this delivery has no more 
 | Check | Done by | How | Result | Details |
 |---|---|---|---|---|
 | Automated tests, code style, and security scans | Automated checks | ran 40 tests, the code style checks for both parts of the app, a scan for known security mistakes, a scan of every component for known problems (including the components they pull in), and a scan for leaked passwords | all pass; one ignored error was fixed, and two false alarms were explained by the security reviewer (a test value, and a known problem in a part of a component the app does not use) | gate log (not part of this example) |
-| Behavior matches the requirements | Independent tester | automated tests written from the requirements only, without seeing the code | all 6 acceptance criteria of this delivery pass | [test report](../internal/test-report.md) |
+| Behavior matches the requirements | Independent tester | automated tests written from the requirements only, without seeing the code; for how the pages look, the pages opened in a web browser as narrow as a phone and as wide as a computer screen, measured, and photographed | all 10 acceptance criteria of this delivery pass | [test report](../internal/test-report.md), [screenshots](acceptance-guide.md#the-screens) |
 | Security issues tools cannot find | Security reviewer | tried to reach another account's tasks, tried many wrong passwords at the same moment, and checked every threat we listed | two serious problems were found and fixed; every listed threat now has a protection in place | [security review](../internal/security-review.md) |
 | The code follows the design and is easy to maintain | Code reviewer | read the changes against the design and the coding conventions | two problems were found and fixed | [code review](../internal/review.md) |
 
 ## What was not verified
 
 - The app behind HTTPS on your server: the tests ran on one computer without HTTPS. The sign-in only works over HTTPS (or on `localhost`), on purpose, to protect it.
-- The web pages in a real browser: the automatic tests use them in a simulated browser, so please try them in yours with the acceptance guide.
-- How the pages look (R-10), by the automatic tests: they use the pages in a simulated browser, which does not lay them out, so you check it by hand in checks 3 and 4.
+- Using the web pages in a real browser: the automatic tests use them in a simulated browser, so please try them in yours with the acceptance guide. Our tester looked at the pages in a real browser only for how they look.
+- How the pages look in Firefox and Safari (R-10): our tester checked them in Chrome's engine only. A later change that breaks the look is found by our tester's next check, not by the automatic checks that run on every change.
 - R-5, R-6, and R-9: not part of this delivery.
 - Blocking changes to the main version of the code that skip keyturn's checks: your repository on GitHub has no branch protection, so such a change is noticed afterwards and reported to the maintainer, not blocked. GitHub offers branch protection on public repositories and on paid plans.
 
@@ -64,4 +64,5 @@ R-5, R-6, and R-9 are planned for delivery 2, so that this delivery has no more 
 | AI tool | Claude Code | recorded in the run log |
 | Go tests and checks | Go, `gofmt`, golangci-lint, `gosec`, `govulncheck`, Semgrep | Go as pinned in `api/go.mod`; the tools as recorded in the gate log |
 | Web tests and checks | Node.js, Prettier, ESLint, TypeScript, Vitest, jsdom, Testing Library | as recorded in the gate log |
+| How the pages look | Playwright, with Chrome Headless Shell | Playwright as pinned in `web/package.json`; the browser as recorded in the [test report](../internal/test-report.md) |
 | Secret scanning | gitleaks | recorded in the gate log |

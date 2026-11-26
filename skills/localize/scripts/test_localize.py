@@ -150,6 +150,26 @@ class CommandsTest(unittest.TestCase):
         result = self.run_script("apply", "ja", "docs/GUIDE.md")
         self.assertIn("run prepare again", result.stderr)
 
+    def test_apply_points_image_links_at_the_repository_s_images(self):
+        # ADR 0069: images are not translated, so the translation opens the repository's copy.
+        self.source.write_text(SOURCE.replace("One.", "One.\n\n![A page](shots/page.png)\n\n[Link](OTHER.md) `![code](x.png)`"),
+                               encoding="utf-8")
+        self.first_translation()
+        translation = self.target.read_text(encoding="utf-8")
+        self.assertIn("![A page](../../../../docs/shots/page.png)", translation)
+        self.assertIn("[Link](OTHER.md)", translation)
+        self.assertIn("`![code](x.png)`", translation)
+        # Reused on the next run, it is not rewritten again.
+        self.source.write_text(self.source.read_text(encoding="utf-8").replace("Two.", "Two, edited."), encoding="utf-8")
+        self.run_script("prepare", "ja", "docs/GUIDE.md")
+        self.translate_work_file("[v2]")
+        self.run_script("apply", "ja", "docs/GUIDE.md")
+        self.assertIn("![A page](../../../../docs/shots/page.png)", self.target.read_text(encoding="utf-8"))
+
+    def test_image_links_that_are_urls_or_leave_the_repository_are_kept(self):
+        text = "![u](https://example.com/a.png) ![r](/a.png) ![h](#a) ![o](../../a.png)\n"
+        self.assertEqual(localize.point_images_at_repository(text, "docs/GUIDE.md", "ja"), text)
+
     def test_a_line_ending_change_makes_the_translation_stale(self):
         self.first_translation()
         self.source.write_bytes(SOURCE.replace("\n", "\r\n").encode("utf-8"))

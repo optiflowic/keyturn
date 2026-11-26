@@ -489,6 +489,41 @@ class GateTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assert_fails(self.gate(), "FAIL protected-paths:")  # without the list, every commit is the developer's
 
+    def test_a_qa_commit_may_add_images_in_the_task_s_evidence_folder(self):
+        # ADR 0069: QA commits its screenshots as the client's evidence, in the task's own folder; the developer may not.
+        self.put("keyturn/client/evidence/task-1/sign-in-360.png", "PNG")
+        qa = self.commit("QA's screenshots")
+        result = self.gate("--others", f"qa:{qa}", "--evidence-task", "task-1")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assert_fails(self.gate("--evidence-task", "task-1"),
+                          "FAIL protected-paths: keyturn/client/evidence/task-1/sign-in-360.png")
+
+    def test_a_qa_commit_may_not_change_other_evidence(self):
+        cases = {"another task's folder": ("keyturn/client/evidence/task-0/sign-in-360.png", "task-1"),
+                 "a file that is not an image": ("keyturn/client/evidence/task-1/notes.md", "task-1"),
+                 "a folder inside the task's": ("keyturn/client/evidence/task-1/old/sign-in-360.png", "task-1"),
+                 "no task named": ("keyturn/client/evidence/task-1/sign-in-360.png", None)}
+        start = self.git("rev-parse", "HEAD").strip()
+        for name, (path, task) in cases.items():
+            with self.subTest(name):
+                self.git("checkout", "-q", "--detach", start)
+                self.put(path, "x")
+                qa = self.commit("QA's evidence")
+                extra = ["--evidence-task", task] if task else []
+                result = self.gate("--others", f"qa:{qa}", *extra)
+                self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+                self.assertIn(f"changes {path}, which a qa commit may not", result.stderr)
+
+    def test_evidence_task_must_be_a_task_name(self):
+        result = self.gate("--evidence-task", "../internal")
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+
+    def test_a_qa_commit_outside_the_evidence_folder_stops_the_gate(self):
+        self.put("keyturn/client/acceptance-guide.md", "# Guide\n")
+        qa = self.commit("QA writes the guide")
+        result = self.gate("--others", f"qa:{qa}", "--evidence-task", "task-1")
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+
     def start_before_the_documents(self) -> dict[str, str]:
         """Move the base to a commit without the task's documents, and commit them as spec, design, and conventions would."""
         self.git("rm", "-q", "keyturn/internal/design.md")

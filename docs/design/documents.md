@@ -10,7 +10,7 @@ The client reads these to make decisions and to do the final check. They must be
 |---|---|
 | requirements.md | What will be built and how it will be judged. Each requirement has a priority, Must or Nice to have: the PM proposes it, and the client decides it. The client approves this before work starts. |
 | design-summary.md | The main design decisions in plain language, with the reason for each and the alternatives considered. |
-| acceptance-guide.md | What the client should check by hand, in priority order, with steps and expected results. |
+| acceptance-guide.md | What the client should check by hand, in priority order, with steps and expected results, and the screenshots of the pages QA took when it checked the look ([ADR 0069](../adr/0069-qa-checks-the-screens-end-to-end-in-a-browser.md)). |
 | delivery-report.md | What was delivered, what was verified, what was not, and the remaining risks. |
 | approvals.md | Which version of the requirements the client approved, in which language, identified by the source hash. |
 | decision-card.md | One question to the client: the context, the options, a recommendation, and what happens if the client does not answer. |
@@ -55,6 +55,7 @@ Separate the two tiers so the client knows which folder is theirs.
 keyturn/
   config.json # project configuration (language settings, and the stack profile of each part)
   client/     # client-facing documents
+    evidence/ # the screenshots QA takes of the pages, one folder per task (ADR 0069)
   internal/   # agent-to-agent documents
     adr/      # architecture decision records
     state/    # one state file per task (see Resuming Work)
