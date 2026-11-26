@@ -89,6 +89,22 @@ You agreed to the three decisions that needed your agreement: where the data is 
 
 **What it means for you**: You create one repository for the project.
 
+### Decision 0005: How the pages are styled
+
+- Serves: R-10
+- Decision record (the full details): [decision record 0005](../internal/adr/0005-css-modules-and-one-token-file.md)
+
+**What we decided**: You left the look to us (decision card 3), so we took today's usual way for this kind of app: each part of a page has its own style rules, and every size, space, and color comes from one short list, written in one place.
+
+**Why**: Every page then uses the same spaces, sizes, and colors, so labels, fields, and buttons line up the same way everywhere (R-10), and nothing extra is added to the app.
+
+**Other options we considered**:
+
+- One style file for all the pages: nothing extra either, but a rule for one page can change another.
+- A ready-made styling component (Tailwind CSS): widely used, but one more component to agree to and keep up to date, which three plain pages do not need.
+
+**What it means for you**: Nothing to do. If you later want the pages to look more worked out, the list of sizes, spaces, and colors is where it changes.
+
 ## For information: development tools approved by the stack profile
 
 These tools only check, format, and test the code; none of them is part of the app you receive. The standard setups we follow for the server part and the web pages name them, so they do not need your agreement. We checked each one like any other extra component: it is maintained, the version we use has no known security problems, and its license lets you use it freely.
