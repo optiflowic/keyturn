@@ -16,6 +16,7 @@ What the review before a pull request checks ([ADR 0019](adr/0019-pre-pull-reque
 - [ ] After a line was changed, the other lines in the same file that depend on it (a recommendation, a summary, an example) still agree with it. A new exception to a rule is also stated, or pointed to, wherever another section restates that rule.
 - [ ] Nothing presents a `proposed` ADR as decided ([ADR rules](adr/README.md)).
 - [ ] A worked example fills in every part its template asks for, and a template change has its example updated ("Before opening a pull request" in [`AGENTS.md`](../AGENTS.md)).
+- [ ] When a client document of a worked example changed, every hash `approvals.md` records for it changed too: the source SHA-256 to the file's, and the translation SHA-256 to a new value, since a translation of the old text cannot match the new one.
 - [ ] A procedure in "Trying changes locally" in [`AGENTS.md`](../AGENTS.md), followed step by step as written, reaches the state it is meant to try (for example, a file is committed before a step that reads the committed file), and every check it asks for passes on a correct run, including the exceptions the skill allows and what the procedure's own earlier steps leave behind (for example, a branch a script it runs pushed).
 
 ## Skills: `skills/**/SKILL.md`
