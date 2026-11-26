@@ -8,15 +8,15 @@
 ## Summary
 
 Delivery 1 is implemented: sign-up, sign-in and sign-out with the wrong-password limit, adding a task, and the private task list.
-Changing, deleting, and hiding tasks (R-5, R-6, R-9) are left for delivery 2.
+Changing, deleting, and hiding tasks (R-5, R-6, R-9) are left for delivery 2. The pages of this delivery are laid out to meet R-10 (AC-10 to AC-13) with the web client's own CSS.
 
 ## What was done
 
 - Accounts and sessions: sign-up with the 12-character minimum, Argon2id hashing, sign-in, sign-out, 7-day sessions, and the 5-attempt block (R-1, R-2, R-8)
 - Tasks: create, list, and view one task (`GET /api/tasks/{id}`), filtered by the session's user ID (R-3, R-4, R-7)
 - Storage: schema for `users`, `sessions`, and `tasks`, with migrations run at start-up (R-1, R-3, R-4)
-- HTTP server: routes, session middleware, and serving the built web client (R-1 to R-4, R-7, R-8)
-- Web client: sign-up, sign-in, and task list pages (R-1 to R-4, R-8)
+- HTTP server: routes, session middleware, and serving the built web client (R-1 to R-4, R-7, R-8, R-10)
+- Web client: sign-up, sign-in, and task list pages, laid out with the web client's own CSS (R-1 to R-4, R-8, R-10)
 
 ## Requirements covered
 

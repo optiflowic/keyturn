@@ -132,6 +132,10 @@ In [`design/roles.md`](design/roles.md#standards).
 
 In [`design/roles.md`](design/roles.md#requirements-must-cover-misuse).
 
+### Requirements must cover the look
+
+In [`design/roles.md`](design/roles.md#requirements-must-cover-the-look).
+
 ### Later roles
 
 In [`design/roles.md`](design/roles.md#later-roles).

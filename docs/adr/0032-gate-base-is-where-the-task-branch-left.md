@@ -1,6 +1,6 @@
 # 0032. The gate's base is where the task branch left the default branch, and the document roles' commits are named too
 
-- Status: accepted; what a `conventions` commit may change superseded by [0039](0039-conventions-writes-gitignore.md) (also `.gitignore` files) and [0040](0040-profile-tools-at-conventions-versions.md) (also the files a profile installs its tools with); the state file version the document roles' commits are read from, after a redo before `implement`, superseded by [0057](0057-documents-redone-before-implement-vouched-by-the-maintainer.md)
+- Status: accepted; what a `conventions` commit may change superseded by [0039](0039-conventions-writes-gitignore.md) (also `.gitignore` files) and [0040](0040-profile-tools-at-conventions-versions.md) (also the files a profile installs its tools with); the state file version the document roles' commits are read from, after a redo before `implement`, superseded by [0057](0057-documents-redone-before-implement-vouched-by-the-maintainer.md); what a `spec` commit may change superseded by [0066](0066-requirements-ask-about-the-look-once.md) (also the decision cards)
 - Date: 2026-11-21
 - Supersedes: part of [0029](0029-role-commits-passed-as-arguments.md) (the gate's range starting at the head before the first `implement` step) and part of [0028](0028-gate-interface.md) (the design and the ADRs read at the base)
 

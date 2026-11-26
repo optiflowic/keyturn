@@ -12,7 +12,7 @@ You will know it works by following the acceptance guide we send with each deliv
 ## What you need to do
 
 > [!IMPORTANT]
-> - Read R-1 to R-9 and AC-1 to AC-9, check the priority of each requirement, and approve them, or tell us what to change.
+> - Read R-1 to R-10 and AC-1 to AC-13, check the priority of each requirement, and approve them, or tell us what to change.
 
 ## Background
 
@@ -74,6 +74,12 @@ Priority: Nice to have
 
 A signed-in person can choose to hide the tasks that are done, and show them again.
 
+### R-10: The screens are tidy
+
+Priority: Must
+
+Every page is laid out neatly, on a computer and on a phone: labels sit with their fields, buttons line up, nothing runs off the side of the screen, and you can always see where you are when you move around with the keyboard. See "Look".
+
 ## Acceptance criteria
 
 ### AC-1: An account works from sign-up to sign-in
@@ -130,6 +136,30 @@ A signed-in person can choose to hide the tasks that are done, and show them aga
 - When: you try to sign up with the username `me@example.com` and a password of 12 or more characters
 - Expected result: no account is created, and the sign-up page says a username cannot contain `@`
 
+### AC-10: Labels sit with their fields
+
+- Covers: R-10
+- When: you open each page that has fields, for example the sign-up page, the sign-in page, and the task list with its form for adding a task
+- Expected result: each label is next to or above its field, with space between the label and the field, and it is clear which label belongs to which field
+
+### AC-11: Buttons line up
+
+- Covers: R-10
+- When: you look at the buttons on each page, for example the buttons of each task in your list
+- Expected result: buttons that do the same kind of thing have the same size and line up, and none of them overlaps text or another button
+
+### AC-12: The pages fit a phone
+
+- Covers: R-10
+- When: you open each page on a phone, or in a browser window made as narrow as a phone
+- Expected result: everything fits the width of the screen: you never have to scroll sideways, and no text or button is cut off
+
+### AC-13: You can see where you are with the keyboard
+
+- Covers: R-10
+- When: you move through a page with the Tab key
+- Expected result: the field, link, or button you are on is clearly marked each time, so you can always see where you are
+
 ## Misuse
 
 - Another signed-in person reads, changes, or deletes your tasks, for example by changing a link: prevented by R-7
@@ -138,6 +168,13 @@ A signed-in person can choose to hide the tasks that are done, and show them aga
 - Someone puts code in a task title so that it runs in another person's browser: prevented by R-3 (titles are shown as plain text) and R-7 (other people never see your titles)
 - Someone finds out whether a username has an account, from the sign-up page, the sign-in page, or the block after wrong passwords: not a problem, because usernames are public on purpose (R-1)
 - Someone finds out whether an email address has an account, by trying it as a username: prevented by R-1 (a username cannot contain `@`, so no account has an email address as its username)
+
+## Look
+
+- Look baseline: standard
+- UI library: none
+- Decided on: decision card 3: you left it to us, so we took our recommendation, a tidy minimum without a UI library
+- Requirements: R-10, with AC-10 to AC-13
 
 ## Out of scope
 
@@ -152,4 +189,4 @@ A signed-in person can choose to hide the tasks that are done, and show them aga
 | Version | Date | Change |
 |---|---|---|
 | 1 | 2026-11-08 | First version |
-| 2 | 2026-11-08 | R-1, R-2, AC-1, AC-9: sign up and sign in with a username instead of an email address, so that the app keeps no email address; a username cannot contain `@`, so that it is never an email address (AC-9 added); Misuse and Out of scope updated to match. The PM proposed it. |
+| 2 | 2026-11-08 | R-1, R-2, AC-1, AC-9: sign up and sign in with a username instead of an email address, so that the app keeps no email address; a username cannot contain `@`, so that it is never an email address (AC-9 added); Misuse and Out of scope updated to match. The PM proposed it. Look: your answer on decision card 3 written in. |

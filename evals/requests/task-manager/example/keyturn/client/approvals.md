@@ -16,10 +16,10 @@ Each row identifies the exact text you were sent by a fingerprint. If the requir
 | Document | Version | Language | Source SHA-256 | Translation SHA-256 | Date sent | Answer | Date answered |
 |---|---|---|---|---|---|---|---|
 | requirements.md | 1 | Japanese (translation) | 2fbf8326958d74664c64a4422b32018ca20284f46712963f2ab7260256c31014 | f3e9451c289785c68869c94d154ecbdfd0eee9b3551ffc03e7cec40185f6b2ce | 2026-11-08 | approved | 2026-11-08 |
-| requirements.md | 2 | Japanese (translation) | 8eae5f3de4d2f252e6d587f955f86efa02f720dd0758d79e9373ad137037423b | a0b56e8ee509db7b529e096cf9a4f2ceb278c0c565d97411d9e521cfe378cc91 | 2026-11-08 | approved | 2026-11-08 |
+| requirements.md | 2 | Japanese (translation) | 3f858e3a17217c5e26e71efd9b8c34858e482ed91032e39de4a91cdc21715471 | 092bf5523e1ee7f2480b26e418ea83b692e5d542eca90d31ac86a77cc709b952 | 2026-11-08 | approved | 2026-11-08 |
 
 ## Acceptance
 
 | Documents | Task | Documents commit | Language | Acceptance guide SHA-256 | Delivery report SHA-256 | Acceptance guide translation SHA-256 | Delivery report translation SHA-256 | Date sent | Answer | Your words | Date answered |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| acceptance-guide.md, delivery-report.md | delivery-1 | c08d5e18368f08616c7e7b4b37e9dfdc8eafe711 | Japanese (translation) | 6830bfd5c971fdbbd599235cb61109d32ad1dc072f985cb4a5eec2055ebc75d0 | ff2fc885865e2253f17e3be23bdd7495f5dfe95710c96f7d84c092f68bb3b238 | 3b1f6e0d9a2c47e58d1b0a6f2e9c4d7b8a5e3f1c0d2b4a6e8f9c1d3b5a7e9f02 | 9d4c2a7e1b6f3058c9e2d4a7b1f6e3c8d0a5b9e2f4c7d1a6b3e8f0c5d2a9e471 | 2026-11-08 | accepted | Everything in the guide worked as it says. I accept delivery 1. | 2026-11-09 |
+| acceptance-guide.md, delivery-report.md | delivery-1 | c08d5e18368f08616c7e7b4b37e9dfdc8eafe711 | Japanese (translation) | 77b2364052f57b846e8668c4938e802034db4975dcbfc743d6784bb463b67f98 | 32c1b7df9bd7258f551afecec79e1d7359f9965f39ec804b0335e0d73c6bc2f2 | 2e2ab58391d1e7bbc1fb8d81d2eec85b294eb5f74efe7a9fc8211388f8c7442a | 82f1566bb01aee4e6abfe8b2c0c3585a180644be669baae058e52bc07a899c2e | 2026-11-08 | accepted | Everything in the guide worked as it says. I accept delivery 1. | 2026-11-09 |

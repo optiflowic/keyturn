@@ -4,7 +4,7 @@ Based on requirements version 2. Acceptance guide: [acceptance-guide.md](accepta
 
 ## Summary
 
-Delivery 1 is ready: signing up, signing in and out with a limit on wrong passwords, adding tasks, and a private task list. Every automatic check and review passed after fixes.
+Delivery 1 is ready: signing up, signing in and out with a limit on wrong passwords, adding tasks, and a private task list, on tidy pages. Every automatic check and review passed after fixes.
 Not verified: how the app behaves behind HTTPS on your server, which only you can set up. Changing, deleting, and hiding tasks come in delivery 2.
 
 ## What you need to do
@@ -22,6 +22,7 @@ Not verified: how the app behaves behind HTTPS on your server, which only you ca
 | R-4: See your tasks | delivered | AC-3 | |
 | R-7: Your tasks are private | delivered | AC-4 | covers adding and listing tasks; changing and deleting are checked again in delivery 2 |
 | R-8: Limit wrong passwords | delivered | AC-7 | |
+| R-10: The screens are tidy | delivered | AC-10 to AC-13 | on every page of this delivery; you check it in checks 3 and 4 of the acceptance guide, since the automatic tests cannot see how a page is laid out; the pages of delivery 2 are checked again then |
 
 R-5, R-6, and R-9 are planned for delivery 2, so that this delivery has no more than five "Must check" items.
 
@@ -38,7 +39,7 @@ R-5, R-6, and R-9 are planned for delivery 2, so that this delivery has no more 
 
 - The app behind HTTPS on your server: the tests ran on one computer without HTTPS. The sign-in only works over HTTPS (or on `localhost`), on purpose, to protect it.
 - The web pages in a real browser: the automatic tests use them in a simulated browser, so please try them in yours with the acceptance guide.
-- How the pages look on phones: no requirement covers it, so nobody checked it.
+- How the pages look (R-10), by the automatic tests: they use the pages in a simulated browser, which does not lay them out, so you check it by hand in checks 3 and 4.
 - R-5, R-6, and R-9: not part of this delivery.
 - Blocking changes to the main version of the code that skip keyturn's checks: your repository on GitHub has no branch protection, so such a change is noticed afterwards and reported to the maintainer, not blocked. GitHub offers branch protection on public repositories and on paid plans.
 
