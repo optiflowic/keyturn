@@ -47,7 +47,7 @@ Opens the SQLite file, runs the schema migrations at start-up, and provides the 
 - Serves: R-1, R-2, R-3, R-4, R-5, R-6, R-8, R-9, R-10
 - Location: `web/src/`
 
-Sign-up, sign-in, and task list pages. Task titles are rendered as React text, never as HTML. The pages are laid out with the web client's own CSS, without a UI library, as the requirements' "Look" says (R-10). The client never decides access; it shows what the API returns.
+Sign-up, sign-in, and task list pages. Task titles are rendered as React text, never as HTML. The pages are styled with CSS Modules and the tokens in `web/src/styles/tokens.css`, without a UI library, as "Look" below says (R-10). The client never decides access; it shows what the API returns.
 
 ## Data model
 
@@ -105,6 +105,52 @@ Not listed, as they are not dependencies ([ADR 0015 in keyturn](../../../../../.
 
 No external services.
 
+## Look
+
+- Look baseline: standard, from the requirements' "Look"
+- UI library: none
+- Styling method: CSS Modules, with the tokens as CSS custom properties, see [ADR 0005](adr/0005-css-modules-and-one-token-file.md)
+- Token file: `web/src/styles/tokens.css`
+- Checked widths: phone 360 px, desktop 1280 px; breakpoint: 600 px
+
+### Tokens
+
+| Token | Value | Used for |
+|---|---|---|
+| `--space-1` | `4px` | between a label and its field |
+| `--space-2` | `8px` | between buttons in a row, and inside a task's row |
+| `--space-3` | `16px` | between fields, the page's side padding, a button's side padding |
+| `--space-4` | `24px` | between the sections of a page |
+| `--font-family` | `system-ui, sans-serif` | all text |
+| `--font-size-small` | `0.875rem` | error messages and a task's due date |
+| `--font-size-body` | `1rem` | labels, fields, buttons, task titles |
+| `--font-size-heading` | `1.5rem` | the page's heading |
+| `--line-height` | `1.5` | all text |
+| `--font-weight-heading` | `600` | the page's heading |
+| `--color-text` | `#1f2328` | text |
+| `--color-text-muted` | `#59636e` | a task's due date, and a task that is done |
+| `--color-background` | `#ffffff` | the page, fields |
+| `--color-border` | `#d1d9e0` | fields, buttons that are not the main one, a task's row |
+| `--color-primary` | `#0969da` | the main button of a form (sign up, sign in, add) |
+| `--color-on-primary` | `#ffffff` | text on the main button |
+| `--color-error` | `#d1242f` | error messages, and the border of a field with an error |
+| `--color-focus` | `#0969da` | the focus outline |
+| `--control-height` | `44px` | every field and button |
+| `--radius` | `6px` | fields and buttons |
+| `--border-width` | `1px` | fields, buttons, a task's row |
+| `--focus-outline` | `2px solid var(--color-focus)` | every control that can be focused |
+| `--focus-offset` | `2px` | the gap between a control and its focus outline |
+| `--page-max-width` | `40rem` | the width of a page's content on a computer |
+
+### How the look's criteria are met
+
+| Criterion | How |
+|---|---|
+| AC-10 | every field's label is above it, in one column, with `--space-1` between them and `--space-3` between one field and the next; each label is a `<label>` tied to its field |
+| AC-11 | every button is `--control-height` high, with `--space-3` padding on each side and `--radius` corners; a task's buttons sit in one row with `--space-2` between them, after the title, which takes the rest of the width and wraps, so a button never covers it |
+| AC-12 | each page's content is at most `--page-max-width` wide, with `--space-3` padding on each side; no element has a fixed width wider than 360 px; long words in a task's title wrap; below the 600 px breakpoint a task's buttons move under its title |
+| AC-13 | every link, field, and button has `outline: var(--focus-outline)` with `outline-offset: var(--focus-offset)` on `:focus-visible`; no rule removes the outline |
+
 ## Areas the work may change
 
 | Path | What changes | Serves |
@@ -115,7 +161,7 @@ No external services.
 | `api/internal/task/**` | task operations | R-3 to R-7, R-9 |
 | `api/internal/store/**` | schema, migrations, queries | R-1, R-3 to R-6 |
 | `api/go.mod`, `api/go.sum` | the two approved Go dependencies only | R-1 to R-6 |
-| `web/src/**`, `web/index.html` | pages, components, and their CSS | R-1 to R-6, R-8 to R-10 |
+| `web/src/**`, `web/index.html` | pages, components, their CSS Modules, and the token file `web/src/styles/tokens.css` | R-1 to R-6, R-8 to R-10 |
 | `web/package.json`, `web/package-lock.json` | the runtime npm dependencies listed above only (approved in ADR 0004); the `react-spa` profile's development tools are installed by `conventions`, and their versions never change here | R-1 to R-10 |
 | `web/vite.config.ts` | the development server's proxy to the API only (added in delivery 1, see the delivery report) | R-1 to R-10 |
 
@@ -147,6 +193,7 @@ No external services.
 - [ADR 0002](adr/0002-sqlite-database.md): SQLite through `modernc.org/sqlite`
 - [ADR 0003](adr/0003-password-sign-in-with-server-sessions.md): server-side sessions and Argon2id
 - [ADR 0004](adr/0004-react-and-vite-for-the-web-client.md): React and Vite for the web client
+- [ADR 0005](adr/0005-css-modules-and-one-token-file.md): CSS Modules and one token file for the look of the pages
 
 ## Open questions
 

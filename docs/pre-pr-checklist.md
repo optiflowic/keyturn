@@ -13,7 +13,7 @@ What the review before a pull request checks ([ADR 0019](adr/0019-pre-pull-reque
 ## Documents: `docs/**`, `AGENTS.md`, `templates/**`, `evals/**`, `.github/**`
 
 - [ ] A changed rule or statement says the same as every other place that states it: the design (`docs/design/`, and its index, `docs/DESIGN.md`, for headings), the ADRs, `AGENTS.md`, the templates (including the issue forms and the pull request template), the worked examples, the skills, and what the scripts do.
-- [ ] After a line was changed, the other lines in the same file that depend on it (a recommendation, a summary, an example) still agree with it. A new exception to a rule is also stated, or pointed to, wherever another section restates that rule.
+- [ ] After a line was changed, the other lines in the same file that depend on it (a recommendation, a summary, an example) still agree with it. A new exception to a rule is also stated, or pointed to, wherever another section, or another skill or template, restates that rule (for example, a rule the design template states and the review skill checks).
 - [ ] Nothing presents a `proposed` ADR as decided ([ADR rules](adr/README.md)).
 - [ ] A worked example fills in every part its template asks for, and a template change has its example updated ("Before opening a pull request" in [`AGENTS.md`](../AGENTS.md)).
 - [ ] When a client document of a worked example changed, every hash `approvals.md` records for the version or delivery the example now holds changed too: the source SHA-256 to the file's, and the translation SHA-256 to a new value, since a translation of the old text cannot match the new one. Rows of earlier versions keep their hashes.
