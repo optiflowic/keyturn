@@ -93,12 +93,14 @@ Required. How the screens are built to meet the requirements' "Look" section (AD
   (the question is under "Open questions").
 - Look baseline and UI library: exactly as the requirements' "Look" says. A UI library is also listed under "Libraries and external services",
   with its kind and check; for "chosen by the architect", the one you chose.
-- Styling method: with a stack profile, one its README approves; a method that needs a package is a dependency like any other.
+- Styling method: with a stack profile whose README names styling methods, one it approves; otherwise one from the stack's documentation.
+  A method that needs a package is a dependency like any other.
   It has an ADR, with the realistic options. When the client left the look to keyturn, the ADR records the best practice at that time
-  for the stack, checked in its current documentation, with the date.
+  for the stack, checked in its current documentation, with the date (also when the requirements' "Decided on" names a card answered that way).
 - Token file: the one file that holds every token, inside "Areas the work may change". With a UI library, the library's theme takes
   its values from it.
 - Checked widths: the phone and desktop widths at which the look's criteria are met; the developer builds for them and QA checks at them.
+  Name the breakpoints too, if the layout changes at a width: the code may repeat them as literals, in media queries only.
 - Tokens: every token, in four groups: spacing steps; type (families, sizes, line heights, weights); colors (text, background, borders,
   the focused control, and what the baseline adds); component shapes (control height, radius, borders, the focus outline).
   The developer writes the token file with exactly these tokens and values.
@@ -112,7 +114,7 @@ Required. How the screens are built to meet the requirements' "Look" section (AD
 - UI library: <none | name and version, see "Libraries and external services">
 - Styling method: <for example, CSS Modules with the tokens as CSS custom properties>, see <link to the ADR>
 - Token file: `<path>`
-- Checked widths: phone <n> px, desktop <n> px
+- Checked widths: phone <n> px, desktop <n> px<; breakpoint: <n> px, if any>
 
 ### Tokens
 

@@ -111,7 +111,7 @@ No external services.
 - UI library: none
 - Styling method: CSS Modules, with the tokens as CSS custom properties, see [ADR 0005](adr/0005-css-modules-and-one-token-file.md)
 - Token file: `web/src/styles/tokens.css`
-- Checked widths: phone 360 px, desktop 1280 px
+- Checked widths: phone 360 px, desktop 1280 px; breakpoint: 600 px
 
 ### Tokens
 
@@ -148,7 +148,7 @@ No external services.
 |---|---|
 | AC-10 | every field's label is above it, in one column, with `--space-1` between them and `--space-3` between one field and the next; each label is a `<label>` tied to its field |
 | AC-11 | every button is `--control-height` high, with `--space-3` padding on each side and `--radius` corners; a task's buttons sit in one row with `--space-2` between them, after the title, which takes the rest of the width and wraps, so a button never covers it |
-| AC-12 | each page's content is at most `--page-max-width` wide, with `--space-3` padding on each side; no element has a fixed width wider than 360 px; long words in a task's title wrap; at 360 px a task's buttons move under its title |
+| AC-12 | each page's content is at most `--page-max-width` wide, with `--space-3` padding on each side; no element has a fixed width wider than 360 px; long words in a task's title wrap; below the 600 px breakpoint a task's buttons move under its title |
 | AC-13 | every link, field, and button has `outline: var(--focus-outline)` with `outline-offset: var(--focus-offset)` on `:focus-visible`; no rule removes the outline |
 
 ## Areas the work may change
