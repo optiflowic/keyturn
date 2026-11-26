@@ -16,7 +16,7 @@ A Go API (`api/`) serves a JSON interface and the built React client (`web/`) fr
 
 ### HTTP server
 
-- Serves: R-1, R-2, R-3, R-4, R-5, R-6, R-7, R-8, R-9
+- Serves: R-1, R-2, R-3, R-4, R-5, R-6, R-7, R-8, R-9, R-10
 - Location: `api/cmd/server/`, `api/internal/http/`
 
 Routes requests, serves the built web client, and applies the session middleware to every `/api/` route except `POST /api/signup` and `POST /api/signin`. Handlers only parse input and call the account and task services; they never query the database directly.
@@ -44,10 +44,10 @@ Opens the SQLite file, runs the schema migrations at start-up, and provides the 
 
 ### Web client
 
-- Serves: R-1, R-2, R-3, R-4, R-5, R-6, R-8, R-9
+- Serves: R-1, R-2, R-3, R-4, R-5, R-6, R-8, R-9, R-10
 - Location: `web/src/`
 
-Sign-up, sign-in, and task list pages. Task titles are rendered as React text, never as HTML. The client never decides access; it shows what the API returns.
+Sign-up, sign-in, and task list pages. Task titles are rendered as React text, never as HTML. The pages are laid out with the web client's own CSS, without a UI library, as the requirements' "Look" says (R-10). The client never decides access; it shows what the API returns.
 
 ## Data model
 
@@ -91,15 +91,15 @@ Sign-up, sign-in, and task list pages. Task titles are rendered as React text, n
 |---|---|---|---|---|---|---|
 | `modernc.org/sqlite` | pinned in `api/go.mod` | runtime | SQLite driver without C code | R-1, R-3 to R-6 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), BSD-3-Clause; works with Go 1.27.4 (checked 2026-11-23); supply chain: the project's own module path, published more than 7 days before, no change of owners, in the Go checksum database (checked 2026-11-23) |
 | `golang.org/x/crypto` | pinned in `api/go.mod` | runtime | Argon2id password hashing (`argon2` package only) | R-1, R-2 | yes | exists, maintained by the Go team, BSD-3-Clause; one OSV entry for this version (GO-0000-0001, checked 2026-11-08), in the `openpgp` package, which the app does not import; `govulncheck` must keep reporting it as not called; works with Go 1.27.4 (checked 2026-11-23); supply chain: the project's own module path, published more than 7 days before, no change of owners, in the Go checksum database (checked 2026-11-23) |
-| `react`, `react-dom` | pinned in `web/package.json` | runtime | web client | R-1 to R-9 | yes | exist, maintained, no OSV entries for this version (checked 2026-11-08), MIT; works with Node.js 26.13.1 and with the other dependencies (`engines` and peer dependencies, checked 2026-11-23); supply chain: the project's own name, published more than 7 days before, no change of publishers, no install scripts, npm provenance attestation (checked 2026-11-23) |
-| `vite` | pinned in `web/package.json` | runtime | builds the web client that is delivered | R-1 to R-9 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), MIT; works with Node.js 26.13.1 and with the other dependencies (`engines` and peer dependencies, checked 2026-11-23); supply chain: the project's own name, published more than 7 days before, no change of publishers, no install scripts, npm provenance attestation (checked 2026-11-23) |
-| `eslint` | pinned in `web/package.json` | profile tool (`react-spa`) | lints the web client | R-1 to R-9 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), MIT; works with Node.js 26.13.1 and with the other dependencies (`engines` and peer dependencies, checked 2026-11-23); supply chain: the project's own name, published more than 7 days before, no change of publishers, no install scripts, npm provenance attestation (checked 2026-11-23) |
-| `vitest` | pinned in `web/package.json` | profile tool (`react-spa`) | the web client's unit tests and QA's tests of the pages | R-1 to R-9 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), MIT; works with Node.js 26.13.1 and with the other dependencies (`engines` and peer dependencies, checked 2026-11-23); supply chain: the project's own name, published more than 7 days before, no change of publishers, no install scripts, npm provenance attestation (checked 2026-11-23) |
-| `jsdom`, `@testing-library/react`, `@testing-library/dom` | pinned in `web/package.json` | profile tool (`react-spa`) | QA's tests show the pages in a simulated browser and use them as a person would | R-1 to R-9 | yes | exist, maintained, no OSV entries for this version (checked 2026-11-08), MIT; works with Node.js 26.13.1 and with the other dependencies (`engines` and peer dependencies, checked 2026-11-23); supply chain: the project's own name, published more than 7 days before, no change of publishers, no install scripts, npm provenance attestation (checked 2026-11-23) |
-| `@eslint/js`, `typescript-eslint` | pinned in `web/package.json` | profile tool (`react-spa`) | ESLint's recommended rules and its rules for TypeScript | R-1 to R-9 | yes | exist, maintained, no OSV entries for this version (checked 2026-11-08), MIT; works with Node.js 26.13.1 and with the other dependencies (`engines` and peer dependencies, checked 2026-11-23); supply chain: the project's own name, published more than 7 days before, no change of publishers, no install scripts, npm provenance attestation (checked 2026-11-23) |
-| `typescript` | pinned in `web/package.json` | profile tool (`react-spa`) | type checks the web client's code; a peer dependency of `typescript-eslint` | R-1 to R-9 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), Apache-2.0; 6.0, the newest release `typescript-eslint` supports (its peer dependency asks for below 6.1, checked 2026-11-23), not the newest stable 7.0, as the [`react-spa` profile](../../../../../../profiles/react-spa/README.md) says; works with Node.js 26.13.1; supply chain: the project's own name, published more than 7 days before, no change of publishers, no install scripts, npm provenance attestation (checked 2026-11-23) |
-| `prettier` | pinned in `web/package.json` | profile tool (`react-spa`) | formats the web client's code | R-1 to R-9 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), MIT; works with Node.js 26.13.1 and with the other dependencies (`engines` and peer dependencies, checked 2026-11-23); supply chain: the project's own name, published more than 7 days before, no change of publishers, no install scripts, npm provenance attestation (checked 2026-11-23) |
-| `golangci-lint` | pinned in `api/go.mod` (`tool` directive) | profile tool (`go`) | lints the API's code | R-1 to R-9 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), GPL-3.0, used only as a tool, never linked into the app; works with Go 1.27.4 (checked 2026-11-23); supply chain: the project's own module path, published more than 7 days before, no change of owners, in the Go checksum database (checked 2026-11-23) |
+| `react`, `react-dom` | pinned in `web/package.json` | runtime | web client | R-1 to R-10 | yes | exist, maintained, no OSV entries for this version (checked 2026-11-08), MIT; works with Node.js 26.13.1 and with the other dependencies (`engines` and peer dependencies, checked 2026-11-23); supply chain: the project's own name, published more than 7 days before, no change of publishers, no install scripts, npm provenance attestation (checked 2026-11-23) |
+| `vite` | pinned in `web/package.json` | runtime | builds the web client that is delivered | R-1 to R-10 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), MIT; works with Node.js 26.13.1 and with the other dependencies (`engines` and peer dependencies, checked 2026-11-23); supply chain: the project's own name, published more than 7 days before, no change of publishers, no install scripts, npm provenance attestation (checked 2026-11-23) |
+| `eslint` | pinned in `web/package.json` | profile tool (`react-spa`) | lints the web client | R-1 to R-10 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), MIT; works with Node.js 26.13.1 and with the other dependencies (`engines` and peer dependencies, checked 2026-11-23); supply chain: the project's own name, published more than 7 days before, no change of publishers, no install scripts, npm provenance attestation (checked 2026-11-23) |
+| `vitest` | pinned in `web/package.json` | profile tool (`react-spa`) | the web client's unit tests and QA's tests of the pages | R-1 to R-10 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), MIT; works with Node.js 26.13.1 and with the other dependencies (`engines` and peer dependencies, checked 2026-11-23); supply chain: the project's own name, published more than 7 days before, no change of publishers, no install scripts, npm provenance attestation (checked 2026-11-23) |
+| `jsdom`, `@testing-library/react`, `@testing-library/dom` | pinned in `web/package.json` | profile tool (`react-spa`) | QA's tests show the pages in a simulated browser and use them as a person would | R-1 to R-10 | yes | exist, maintained, no OSV entries for this version (checked 2026-11-08), MIT; works with Node.js 26.13.1 and with the other dependencies (`engines` and peer dependencies, checked 2026-11-23); supply chain: the project's own name, published more than 7 days before, no change of publishers, no install scripts, npm provenance attestation (checked 2026-11-23) |
+| `@eslint/js`, `typescript-eslint` | pinned in `web/package.json` | profile tool (`react-spa`) | ESLint's recommended rules and its rules for TypeScript | R-1 to R-10 | yes | exist, maintained, no OSV entries for this version (checked 2026-11-08), MIT; works with Node.js 26.13.1 and with the other dependencies (`engines` and peer dependencies, checked 2026-11-23); supply chain: the project's own name, published more than 7 days before, no change of publishers, no install scripts, npm provenance attestation (checked 2026-11-23) |
+| `typescript` | pinned in `web/package.json` | profile tool (`react-spa`) | type checks the web client's code; a peer dependency of `typescript-eslint` | R-1 to R-10 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), Apache-2.0; 6.0, the newest release `typescript-eslint` supports (its peer dependency asks for below 6.1, checked 2026-11-23), not the newest stable 7.0, as the [`react-spa` profile](../../../../../../profiles/react-spa/README.md) says; works with Node.js 26.13.1; supply chain: the project's own name, published more than 7 days before, no change of publishers, no install scripts, npm provenance attestation (checked 2026-11-23) |
+| `prettier` | pinned in `web/package.json` | profile tool (`react-spa`) | formats the web client's code | R-1 to R-10 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), MIT; works with Node.js 26.13.1 and with the other dependencies (`engines` and peer dependencies, checked 2026-11-23); supply chain: the project's own name, published more than 7 days before, no change of publishers, no install scripts, npm provenance attestation (checked 2026-11-23) |
+| `golangci-lint` | pinned in `api/go.mod` (`tool` directive) | profile tool (`go`) | lints the API's code | R-1 to R-10 | yes | exists, maintained, no OSV entries for this version (checked 2026-11-08), GPL-3.0, used only as a tool, never linked into the app; works with Go 1.27.4 (checked 2026-11-23); supply chain: the project's own module path, published more than 7 days before, no change of owners, in the Go checksum database (checked 2026-11-23) |
 
 Not listed, as they are not dependencies ([ADR 0015 in keyturn](../../../../../../docs/adr/0015-dependency-kinds.md)): the Go and Node.js toolchains, covered by approving the stack, and the gate's scanners (`gosec`, `govulncheck`, Semgrep, gitleaks), which the gate installs outside the project.
 
@@ -109,15 +109,15 @@ No external services.
 
 | Path | What changes | Serves |
 |---|---|---|
-| `api/cmd/server/**` | the program's entry point | R-1 to R-9 |
-| `api/internal/http/**` | routes, handlers, session middleware | R-1 to R-9 |
+| `api/cmd/server/**` | the program's entry point | R-1 to R-10 |
+| `api/internal/http/**` | routes, handlers, session middleware | R-1 to R-10 |
 | `api/internal/account/**` | accounts, passwords, sessions, sign-in limits | R-1, R-2, R-8 |
 | `api/internal/task/**` | task operations | R-3 to R-7, R-9 |
 | `api/internal/store/**` | schema, migrations, queries | R-1, R-3 to R-6 |
 | `api/go.mod`, `api/go.sum` | the two approved Go dependencies only | R-1 to R-6 |
-| `web/src/**`, `web/index.html` | pages and components | R-1 to R-6, R-8, R-9 |
-| `web/package.json`, `web/package-lock.json` | the runtime npm dependencies listed above only (approved in ADR 0004); the `react-spa` profile's development tools are installed by `conventions`, and their versions never change here | R-1 to R-9 |
-| `web/vite.config.ts` | the development server's proxy to the API only (added in delivery 1, see the delivery report) | R-1 to R-9 |
+| `web/src/**`, `web/index.html` | pages, components, and their CSS | R-1 to R-6, R-8 to R-10 |
+| `web/package.json`, `web/package-lock.json` | the runtime npm dependencies listed above only (approved in ADR 0004); the `react-spa` profile's development tools are installed by `conventions`, and their versions never change here | R-1 to R-10 |
+| `web/vite.config.ts` | the development server's proxy to the API only (added in delivery 1, see the delivery report) | R-1 to R-10 |
 
 ## QA's tests
 
@@ -139,6 +139,7 @@ No external services.
 | R-7 | Tasks, HTTP server |
 | R-8 | Accounts and sessions, Web client |
 | R-9 | Tasks, Web client |
+| R-10 | Web client |
 
 ## Decisions
 

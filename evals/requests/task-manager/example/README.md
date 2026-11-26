@@ -7,7 +7,8 @@ Every keyturn template, filled in by hand for [the task manager request](../requ
 - The example is public, so everything is in English, including the client-facing documents: its [`keyturn/config.json`](keyturn/config.json) sets English-only mode, with Japanese as the client's language. The client read the requirements in a local Japanese translation made with `localize`; the translation itself is not committed.
 - The example assumes that the `go` and `react-spa` stack profiles already exist (they come in phase 4), so the development tools they name (golangci-lint, ESLint with its TypeScript rules, Prettier, Vitest, jsdom, and Testing Library) are approved by the profile and listed in the design summary for information only ([ADR 0015](../../../../docs/adr/0015-dependency-kinds.md)). Until the profiles exist, those tools would need the client's agreement.
 - The folders mirror a project that uses keyturn: `keyturn/client/` for the client, `keyturn/internal/` for the roles.
-- It shows the project at the end of delivery 1. The work was split into two deliveries so that each acceptance guide has no more than five "Must check" items: delivery 1 covers R-1 to R-4, R-7, and R-8; delivery 2 (not shown) covers R-5, R-6, and R-9.
+- The PM asked about the look of the screens on [decision card 3](keyturn/client/decision-card-3.md), sent with requirements version 1, and the client left it to keyturn ([ADR 0066](../../../../docs/adr/0066-requirements-ask-about-the-look-once.md)). In a project, that card would be card 1, since it comes before the architect's cards; it is numbered 3 here only because it was added to the example after cards 1 and 2, which other documents link to.
+- It shows the project at the end of delivery 1. The work was split into two deliveries so that each acceptance guide has no more than five "Must check" items: delivery 1 covers R-1 to R-4, R-7, and R-8; delivery 2 (not shown) covers R-5, R-6, R-9, and R-10 (the look of every page, checked once every page exists).
 
 ## Documents
 
@@ -18,6 +19,7 @@ Every keyturn template, filled in by hand for [the task manager request](../requ
 | [`keyturn/client/approvals.md`](keyturn/client/approvals.md) | `templates/client/approvals.md` | PM |
 | [`keyturn/client/decision-card-1.md`](keyturn/client/decision-card-1.md) | `templates/client/decision-card.md` | Architect |
 | [`keyturn/client/decision-card-2.md`](keyturn/client/decision-card-2.md) | `templates/client/decision-card.md` | Architect |
+| [`keyturn/client/decision-card-3.md`](keyturn/client/decision-card-3.md) | `templates/client/decision-card.md` | PM |
 | [`keyturn/client/design-summary.md`](keyturn/client/design-summary.md) | `templates/client/design-summary.md` | Architect |
 | [`keyturn/client/acceptance-guide.md`](keyturn/client/acceptance-guide.md) | `templates/client/acceptance-guide.md` | PM |
 | [`keyturn/client/delivery-report.md`](keyturn/client/delivery-report.md) | `templates/client/delivery-report.md` | PM |

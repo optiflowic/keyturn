@@ -57,7 +57,7 @@ You agreed to the three decisions that needed your agreement: where the data is 
 ### Decision 0004: React and Vite for the web pages
 
 - Agreement: agreed
-- Serves: R-1, R-2, R-3, R-4, R-5, R-6, R-8, R-9
+- Serves: R-1, R-2, R-3, R-4, R-5, R-6, R-8, R-9, R-10
 - Decision record (the full details): [decision record 0004](../internal/adr/0004-react-and-vite-for-the-web-client.md)
 
 **What we decided**: The web pages are built with two widely used components from other teams: React, which draws the pages, and Vite, which prepares them for your server.
@@ -76,7 +76,7 @@ You agreed to the three decisions that needed your agreement: where the data is 
 
 ### Decision 0001: One repository for the server part and the web pages
 
-- Serves: R-1, R-2, R-3, R-4, R-5, R-6, R-7, R-8, R-9
+- Serves: R-1, R-2, R-3, R-4, R-5, R-6, R-7, R-8, R-9, R-10
 - Decision record (the full details): [decision record 0001](../internal/adr/0001-one-repository-for-api-and-web-client.md)
 
 **What we decided**: All the code is kept in one repository, in two folders: one for the server part and one for the web pages.

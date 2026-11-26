@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Date: 2026-11-08
-- Serves: R-1, R-2, R-3, R-4, R-5, R-6, R-7, R-8, R-9
+- Serves: R-1, R-2, R-3, R-4, R-5, R-6, R-7, R-8, R-9, R-10
 - Needs client agreement: no
 
 ## Context

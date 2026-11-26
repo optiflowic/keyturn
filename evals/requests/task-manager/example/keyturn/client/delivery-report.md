@@ -23,7 +23,7 @@ Not verified: how the app behaves behind HTTPS on your server, which only you ca
 | R-7: Your tasks are private | delivered | AC-4 | covers adding and listing tasks; changing and deleting are checked again in delivery 2 |
 | R-8: Limit wrong passwords | delivered | AC-7 | |
 
-R-5, R-6, and R-9 are planned for delivery 2, so that this delivery has no more than five "Must check" items.
+R-5, R-6, R-9, and R-10 are planned for delivery 2, so that this delivery has no more than five "Must check" items. R-10 (tidy screens) is checked there on every page, once every page exists.
 
 ## What was verified
 
@@ -38,8 +38,7 @@ R-5, R-6, and R-9 are planned for delivery 2, so that this delivery has no more 
 
 - The app behind HTTPS on your server: the tests ran on one computer without HTTPS. The sign-in only works over HTTPS (or on `localhost`), on purpose, to protect it.
 - The web pages in a real browser: the automatic tests use them in a simulated browser, so please try them in yours with the acceptance guide.
-- How the pages look on phones: no requirement covers it, so nobody checked it.
-- R-5, R-6, and R-9: not part of this delivery.
+- R-5, R-6, R-9, and R-10: not part of this delivery. How the pages look (R-10), on a computer and on a phone, is checked in delivery 2.
 - Blocking changes to the main version of the code that skip keyturn's checks: your repository on GitHub has no branch protection, so such a change is noticed afterwards and reported to the maintainer, not blocked. GitHub offers branch protection on public repositories and on paid plans.
 
 ## Remaining risks

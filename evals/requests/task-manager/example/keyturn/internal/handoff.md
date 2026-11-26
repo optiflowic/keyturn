@@ -8,7 +8,7 @@
 ## Summary
 
 Delivery 1 is implemented: sign-up, sign-in and sign-out with the wrong-password limit, adding a task, and the private task list.
-Changing, deleting, and hiding tasks (R-5, R-6, R-9) are left for delivery 2.
+Changing, deleting, and hiding tasks (R-5, R-6, R-9), and the look of every page (R-10), are left for delivery 2.
 
 ## What was done
 
@@ -31,7 +31,7 @@ Changing, deleting, and hiding tasks (R-5, R-6, R-9) are left for delivery 2.
 
 ## What is left
 
-- R-5, R-6, R-9: planned for delivery 2, so this delivery's acceptance guide stays within five "Must check" items.
+- R-5, R-6, R-9, R-10: planned for delivery 2, so this delivery's acceptance guide stays within five "Must check" items.
 
 ## How to run
 
