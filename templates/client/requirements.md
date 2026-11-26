@@ -29,6 +29,7 @@ This status, and "What you need to do", describe this version as it was sent to 
 
 > [!IMPORTANT]
 > - <for example: read R-1 to R-6 and AC-1 to AC-9, check the priority of each requirement, and approve them, or tell us what to change>
+> - <with screens, in the first version: answer decision card n about the look. If you choose another option than our recommendation, we send a new version with it, and this one is not approved as it is>
 
 ## Background
 
@@ -80,6 +81,31 @@ Add this as a requirement.
 -->
 
 - <how it could be misused>: prevented by R-<n>
+
+## Look
+
+<!--
+Required. How the screens should look, so that they are judged by criteria the client agreed to, not only by whether they work.
+- A deliverable without screens: write "Look baseline: none (no screens)", one sentence saying it has no screens, and nothing else in this section.
+- A deliverable with screens: the PM asks the client once, on one decision card with a recommendation, sent with the first version:
+  how far the look is worked out, and whether a UI library is used, and which one. Until the card is answered, the fields
+  give the recommended answer, as a proposal. "Leave it to you" is a valid answer: the recommendation is taken.
+- Look baseline: "standard" (a tidy minimum) or "worked out" (worked out further).
+- UI library: "none", the name of the one the client chose, or "chosen by the architect" (the client wants one and leaves which to us:
+  the architect chooses it for the stack, and the client agrees to it with the design). A UI library is a direct dependency:
+  the architect checks it as any other.
+- Decided on: the decision card, and, once it is answered, what the client chose or that they left it to us.
+- The look's criteria are requirements (Must) and acceptance criteria in their sections above, like any other. Name them here.
+  They always include the tidy minimum, each as something a person sees: each label sits next to or above its input, with
+  space between them; buttons with the same role have the same size and line up; no horizontal scroll at phone width;
+  a control you move to with the keyboard is visibly marked. "worked out", or a UI library, adds what it brings
+  (for example, the same colors, type sizes, and spacing on every page), also as criteria a person can check.
+-->
+
+- Look baseline: <standard | worked out | none (no screens)>
+- UI library: <none | name | chosen by the architect>
+- Decided on: <decision card n: what you chose, or that you left it to us | our proposal; decision card n decides it>
+- Requirements: <R-n>, with <AC-n to AC-n>
 
 ## Out of scope
 
