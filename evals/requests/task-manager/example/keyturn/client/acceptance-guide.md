@@ -5,12 +5,12 @@ Based on requirements version 2. Delivery report: [delivery-report.md](delivery-
 ## Summary
 
 Delivery 1 lets people sign up, sign in, add tasks, and see their own private list. Changing, deleting, and hiding tasks come in delivery 2.
-There are 5 "Must check" items and no optional ones. The check takes about 20 minutes.
+There are 5 "Must check" items and no optional ones. Checks 3 and 4 also look at how the pages look. The check takes about 25 minutes.
 
 ## What you need to do
 
 > [!IMPORTANT]
-> - Do the 5 "Must check" items below (about 20 minutes), write the result of each, and tell us whether you accept delivery 1.
+> - Do the 5 "Must check" items below (about 25 minutes), write the result of each, and tell us whether you accept delivery 1.
 
 ## Before you start
 
@@ -49,31 +49,33 @@ Steps:
 
 Expected result: in step 3 you are not signed in, and the page says when you can try again, 15 minutes after the fifth wrong password.
 
-### Check 3: An account works from sign-up to sign-in
+### Check 3: An account works from sign-up to sign-in, on tidy pages
 
-- Covers: AC-1 (R-1, R-2)
+- Covers: AC-1 (R-1, R-2), AC-10 to AC-13 (R-10)
 - Result: <pass | fail: what happened | not checked>
 
 Steps:
 
-1. Sign up with your third username and a password of 12 or more characters.
-2. Sign out.
-3. Open `http://localhost:8080/tasks`.
-4. Sign in with the same username and password.
+1. On the sign-up page, look at the labels, fields, and buttons. Press the Tab key a few times. Then make the browser window as narrow as a phone, or open the page on your phone.
+2. Sign up with your third username and a password of 12 or more characters.
+3. Sign out.
+4. Open `http://localhost:8080/tasks`.
+5. Do the same as in step 1 on the sign-in page, then sign in with the same username and password.
 
-Expected result: in step 3 you see the sign-in page, not a task list. After step 4 you see your task list.
+Expected result: in steps 1 and 5, each label is next to or above its field, with space between them; buttons that do the same kind of thing have the same size and line up; each press of Tab clearly marks the field or button you are on; and in the narrow window you never scroll sideways and nothing is cut off. In step 4 you see the sign-in page, not a task list. After step 5 you see your task list.
 
 ### Check 4: A new task appears in your list, exactly as typed
 
-- Covers: AC-3 (R-3, R-4)
+- Covers: AC-3 (R-3, R-4), AC-10 to AC-13 (R-10)
 - Result: <pass | fail: what happened | not checked>
 
 Steps:
 
 1. Sign in.
 2. Add a task with the title `<b>Buy milk</b>` and tomorrow's date as the due date.
+3. On the task list, with the form for adding a task, do the same as in step 1 of check 3.
 
-Expected result: the task appears in your list with the title `<b>Buy milk</b>`, including `<b>` and `</b>`, not in bold, and with tomorrow's date.
+Expected result: the task appears in your list with the title `<b>Buy milk</b>`, including `<b>` and `</b>`, not in bold, and with tomorrow's date. In step 3, the page is tidy in the same way as in check 3.
 
 ### Check 5: A short password and a username with `@` are refused
 

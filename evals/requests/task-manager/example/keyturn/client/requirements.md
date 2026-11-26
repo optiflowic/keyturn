@@ -139,7 +139,7 @@ Every page is laid out neatly, on a computer and on a phone: labels sit with the
 ### AC-10: Labels sit with their fields
 
 - Covers: R-10
-- When: you open the sign-up page, the sign-in page, and the page where you add or change a task
+- When: you open each page that has fields, for example the sign-up page, the sign-in page, and the task list with its form for adding a task
 - Expected result: each label is next to or above its field, with space between the label and the field, and it is clear which label belongs to which field
 
 ### AC-11: Buttons line up
