@@ -513,6 +513,18 @@ class GateTest(unittest.TestCase):
         result = self.gate(*self.others(roles))
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)  # the ADR is read at the design's commit
 
+    def test_a_spec_commit_may_add_the_card_about_the_look(self):
+        roles = self.start_before_the_documents()
+        self.put("keyturn/client/requirements.md", "# Requirements\n\n## Look\n")
+        self.put("keyturn/client/decision-card-1.md", "# Decision: How should the screens look?\n")
+        card = self.commit("spec: the requirements, with the card about the look")  # ADR 0066
+        self.put("keyturn/client/decision-card-1.md", "# Decision: How should the screens look?\n\n- Answer: left to us\n")
+        answer = self.commit("spec: the client's answer on the card")
+        self.put("app/src/main.py", "print('hello')\n")
+        self.commit("developer")
+        result = self.gate(*self.others(roles), "--others", f"spec:{card}", "--others", f"spec:{answer}")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_a_conventions_commit_may_change_a_gitignore_and_the_developer_s_may_not(self):
         roles = self.start_before_the_documents()
         self.put("app/.gitignore", "node_modules/\n")

@@ -75,7 +75,9 @@ NOT_PROTECTED = ("keyturn/internal/handoff.md",)
 # commit may change only the "Status" lines of the threat model.
 THREAT_MODEL = "keyturn/internal/threat-model.md"
 ROLE_PATHS = {
-    "spec": ["keyturn/client/requirements.md", "keyturn/client/approvals.md", ".gitattributes", CONFIG_PATH],
+    # ADR 0066: the card that asks the client about the look, sent with the requirements.
+    "spec": ["keyturn/client/requirements.md", "keyturn/client/approvals.md", "keyturn/client/decision-card-*.md",
+             ".gitattributes", CONFIG_PATH],
     "design": [DESIGN_PATH, THREAT_MODEL, f"{ADR_DIR}/**", "keyturn/client/design-summary.md",
                "keyturn/client/decision-card-*.md"],
     "conventions": ["keyturn/internal/conventions.md", f"{ADR_DIR}/**", CONFIG_PATH, "**/.gitignore"],
