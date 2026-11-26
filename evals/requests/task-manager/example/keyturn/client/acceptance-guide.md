@@ -25,6 +25,8 @@ Our tester opened each page in a web browser, as narrow as a phone (360 px) and 
 
 ![The sign-up page on a computer (1280 px wide)](evidence/delivery-1/sign-up-1280.png)
 
+![The sign-up page on a phone, after pressing Tab once: the username field is marked](evidence/delivery-1/sign-up-360-focus.png)
+
 ![The sign-up page on a computer, after pressing Tab once: the username field is marked](evidence/delivery-1/sign-up-1280-focus.png)
 
 ### Sign-in page
@@ -33,6 +35,8 @@ Our tester opened each page in a web browser, as narrow as a phone (360 px) and 
 
 ![The sign-in page on a computer (1280 px wide)](evidence/delivery-1/sign-in-1280.png)
 
+![The sign-in page on a phone, after pressing Tab once: the username field is marked](evidence/delivery-1/sign-in-360-focus.png)
+
 ![The sign-in page on a computer, after pressing Tab once: the username field is marked](evidence/delivery-1/sign-in-1280-focus.png)
 
 ### Task list
@@ -40,6 +44,8 @@ Our tester opened each page in a web browser, as narrow as a phone (360 px) and 
 ![The task list on a phone (360 px wide), with a long task title that wraps](evidence/delivery-1/task-list-360.png)
 
 ![The task list on a computer (1280 px wide)](evidence/delivery-1/task-list-1280.png)
+
+![The task list on a phone, after pressing Tab once: the "Sign out" button is marked](evidence/delivery-1/task-list-360-focus.png)
 
 ![The task list on a computer, after pressing Tab once: the "Sign out" button is marked](evidence/delivery-1/task-list-1280-focus.png)
 

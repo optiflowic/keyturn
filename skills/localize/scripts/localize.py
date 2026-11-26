@@ -30,6 +30,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import posixpath
 import re
 import subprocess
 import sys
@@ -54,6 +55,8 @@ WORK_MARKER_RE = re.compile(r"^<!-- localize-section (\d+) -->$")
 HEADING_RE = re.compile(r"^ {0,3}#{1,6}(\s|$)")
 FENCE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$")
 MARKDOWN_SUFFIXES = {".md", ".markdown", ".mdx"}
+# A Markdown image: ![alt](target) or ![alt](<target> "title"). Its target is pointed at the repository's file.
+IMAGE_RE = re.compile(r'(!\[[^\]]*\]\(\s*)(<[^>\n]+>|[^\s)]+)((?:\s+"[^"\n]*")?\s*\))')
 
 REPO_RE = re.compile(r"[A-Za-z0-9-]+/(?![.]{1,2}$)[A-Za-z0-9._-]+")
 BODY_HEADING_RE = re.compile(r"^ {0,3}(#{1,6})(?=\s|$)", re.MULTILINE)
@@ -321,6 +324,39 @@ def cmd_prepare(lang: str, path: str) -> None:
     print(f"sections to translate: {len(to_translate)} (reused: {reused})")
 
 
+def point_images_at_repository(text: str, rel_path: str, lang: str) -> str:
+    """Rewrite each relative image target of a source section so that it opens the image in the repository.
+
+    Images are not translated, so a relative link copied into the translation, which lives under
+    .keyturn/i18n/<lang>/, would point at a file that is not there (ADR 0069). Links outside images, links in
+    code, absolute paths, and URLs are left as they are, and so is a target that would leave the repository.
+    """
+    folder = posixpath.dirname(rel_path)
+    translation_folder = posixpath.join(I18N_DIR.as_posix(), lang, folder)
+
+    def rewrite(match: re.Match) -> str:
+        target = match.group(2)
+        bracketed = target.startswith("<")
+        bare = target[1:-1] if bracketed else target
+        if not bare or re.match(r"[A-Za-z][A-Za-z0-9+.-]*:|[/#]", bare):
+            return match.group(0)
+        in_repository = posixpath.normpath(posixpath.join(folder, bare))
+        if in_repository == ".." or in_repository.startswith("../"):
+            return match.group(0)
+        new = posixpath.relpath(in_repository, translation_folder)
+        return match.group(1) + (f"<{new}>" if bracketed else new) + match.group(3)
+
+    out: list[str] = []
+    open_fence = None
+    for line in text.splitlines(keepends=True):
+        if open_fence is None and not FENCE_RE.match(line.rstrip("\r\n")):
+            pieces = re.split(r"(`+[^`]*`+)", line)
+            line = "".join(piece if piece.startswith("`") else IMAGE_RE.sub(rewrite, piece) for piece in pieces)
+        out.append(line)
+        open_fence = next_fence(line, open_fence)
+    return "".join(out)
+
+
 def cmd_apply(lang: str, path: str) -> None:
     """Merge the translated work file with the reused sections, in source order."""
     root = repo_root()
@@ -334,6 +370,8 @@ def cmd_apply(lang: str, path: str) -> None:
     if hashes["source_sha256"] != source.sha:
         raise LocalizeError(f"{source.rel_path} changed after prepare; run prepare again")
     new_texts = read_work_file(work_file, len(hashes["sections"]))
+    if posixpath.splitext(source.rel_path)[1].lower() in MARKDOWN_SUFFIXES:
+        new_texts = [point_images_at_repository(text, source.rel_path, lang) for text in new_texts]
 
     target = target_path(root, lang, source)
     _, old_sections = existing_sections(target)

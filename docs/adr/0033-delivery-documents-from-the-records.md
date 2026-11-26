@@ -1,6 +1,6 @@
 # 0033. `deliver`'s last step writes the acceptance guide and the delivery report from the committed records, in a context of its own
 
-- Status: accepted; "a person opens the pull request and merges it" superseded by [0041](0041-agents-push-task-branches-and-open-pull-requests.md) and [0042](0042-pm-merges-on-machine-checked-conditions.md); the records the documents are written from superseded by [0069](0069-qa-checks-the-look-on-the-screens-with-playwright.md) (also the names of QA's screenshots)
+- Status: accepted; "a person opens the pull request and merges it" superseded by [0041](0041-agents-push-task-branches-and-open-pull-requests.md) and [0042](0042-pm-merges-on-machine-checked-conditions.md); the records the documents are written from superseded by [0069](0069-qa-checks-the-screens-end-to-end-in-a-browser.md) (also the names of QA's screenshots)
 - Date: 2026-11-21
 
 ## Context
