@@ -489,6 +489,20 @@ class GateTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assert_fails(self.gate(), "FAIL protected-paths:")  # without the list, every commit is the developer's
 
+    def test_a_qa_commit_may_add_the_screenshots_of_the_look(self):
+        # ADR 0069: QA commits its screenshots as the client's evidence; the developer may not.
+        self.put("keyturn/client/evidence/task/sign-in-360.png", "PNG")
+        qa = self.commit("QA's screenshots")
+        result = self.gate("--others", f"qa:{qa}")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assert_fails(self.gate(), "FAIL protected-paths: keyturn/client/evidence/task/sign-in-360.png")
+
+    def test_a_qa_commit_outside_the_evidence_folder_stops_the_gate(self):
+        self.put("keyturn/client/acceptance-guide.md", "# Guide\n")
+        qa = self.commit("QA writes the guide")
+        result = self.gate("--others", f"qa:{qa}")
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+
     def start_before_the_documents(self) -> dict[str, str]:
         """Move the base to a commit without the task's documents, and commit them as spec, design, and conventions would."""
         self.git("rm", "-q", "keyturn/internal/design.md")

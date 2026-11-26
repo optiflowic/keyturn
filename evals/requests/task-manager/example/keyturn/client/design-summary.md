@@ -114,3 +114,4 @@ These tools only check, format, and test the code; none of them is part of the a
 - golangci-lint: reads the code of the server part and points out common mistakes.
 - Vitest: runs automatic tests of the parts of the web pages.
 - Testing Library and jsdom: let the automatic tests show the web pages and use them the way a person would, without a real browser.
+- Playwright: lets our tester open the web pages in a real browser (Chrome's engine), at the size of a phone and of a computer screen, to check how they look and take the screenshots you see at delivery.

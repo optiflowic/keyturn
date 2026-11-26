@@ -50,6 +50,24 @@ Without a specification, use one row per observed behavior instead, with a short
 - Expected: <from the acceptance criterion>
 - Actual: <what happened>
 
+## Look
+
+<!--
+The look's criteria, checked on the screens in a real browser (ADR 0069 in keyturn's `docs/adr/`): one row per acceptance criterion that the design's "How the look's criteria are met" has a row for, in this task's scope.
+- "Widths" are the design's "Checked widths": the phone and desktop widths, and each breakpoint and one pixel below it.
+- "Measured" is what the tests measured in the browser and its result, the values from the design's row included (for example, "4 px between each label and its field: pass").
+- "Judged from the screenshots" is what no measurement covers, and QA's judgment of it from the screenshots.
+- "Screenshots" names the files in `keyturn/client/evidence/<task>/` that show the criterion.
+The criterion's result is in "Results" too. Without screens, replace the table and the browser line with "None (no screens)."
+-->
+
+- Browser: <for example, Chrome Headless Shell 159.0.8154.6, through Playwright 1.65.1>
+- Screenshots: `keyturn/client/evidence/<task>/`
+
+| Criterion | Widths | Measured | Judged from the screenshots | Screenshots |
+|---|---|---|---|---|
+| AC-<n> | <360, 599, 600, 1280 px> | <what was measured: pass \| fail> | <what was judged: pass \| fail> | `<page>-<width>.png`, ... |
+
 ## Untested areas
 
 <!--

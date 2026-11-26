@@ -81,7 +81,8 @@ ROLE_PATHS = {
     "design": [DESIGN_PATH, THREAT_MODEL, f"{ADR_DIR}/**", "keyturn/client/design-summary.md",
                "keyturn/client/decision-card-*.md"],
     "conventions": ["keyturn/internal/conventions.md", f"{ADR_DIR}/**", CONFIG_PATH, "**/.gitignore"],
-    "qa": ["keyturn/internal/test-report.md"],
+    # ADR 0069: the screenshots of QA's check of the look, the client's evidence.
+    "qa": ["keyturn/internal/test-report.md", "keyturn/client/evidence/**"],
     "security-review": ["keyturn/internal/security-review.md", THREAT_MODEL],
     "review": ["keyturn/internal/review.md"],
     "deliver": ["keyturn/internal/state/**", "keyturn/internal/gate/**", "keyturn/client/acceptance-guide.md",

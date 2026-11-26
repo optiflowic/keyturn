@@ -84,3 +84,4 @@ See "Architecture decision records" in [`docs/design/documents.md`](../design/do
 | [0066](0066-requirements-ask-about-the-look-once.md) | The requirements have a required "Look" section, and `spec` asks the client about the look once | accepted |
 | [0067](0067-design-decides-how-the-look-is-built.md) | The design decides how the look is built, with one design-token file the code uses | accepted |
 | [0068](0068-design-answers-may-add-a-token.md) | A design answer may add a token to the design's "Look", on the scale the tokens already have | accepted |
+| [0069](0069-qa-checks-the-look-on-the-screens-with-playwright.md) | QA checks the look on the screens with Playwright, at the design's checked widths, and commits the screenshots as the client's evidence | accepted |
