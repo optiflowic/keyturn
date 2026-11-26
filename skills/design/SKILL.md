@@ -7,7 +7,7 @@ description: Act as keyturn's architect. Turn approved requirements into a desig
 
 Turn the requirements the client approved into a design that fits their size, record every meaningful decision, and write down how the deliverable could be attacked or misused and what stops it. This is keyturn's architect role. The developer builds only what the design covers, and the security role checks the implementation against the threat model.
 
-Everything this skill needs is in this file, the templates it names, and the scripts of the `project-config`, `spec`, and `localize` skills. The background is in keyturn's `docs/design/` ("Architect" in `roles.md`, `guardrails.md`, and "Client attention budget" in `documents.md`) and ADRs 0003, 0009, 0010, 0013, 0015, 0016, 0017, 0018, 0058, 0060, 0066, and 0067, for whoever has them; the procedure does not depend on reading them.
+Everything this skill needs is in this file, the templates it names, and the scripts of the `project-config`, `spec`, and `localize` skills. The background is in keyturn's `docs/design/` ("Architect" in `roles.md`, `guardrails.md`, and "Client attention budget" in `documents.md`) and ADRs 0003, 0009, 0010, 0013, 0015, 0016, 0017, 0018, 0058, 0060, 0066, 0067, and 0068, for whoever has them; the procedure does not depend on reading them.
 
 ## Rules
 
