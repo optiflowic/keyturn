@@ -82,3 +82,4 @@ See "Architecture decision records" in [`docs/design/documents.md`](../design/do
 | [0064](0064-qa-runs-the-gate-on-its-tests-and-fixes-them.md) | QA runs the gate on its own tests and fixes what fails in them, also by the maintainer's decision, outside the rounds of rework | accepted; that a gate failure only in QA's folders still goes back to the developer superseded by [0065](0065-gate-marks-failures-only-in-qa-s-folders.md) |
 | [0065](0065-gate-marks-failures-only-in-qa-s-folders.md) | The gate marks failures only in QA's folders, and `deliver` gives them to QA in the same round, without counting a round | accepted |
 | [0066](0066-requirements-ask-about-the-look-once.md) | The requirements have a required "Look" section, and `spec` asks the client about the look once | accepted |
+| [0067](0067-design-decides-how-the-look-is-built.md) | The design decides how the look is built, with one design-token file the code uses | accepted |
