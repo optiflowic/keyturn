@@ -136,7 +136,7 @@ The workflows run the checks of the keyturn commit that `KEYTURN_COMMIT` names, 
 
 So move between keyturn commits only while no task is running:
 
-1. Finish every running task (merged with `merge.py`), or close it (`Status: closed`, its pull request closed). `python3 <keyturn>/skills/resume/scripts/task_state.py unmerged origin/main` lists the task branches that are not merged yet.
+1. Finish every running task (merged with `merge.py`), or close it (`Status: closed`, its pull request closed). Run `git fetch --prune origin` first, so that the list has every task branch pushed from any machine; then `python3 <keyturn>/skills/resume/scripts/task_state.py unmerged origin/main` lists the task branches that are not merged yet.
 2. Check that the newest run of `keyturn watch` on the default branch's tip passed (start it by hand if it has not run since the last push): every task merged up to the tip has then been checked with the older keyturn.
-3. Then, in one commit that changes only the two workflows, change `KEYTURN_COMMIT` to the full SHA of the newer keyturn commit in both, and `KEYTURN_START` in `keyturn-watch.yml` to the full SHA of that tip, so that the newer check starts after the tasks the older one checked, and push it as "A pull request of your own" says. Update the plugin that the agents' sessions run to the same commit.
+3. Then, in one commit that changes only the two workflows, change `KEYTURN_COMMIT` to the full SHA of the newer keyturn commit in both, and `KEYTURN_START` in `keyturn-watch.yml` to the full SHA of that tip, so that the newer check starts after the tasks the older one checked (the commits before it are then no longer checked again on every run, ADR 0070), and push it as "A pull request of your own" says. Update the plugin that the agents' sessions run to the same commit.
 4. Start the next task only after that change is on the default branch and `keyturn watch` passed on it.
