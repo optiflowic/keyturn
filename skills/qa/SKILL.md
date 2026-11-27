@@ -177,6 +177,7 @@ Tell whoever asked for the tests (the client, the developer, or `deliver`, which
 
 - the commits of the outputs (the first, then each fix for the gate), and the tested commit;
 - the folder of the screenshots, when there are any, and the browser they were taken in;
+- when the deliverable has screens and you could not check them for a missing test environment (the design lists no E2E tool, the part does not have it installed, the browser was not downloaded or does not start), say so in one line, starting `Could not check the screens:`, with why and the criteria it leaves `partly tested` or `not tested`: with `deliver`, the task stops for the maintainer before the client's documents are written (ADR 0070);
 - what the gate on your commits gave (step 8): passed; or the `FAIL` lines left, and for each, whether it is only a criterion that fails (a test of yours that fails in your run too) or something of yours you could not fix; or that it could not run, with what it printed;
 - how many criteria pass, fail, and were not tested, and each failure in one line, for the developer;
 - what is missing and who can provide it: interfaces the design does not describe and test tools that are not approved (the architect), and steps missing from "How to run" or approved tools that are not installed (the developer);

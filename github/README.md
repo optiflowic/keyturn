@@ -129,3 +129,13 @@ On a public repository, or a paid plan, also add these. They prevent what the de
 ### A pull request of your own
 
 A pull request from a branch that is not a task's (for example, one that updates the workflow or the keyturn commit it names) fails both checks, and stays so: an exception for the maintainer alone is phase 7. To merge it, look at it; with branch protection, turn the default branch's ruleset to Disabled for that one merge, merge it, and turn it to Active again right after, turning off nothing else, and never leaving it off while a task runs. The detecting workflow fails on that merge commit, unless it changes only files under `.github/workflows/`, until you vouch for it ([ADR 0048](../docs/adr/0048-default-branch-guarded-in-three-layers.md)): add the merge commit's full SHA to `KEYTURN_VOUCHED`, and start `keyturn watch` by hand again; it passes when nothing else is wrong, since a commit on the default branch is checked again on every run. A commit you push to the default branch yourself is the same (you can add its SHA before you push it). A run that failed meanwhile opened an issue: close it once a run passes. When you change `KEYTURN_COMMIT`, change it in both workflows, in one commit that changes only them.
+
+### Moving to a newer keyturn commit
+
+The workflows run the checks of the keyturn commit that `KEYTURN_COMMIT` names, and a task's records are written by the keyturn its session runs. When a newer keyturn changes what those records hold, a task that started with the older one cannot be checked by the newer one, nor the other way round. For example, from [ADR 0070](../docs/adr/0070-client-test-report-and-acceptance-without-required-checks.md), the client accepts three documents (the acceptance guide, the test report, and the delivery report): a task whose documents were written before it has no test report, and an older `keyturn conditions` reads only acceptance rows of two documents, so it refuses every merge of a newer task.
+
+So move between keyturn commits only while no task is running:
+
+1. Finish every running task (merged with `merge.py`), or close it (`Status: closed`, its pull request closed). `python3 <keyturn>/skills/resume/scripts/task_state.py unmerged origin/main` lists the task branches that are not merged yet.
+2. Then change `KEYTURN_COMMIT` to the full SHA of the newer keyturn commit, in both workflows, as "A pull request of your own" says, and update the plugin that the agents' sessions run to the same commit.
+3. Start the next task only after that change is on the default branch.
