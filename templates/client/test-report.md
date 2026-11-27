@@ -81,7 +81,7 @@ What we saw: <what the check observed>
 The screenshots QA took when it checked the look's criteria on the pages (ADR 0069 in keyturn's `docs/adr/`), from `keyturn/client/evidence/<task>/`, so the client can see how the pages look before opening the deliverable.
 - One heading per page, in the order a person meets them. Under it, each screenshot as an image, with a short caption that says the width (for example, "On a phone (360 px wide)", "On a computer (1280 px wide)", "With the Tab key on the first field").
 - Say in one or two lines what QA checked on them, in plain words, and which criteria they are evidence for.
-Leave the section with "No screens in this delivery." when the deliverable has none, or with what QA's report says when the look was not checked.
+Leave the section with "No screens in this delivery." only when the deliverable has none (QA's report says `None (no screens).`). When it has screens and QA's report names no screenshots, say that the tester could not take screenshots of the screens, and why, from QA's report; never write that there are no screens.
 -->
 
 <what the tester checked on these screens, in plain words>

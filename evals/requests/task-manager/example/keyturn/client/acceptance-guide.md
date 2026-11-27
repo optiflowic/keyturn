@@ -14,7 +14,7 @@ Our tester checked every acceptance criterion of this delivery by using the page
 
 ## Checks we ask of you
 
-None: our tester checked every acceptance criterion of this delivery. The test report shows how.
+None: we ask no check of you before you accept. Our tester checked every acceptance criterion of this delivery; the test report shows how.
 
 ## Before you start
 

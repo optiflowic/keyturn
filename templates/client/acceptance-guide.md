@@ -34,7 +34,7 @@ Only the acceptance criteria that QA's test report marks `not tested` or `partly
 - "Priority" is the requirement's approved priority. A check of a Nice to have requirement may be skipped; a skipped check does not block acceptance.
 - Steps are things the client does and sees, numbered, one action per step. The expected result must be something the client can observe, not "works correctly".
 - "Result" is filled in by the client: pass, fail (with what happened), or not checked.
-Leave the section with "None: our tester checked every acceptance criterion of this delivery. The test report shows how." when there is none.
+When there is none, leave the section with "None: we ask no check of you before you accept." Add "Our tester checked every acceptance criterion of this delivery; the test report shows how." only when QA's test report marks every criterion of this delivery `pass`. Otherwise add which criteria could not be checked before the delivery, and why, with a link to the test report's "What we did not check": never say that every criterion was checked.
 -->
 
 ### Check 1: <short title>
