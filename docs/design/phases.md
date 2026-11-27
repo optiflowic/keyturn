@@ -6,7 +6,7 @@ Stop at the end of each phase and report to the human whether the completion cri
 
 ## MVP
 
-A minimum viable keyturn is built first, before the numbered phases are finished ([ADR 0025](../adr/0025-mvp-first.md)). It takes a request from requirements through design, implementation, tests, security review, code review, and a delivery report, on a real application, and the client decides from the requirements, the acceptance guide, and the delivery report. It takes these parts of the phases below:
+A minimum viable keyturn is built first, before the numbered phases are finished ([ADR 0025](../adr/0025-mvp-first.md)). It takes a request from requirements through design, implementation, tests, security review, code review, and a delivery report, on a real application, and the client decides from the requirements, the test report, the acceptance guide, and the delivery report. It takes these parts of the phases below:
 
 - From phase 3: `deliver`, the Claude Code adapter's subagent definitions, and minimal permission settings that block direct pushes to the default branch and destructive commands. Not the sandbox or the translation subagent.
 - From phase 4: a minimal gate and minimal `go` and `react-spa` profiles: build, tests, lint, no drop in the number of tests, protected paths, and new suppression comments. Not skipped tests, coverage, the evaluation baseline, or the eval suite.

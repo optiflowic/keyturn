@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Check and record what the client approves: keyturn/client/requirements.md, and, at the end of a task, the acceptance
-guide and the delivery report the client accepts, by SHA-256. See ADR 0008, ADR 0012, and ADR 0046.
+guide, the test report, and the delivery report the client accepts, by SHA-256. See ADR 0008, ADR 0012, ADR 0046, and
+ADR 0070.
 
 Usage:
   approval.py attributes [--fix]       Check that client documents are checked out with LF.
@@ -14,11 +15,11 @@ Usage:
                                        version that was sent, the client's answer as written, and whether the kept
                                        translation is unchanged. "current" alone does not mean approved.
   approval.py accept-send TASK [--lang LANG]
-                                       Check the acceptance guide and the delivery report before they are sent for
-                                       the client's acceptance, keep their translations, and print the values for
-                                       the acceptance row (ADR 0046).
+                                       Check the acceptance guide, the test report, and the delivery report before
+                                       they are sent for the client's acceptance, keep their translations, and print
+                                       the values for the acceptance row (ADR 0046, ADR 0070).
   approval.py accept-status TASK [--lang LANG]
-                                       Check the newest acceptance row of TASK: whether the two documents are still
+                                       Check the newest acceptance row of TASK: whether the three documents are still
                                        the ones sent, at the same commit, and the client's answer, as the fixed
                                        word and in the client's words.
 
@@ -41,15 +42,21 @@ CLIENT_DIR = "keyturn/client"
 REQUIREMENTS = f"{CLIENT_DIR}/requirements.md"
 APPROVALS = f"{CLIENT_DIR}/approvals.md"
 ACCEPTANCE_GUIDE = f"{CLIENT_DIR}/acceptance-guide.md"
+TEST_REPORT = f"{CLIENT_DIR}/test-report.md"
 DELIVERY_REPORT = f"{CLIENT_DIR}/delivery-report.md"
-DELIVERY_DOCUMENTS = (ACCEPTANCE_GUIDE, DELIVERY_REPORT)
+# The documents the client accepts, in the order of the acceptance row's cells (ADR 0070).
+DELIVERY_DOCUMENTS = (ACCEPTANCE_GUIDE, TEST_REPORT, DELIVERY_REPORT)
 # The first cell of an acceptance row, fixed whatever the document language, so that a script finds the row (ADR 0046).
-ACCEPTANCE_ROW = "acceptance-guide.md, delivery-report.md"
+ACCEPTANCE_ROW = "acceptance-guide.md, test-report.md, delivery-report.md"
 # The answers of an acceptance row: fixed English words, read by CI in any document language (ADR 0046).
 # What the client wrote goes in the next cell, in their words; the client never types these words.
 ACCEPTANCE_ANSWERS = ("waiting", "accepted", "not accepted")
-# Cells of an acceptance row, by index.
-ANSWER, CLIENT_WORDS, ACCEPTANCE_CELLS = 9, 10, 12
+# Cells of an acceptance row, by index: the documents, the task, the documents commit, the language, a SHA-256 for each
+# document, a translation SHA-256 for each document, the date sent, the answer, the client's words, the date answered.
+SHAS = slice(4, 4 + len(DELIVERY_DOCUMENTS))
+TRANSLATION_SHAS = slice(SHAS.stop, SHAS.stop + len(DELIVERY_DOCUMENTS))
+ANSWER = TRANSLATION_SHAS.stop + 1
+CLIENT_WORDS, ACCEPTANCE_CELLS = ANSWER + 1, ANSWER + 3
 # A cell ends at a pipe that is not escaped, so the client's words may contain one written as \|.
 CELL_SPLIT_RE = re.compile(r"(?<!\\)\|")
 TASK_RE = re.compile(r"[a-z0-9][a-z0-9-]*")
@@ -309,7 +316,7 @@ def accepted_copy_path(lang: str, task: str, rel_path: str, commit: str) -> str:
 
 
 def documents_commit(root: Path) -> str | None:
-    """The newest commit that changed the acceptance guide or the delivery report: deliver's documents commit."""
+    """The newest commit that changed one of the delivery documents: deliver's documents commit."""
     result = git(root, "log", "-1", "--format=%H", "HEAD", "--", *DELIVERY_DOCUMENTS)
     if result.returncode != 0:
         return None
@@ -317,7 +324,7 @@ def documents_commit(root: Path) -> str | None:
 
 
 def delivery_document_problems(root: Path) -> tuple[dict[str, bytes], list[str]]:
-    """The two documents as sent, which must be committed, with LF, and unchanged since the documents commit."""
+    """The documents as sent, which must be committed, with LF, and unchanged since the documents commit."""
     problems = attribute_problems(root)
     documents: dict[str, bytes] = {}
     for rel_path in DELIVERY_DOCUMENTS:
@@ -341,7 +348,7 @@ def cmd_accept_send(root: Path, task: str, lang: str | None) -> None:
     documents, problems = delivery_document_problems(root)
     commit = documents_commit(root)
     if commit is None:
-        problems.append(f"no commit adds {ACCEPTANCE_GUIDE} or {DELIVERY_REPORT}; deliver's last step commits them")
+        problems.append(f"no commit adds any of {', '.join(DELIVERY_DOCUMENTS)}; deliver's last step commits them")
     translations: dict[str, tuple[str, bytes]] = {}
     if lang and commit is not None:
         for rel_path, data in documents.items():
@@ -379,7 +386,7 @@ def acceptance_rows(text: str, task: str) -> list[list[str]]:
 
 
 def acceptance_problems(root: Path, task: str, row: list[str], lang: str | None) -> list[str]:
-    """Whether the row is current: the documents commit, and the hashes of the two documents and their translations."""
+    """Whether the row is current: the documents commit, and the hashes of the documents and their translations."""
     if len(row) != ACCEPTANCE_CELLS:
         return [f"{APPROVALS}: {task}: the newest acceptance row has {len(row)} cells, not {ACCEPTANCE_CELLS}; "
                 "write it as the template has it"]
@@ -388,7 +395,7 @@ def acceptance_problems(root: Path, task: str, row: list[str], lang: str | None)
     if not COMMIT_RE.fullmatch(commit):
         problems.append(f"{APPROVALS}: {task}: the documents commit is not a full commit hash")
     elif commit != documents_commit(root):
-        problems.append(f"{task}: stale (the acceptance guide or the delivery report changed after {commit[:12]})")
+        problems.append(f"{task}: stale (a delivery document changed after {commit[:12]})")
     if answer not in ACCEPTANCE_ANSWERS:
         problems.append(f"{APPROVALS}: {task}: the answer is {answer or '(empty)'!r}; use waiting, accepted, "
                         "or not accepted, and put the client's words in the next cell")
@@ -398,7 +405,7 @@ def acceptance_problems(root: Path, task: str, row: list[str], lang: str | None)
     elif answer != "waiting" and words in ("", "none"):
         problems.append(f"{APPROVALS}: {task}: the answer is {answer}, but the client's words are missing; "
                         "write what the client wrote")
-    for rel_path, sha_cell, translation_cell in zip(DELIVERY_DOCUMENTS, row[4:6], row[6:8]):
+    for rel_path, sha_cell, translation_cell in zip(DELIVERY_DOCUMENTS, row[SHAS], row[TRANSLATION_SHAS]):
         if not SHA_RE.fullmatch(sha_cell):
             problems.append(f"{APPROVALS}: {task}: the SHA-256 of {Path(rel_path).name} is not a SHA-256")
         elif sha256(read_bytes(root, rel_path)) != sha_cell:

@@ -43,7 +43,7 @@ This status, and "What you need to do", describe this version as it was sent to 
 One heading per requirement: what the deliverable does, in one or two sentences.
 - Number in order (R-1, R-2, ...). An ID is never changed or reused.
 - Give each requirement a priority: Must or Nice to have. You only propose it; the client decides it when approving. Keep "Must" for what the deliverable is useless without.
-  Never lower the priority of a needed requirement to reduce the number of checks. If one delivery would have too many "Must check" items, split the delivery instead.
+  Never lower the priority of a needed requirement, or merge acceptance criteria, to make a delivery smaller. A delivery covers about ten acceptance criteria at most: when the requirements need more, split them into deliveries instead (ADR 0070 in keyturn's `docs/adr/`).
 - To remove a requirement, keep it, add "(removed)" to its heading, and replace the text with when and why it was removed.
 -->
 

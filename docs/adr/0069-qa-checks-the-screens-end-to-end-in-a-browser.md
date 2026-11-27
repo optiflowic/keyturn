@@ -1,6 +1,6 @@
 # 0069. QA checks the screens end to end in a real browser, with the E2E tool the stack profile names, and commits the screenshots as the client's evidence
 
-- Status: accepted
+- Status: accepted; "What the client gets" superseded by [0070](0070-client-test-report-and-acceptance-without-required-checks.md) (the screenshots are shown in the client's test report, and the client writes no result for them)
 - Date: 2026-11-26
 - Supersedes: in [0029](0029-role-commits-passed-as-arguments.md), what a `qa` commit may change: it may also change the images in the task's own folder in `keyturn/client/evidence/`; in [0033](0033-delivery-documents-from-the-records.md), the records the delivery documents are written from: also the names of the screenshots the test report lists; in [0060](0060-design-answers-for-qa-and-threat-ratings.md), what QA's questions for the design may ask: also the checked widths, when the design has none; in [0068](0068-design-answers-may-add-a-token.md), that an answer never changes the checked widths: an answer may add them when the design has none
 

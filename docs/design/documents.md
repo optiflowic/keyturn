@@ -10,7 +10,8 @@ The client reads these to make decisions and to do the final check. They must be
 |---|---|
 | requirements.md | What will be built and how it will be judged. Each requirement has a priority, Must or Nice to have: the PM proposes it, and the client decides it. The client approves this before work starts. |
 | design-summary.md | The main design decisions in plain language, with the reason for each and the alternatives considered. |
-| acceptance-guide.md | What the client should check by hand, in priority order, with steps and expected results, and the screenshots of the pages QA took when it checked the look ([ADR 0069](../adr/0069-qa-checks-the-screens-end-to-end-in-a-browser.md)). |
+| test-report.md | How every acceptance criterion was checked, in steps the client can read, the result, and the evidence: the screenshots QA took of the pages, and what it observed where no screen shows it ([ADR 0069](../adr/0069-qa-checks-the-screens-end-to-end-in-a-browser.md), [ADR 0070](../adr/0070-client-test-report-and-acceptance-without-required-checks.md)). |
+| acceptance-guide.md | How to open the deliverable and what the client may try on their own, the checks only the client can do (the criteria QA could not check), and the question whether they accept ([ADR 0070](../adr/0070-client-test-report-and-acceptance-without-required-checks.md)). |
 | delivery-report.md | What was delivered, what was verified, what was not, and the remaining risks. |
 | approvals.md | Which version of the requirements the client approved, in which language, identified by the source hash. |
 | decision-card.md | One question to the client: the context, the options, a recommendation, and what happens if the client does not answer. |
@@ -19,7 +20,7 @@ Writing rules:
 
 - Start with a short summary (3 lines or so) that states the conclusion.
 - Put what the client needs to do or decide first, and mark it clearly.
-- Mark priority explicitly (e.g., "Must check" / "Optional").
+- Mark priority explicitly (e.g., a requirement's "Must" or "Nice to have", or a check the client may skip).
 - No code and no unexplained jargon. Write for someone who will not read the code.
 - Keep it short. Move details into internal documents and link to them if needed.
 
@@ -29,7 +30,8 @@ If the client is asked too often, or given too much at once, they stop reading a
 
 - **Batch requests.** Questions and approvals are collected and sent together, not one by one.
 - **Keep each request small.** One request should take a few minutes to read. Each question is a short "decision card": the context, the options, a recommendation, and what happens if the client does not answer.
-- **Limit "Must check" items.** An acceptance guide has only a few "Must check" items (around five). If a delivery needs more, it is too big and must be split into smaller deliveries.
+- **Test, then report with evidence.** The team that builds the deliverable checks every acceptance criterion and hands over a test report with evidence; the client reads it and tries what they want. The acceptance guide asks the client to check only what QA could not ([ADR 0070](../adr/0070-client-test-report-and-acceptance-without-required-checks.md)).
+- **Limit the size of a delivery.** A delivery covers about ten acceptance criteria at most. If the requirements need more, they are split into deliveries when they are written, never by lowering a requirement's priority or merging criteria ([ADR 0070](../adr/0070-client-test-report-and-acceptance-without-required-checks.md)).
 - **Ask only when it matters.** Low-risk changes that stay within approved requirements do not need extra approval. The changes listed in [Guardrails](guardrails.md) always do.
 - **No answer is not consent.** An unanswered card is never decided on the client's behalf, not even with its recommendation. Work that depends on the answer waits and everything else goes on; if nothing else can be done, the task stops with the card as an open question (see [Resuming Work](resuming-work.md)). See [ADR 0009](../adr/0009-no-answer-is-not-consent.md). During the MVP, the `implement` step of a task waits for every answer its design asked for, since the task's documents are fixed once it starts ([ADR 0031](../adr/0031-documents-fixed-once-implement-starts.md)).
 - Track how many requests the client receives and how long they wait, as part of the cost data.
@@ -55,7 +57,7 @@ Separate the two tiers so the client knows which folder is theirs.
 keyturn/
   config.json # project configuration (language settings, and the stack profile of each part)
   client/     # client-facing documents
-    evidence/ # the screenshots QA takes of the pages, one folder per task (ADR 0069)
+    evidence/ # the screenshots QA takes of the pages, one folder per task, shown in the test report (ADR 0069, ADR 0070)
   internal/   # agent-to-agent documents
     adr/      # architecture decision records
     state/    # one state file per task (see Resuming Work)

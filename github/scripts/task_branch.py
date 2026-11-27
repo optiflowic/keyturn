@@ -37,6 +37,7 @@ DOCUMENTS = [
     ("Requirements", "keyturn/client/requirements.md"),
     ("Approvals", "keyturn/client/approvals.md"),
     ("Design summary", "keyturn/client/design-summary.md"),
+    ("Test report", "keyturn/client/test-report.md"),
     ("Acceptance guide", "keyturn/client/acceptance-guide.md"),
     ("Delivery report", "keyturn/client/delivery-report.md"),
 ]

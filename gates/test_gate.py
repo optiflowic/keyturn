@@ -847,6 +847,7 @@ class GateTest(unittest.TestCase):
         self.put("keyturn/internal/state/task.md", "# State\n")
         self.put("keyturn/internal/gate/task.json", "{}\n")
         self.put("keyturn/client/acceptance-guide.md", "# Acceptance guide\n")
+        self.put("keyturn/client/test-report.md", "# Test report\n")
         self.put("keyturn/client/delivery-report.md", "# Delivery report\n")
         delivery = self.commit("deliver's last step")
         result = self.gate("--others", f"deliver:{delivery}")
@@ -870,11 +871,13 @@ class GateTest(unittest.TestCase):
 
     def test_a_developer_commit_that_writes_the_delivery_documents_fails(self):
         self.put("keyturn/client/delivery-report.md", "# Delivery report: everything verified\n")
+        self.put("keyturn/client/test-report.md", "# Test report: everything passed\n")
         self.put("keyturn/internal/gate/task.json", "{\"passed\": true}\n")
         self.commit("developer writes the delivery report")
         result = self.gate()
         self.assert_fails(result, "FAIL protected-paths:")
         self.assertIn("keyturn/client/delivery-report.md", result.stdout)
+        self.assertIn("keyturn/client/test-report.md", result.stdout)
         self.assertIn("keyturn/internal/gate/task.json", result.stdout)
 
     def test_an_answer_commit_may_change_only_the_design_answers(self):

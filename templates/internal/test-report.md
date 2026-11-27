@@ -40,6 +40,25 @@ Without a specification, use one row per observed behavior instead, with a short
 |---|---|---|---|
 | AC-<n> | R-<n> | <pass \| fail \| partly tested \| not tested> | `<test file or name>` |
 
+## Checks
+
+<!--
+How each criterion was checked, for the client's test report, which the PM writes from this section at delivery (ADR 0070 in keyturn's `docs/adr/`).
+One heading per criterion in this task's scope that has a test that ran (pass, fail, or partly tested), in order. A "not tested" criterion has no heading here.
+- "Steps": what the tests do, numbered, as a person would do it, in plain words (for example, "Sign up as a second account, and open the copied link"). Never the test's code, its names, or its internal calls.
+  When the tests check the criterion through more than one interface (the screens, and HTTP with a clock a design answer gives), say which steps go through which.
+- "Observed": what the tests saw, in plain words: the text a page showed, or what the deliverable answered where no screen shows it (for example, "the server answered that the task was not found"). Only what the tests check; never what you expect.
+- "Screenshots": the files in `keyturn/client/evidence/<task>/` that show the expected result, each with what it shows, or "none" (no screen shows it, or the criterion is not done on the screens).
+For a look criterion, write "See Look." after its heading instead: "Look" has what was measured and judged, and its screenshots.
+Without a specification, use one heading per observed behavior, with its short name.
+-->
+
+### AC-<n>: <short title>
+
+- Steps: <1. what the test does as a person would; 2. ...>
+- Observed: <what the tests saw>
+- Screenshots: `ac-<n>-<what>.png`: <what it shows> | none
+
 ## Failures
 
 <!-- One heading per failed criterion: what was done, what was expected, and what happened. Leave "None." when nothing failed. -->

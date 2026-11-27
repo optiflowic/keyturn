@@ -81,7 +81,7 @@ QA's tests live in `qa/` at the root of the part (for a part `web`, `web/qa/**`)
 
 ## QA's check of the screens
 
-`jsdom` does not lay pages out, so QA checks the screens end to end in a real browser, with the E2E tool this profile names ([ADR 0069](../../docs/adr/0069-qa-checks-the-screens-end-to-end-in-a-browser.md)). The rule is that way of working; the tool is this profile's current choice, which a project's design may replace with another, with the client's agreement, as an other tool.
+`jsdom` does not lay pages out, and does not run the pages as the deliverable serves them, so QA checks the screens end to end in a real browser, with the E2E tool this profile names: the look's criteria, and every criterion done on the screens ([ADR 0069](../../docs/adr/0069-qa-checks-the-screens-end-to-end-in-a-browser.md), [ADR 0070](../../docs/adr/0070-client-test-report-and-acceptance-without-required-checks.md)). The rule is that way of working; the tool is this profile's current choice, which a project's design may replace with another, with the client's agreement, as an other tool.
 
 **The tool: Playwright** (`@playwright/test`, which brings `playwright` and `playwright-core`, its only dependencies), chosen on 2026-11-26 as the most used E2E tool for a React application built with Vite, with its own test runner, the browsers it drives, and a headless Chromium. The check done for adopting it, on 2026-11-26, for the version of that day (each project's design checks the version it takes, [ADR 0054](../../docs/adr/0054-newest-stable-versions-checked-against-the-runtime.md)):
 
@@ -95,7 +95,7 @@ QA's tests live in `qa/` at the root of the part (for a part `web`, `web/qa/**`)
 
 **What the gate does with them**: `tsc`, ESLint, and Prettier check them as any file of the part; Vitest does not run them (its `include` names only `*.test.*`), and the gate runs no browser, so neither the gate nor CI downloads one. They are not counted by `test-count`.
 
-**The screenshots**: QA commits them in `keyturn/client/evidence/<task>/` at the root of the repository, outside the part, where the acceptance guide shows them to the client.
+**The screenshots**: QA commits them in `keyturn/client/evidence/<task>/` at the root of the repository, outside the part, where the client's test report shows them to the client.
 
 ## How the tests are counted
 

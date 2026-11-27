@@ -239,6 +239,7 @@ class TaskBranchTest(unittest.TestCase):
                  "納品 1 ができました。\n\n## あなたがすること\n\n> [!IMPORTANT]\n> - 確かめてください。\n\n"
                  "## 納品したもの\n\n表。\n")
         self.put("keyturn/client/acceptance-guide.md", "# 受け入れガイド\n\n全文。\n")
+        self.put("keyturn/client/test-report.md", "# テスト報告書\n\n結果。\n")
         self.commit("docs(delivery): add the documents")
         self.assertEqual(self.run_script("open", "delivery-1").returncode, 0)
         body = self.body()
@@ -248,6 +249,8 @@ class TaskBranchTest(unittest.TestCase):
         self.assertNotIn("a comment", body)
         self.assertNotIn("全文", body)  # the acceptance guide is linked, never copied
         self.assertIn("- [Acceptance guide](", body)
+        self.assertIn("- [Test report](", body)
+        self.assertLess(body.index("- [Test report]("), body.index("- [Acceptance guide]("))
 
     def test_ready_writes_the_description_again_from_the_head(self):
         self.set_prs([{"number": 7, "url": "u7", "state": "OPEN", "isDraft": True, "isCrossRepository": False,
