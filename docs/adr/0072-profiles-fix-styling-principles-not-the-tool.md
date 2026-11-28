@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Date: 2026-11-28
-- Supersedes: in [0067](0067-design-decides-how-the-look-is-built.md), the styling methods a profile approves, the token file's form, and a UI library that does not fit the stack: a profile states the principles and a default method, and the design chooses any method that keeps them; in [0068](0068-design-answers-may-add-a-token.md), the form of a reference to an existing token: it follows the token file's form
+- Supersedes: in [0067](0067-design-decides-how-the-look-is-built.md), the styling methods a profile approves, the token file's form, and a UI library that does not fit the stack: a profile states the principles and a default method, and the design chooses any method that keeps them; and a breakpoint repeated as a literal in media queries only: it may be repeated wherever the token file's form cannot be used; in [0068](0068-design-answers-may-add-a-token.md), the form of a reference to an existing token: it follows the token file's form
 
 ## Context
 
@@ -33,7 +33,7 @@ Option 3.
 - A value the method brings itself (a built-in scale or theme) is a literal value for this rule: when the method has one, the token file replaces it, so that only the design's tokens are available.
 - A UI library's theme takes its values from the token file, without repeating them, so the library and the pages' own styles use the same tokens.
 
-**The profile.** A stack profile with screens states these principles for its stack in its `README.md`, and names a default method, with the token file's place and form, as the best practice at the time it is written, with the date and where it was checked, as it names its E2E tool (ADR 0069). It may also say what the stack's other realistic methods need. The names of styling tools appear only in the profiles, never in keyturn's skills, templates, or ADRs, which state the principles.
+**The profile.** A stack profile with screens states these principles for its stack in its `README.md`, and names a default method, with the token file's place and form, as the best practice at the time it is written, with the date and where it was checked, as it names its E2E tool (ADR 0069). It may also say what the stack's other realistic methods need. From this ADR on, the names of styling tools appear only in the profiles, never in keyturn's skills, templates, or new ADRs, which state the principles.
 
 **The design.** The architect chooses the styling method among the realistic options for the stack, the profile's default among them, and records it in an ADR of the project with the options and the reasons. The token file's form follows the method, as long as one file holds every token. When the client left the look to keyturn, the architect takes the best practice at that time, checked in current documentation (never from memory), as ADR 0067 says. A method that needs a package brings a dependency, checked as every other one, and a runtime one needs the client's agreement under "Must agree"; one that needs none is "For information". A UI library fits the stack when some method lets its theme and the pages' styles take their values from one token file; when none does for the library the client named, the design asks on a decision card, as ADR 0067 says.
 
