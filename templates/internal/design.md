@@ -93,28 +93,33 @@ Required. How the screens are built to meet the requirements' "Look" section (AD
   (the question is under "Open questions").
 - Look baseline and UI library: exactly as the requirements' "Look" says. A UI library is also listed under "Libraries and external services",
   with its kind and check; for "chosen by the architect", the one you chose.
-- Styling method: with a stack profile whose README names styling methods, one it approves; otherwise one from the stack's documentation.
-  A method that needs a package is a dependency like any other.
-  It has an ADR, with the realistic options. When the client left the look to keyturn, the ADR records the best practice at that time
+- Styling method: any method that keeps the rule at the end of this comment (ADR 0072 in keyturn), chosen among the realistic options
+  for the stack (the stack profile's README names its default and the others it knows). A method that needs a package is a dependency
+  like any other. It has an ADR, with the realistic options. When the client left the look to keyturn, the ADR records the best practice at that time
   for the stack, checked in its current documentation, with the date (also when the requirements' "Decided on" names a card answered that way).
-- Token file: the one file that holds every token, inside "Areas the work may change". With a UI library, the library's theme takes
-  its values from it.
+- Token file: where every token is defined, once, inside "Areas the work may change", in the form the styling method gives: one file,
+  or several when the project's scale calls for it (for example, one per theme), all named here. Its values are the design's own,
+  or a built-in scale the method or UI library ships, adopted as it is, as the styling method's ADR says.
+  With a UI library, the library's theme takes the values the tokens decide from it; the rest of its default theme stays as it is.
 - Checked widths: the phone and desktop widths at which the look's criteria are met; the developer builds for them and QA checks at them.
-  Name the breakpoints too, if the layout changes at a width: the code may repeat them as literals, in media queries only.
+  Name the breakpoints too, if the layout changes at a width: the code may repeat them as literals, only where the token file's form
+  cannot be used (for example, in media queries).
 - Tokens: every token, in four groups: spacing steps; type (families, sizes, line heights, weights); colors (text, background, borders,
   the focused control, and what the baseline adds); component shapes (control height, radius, borders, the focus outline).
   The developer writes the token file with exactly these tokens and values.
 - How the look's criteria are met: one row per acceptance criterion of the look, with the tokens and the rule that meet it.
 - The code uses the tokens for every spacing, type size, color, radius, control height, border width, and shadow; literal values
-  of those kinds appear only in the token file (0, auto, inherit, and percentages are not such values). A token the code needs
-  and this table lacks is a question for the design, not a value the developer picks; once implement has started,
+  of those kinds appear only in the token file, in whatever form the method writes styles (style sheets, class names that carry
+  a value, style objects, inline style attributes); 0, auto, inherit, and percentages are not such values, and a value the code
+  writes that this table does not list is one, also when it comes from the method's built-in scale (a UI library's default theme,
+  which the code does not write, is not). A token the code needs and this table lacks is a question for the design, not a value the developer picks; once implement has started,
   a design answer may add it, on the scale the tokens already have (ADR 0068 in keyturn).
 -->
 
 - Look baseline: <standard | worked out>, from the requirements' "Look"
 - UI library: <none | name and version, see "Libraries and external services">
-- Styling method: <for example, CSS Modules with the tokens as CSS custom properties>, see <link to the ADR>
-- Token file: `<path>`
+- Styling method: <the method, in a few words>, see <link to the ADR>
+- Token file: `<path>`<, and the other paths, if the tokens are split over several files>
 - Checked widths: phone <n> px, desktop <n> px<; breakpoint: <n> px, if any>
 
 ### Tokens

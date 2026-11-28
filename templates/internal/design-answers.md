@@ -20,7 +20,7 @@ Points the design left open, found after the work started, and the architect's a
 - What the design left open: <the gap, as a gap of the design, in your own words, in one or two lines: never the question as it was asked>
 - Asked by: <implement | qa>
 - Answer: <the answer, specific enough to build from, and, for QA, to test through>
-- Adds token: <only for an answer that adds a token to the design's "Look" (ADR 0068 in keyturn): `--<name>`: `<value>`, in <group>, for <what it is used for>; the value <is the value of `--<existing token>` | follows the <n> px scale of the spacing steps or type sizes>. Delete this line otherwise>
+- Adds token: <only for an answer that adds a token to the design's "Look" (ADR 0068 in keyturn): `<name>`: `<value>`, in <group>, for <what it is used for>; the value <is the value of `<existing token>` | follows the <n> px scale of the spacing steps or type sizes>. Delete this line otherwise>
 - Adds checked widths: <only for an answer that gives the checked widths the design's "Look" lacks (ADR 0069 in keyturn): phone <n> px, desktop <n> px; no breakpoint. Delete this line otherwise>
 - Why it changes nothing: <which document leaves this open, why any answer within it fits, and that it builds within the areas and the conventions: one line>
 - Answered by: <the architect | the maintainer>

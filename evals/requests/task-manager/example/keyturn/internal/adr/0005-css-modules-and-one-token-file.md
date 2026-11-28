@@ -7,7 +7,7 @@
 
 ## Context
 
-R-10 asks for tidy pages on a computer and on a phone (AC-10 to AC-13). The requirements' "Look" says `Look baseline: standard` and `UI library: none`, and the client left the look to keyturn on decision card 3, so the architect takes the best practice at this time for a React application built with Vite, the stack of [ADR 0004](0004-react-and-vite-for-the-web-client.md). The `react-spa` profile approves CSS Modules with CSS custom properties, and a UI library's own styling only when the requirements name one ([ADR 0067 in keyturn](../../../../../../../docs/adr/0067-design-decides-how-the-look-is-built.md)).
+R-10 asks for tidy pages on a computer and on a phone (AC-10 to AC-13). The requirements' "Look" says `Look baseline: standard` and `UI library: none`, and the client left the look to keyturn on decision card 3, so the architect takes the best practice at this time for a React application built with Vite, the stack of [ADR 0004](0004-react-and-vite-for-the-web-client.md). The `react-spa` profile names CSS Modules with CSS custom properties as its default method, and fixes how the pages use the tokens, not the method ([ADR 0067 in keyturn](../../../../../../../docs/adr/0067-design-decides-how-the-look-is-built.md), [ADR 0072 in keyturn](../../../../../../../docs/adr/0072-profiles-fix-styling-principles-not-the-tool.md)).
 
 Checked on 2026-11-08 in the current documentation of Vite (its CSS features: CSS Modules for `*.module.css` files, and CSS custom properties passed through as they are) and of React (styling is left to CSS; no styling method is built in).
 
@@ -15,7 +15,7 @@ Checked on 2026-11-08 in the current documentation of Vite (its CSS features: CS
 
 1. **CSS Modules, with the tokens as CSS custom properties in one file**: each component's styles next to it, with class names Vite scopes to the component, so one page's styles cannot change another's; nothing to add to the project, since Vite builds them; the tokens in one place.
 2. **One global stylesheet, with the same tokens**: nothing to add either, but every class name is shared by every page, so a rule for one page can change another, and the file grows with every page.
-3. **Tailwind CSS**: widely used, with its own spacing and type scales, but a new runtime dependency the client would agree to, with a build plugin, for three pages; values outside its scale are easy to write in the markup, where no check finds them.
+3. **Tailwind CSS**: widely used, with its own spacing and type scales, but a new runtime dependency the client would agree to, with a build plugin, for three pages; its own scale has to be replaced by the tokens, and the utilities with widths built in (for example `border`) stay, which only the review finds.
 4. **A CSS-in-JS library** (styles written in TypeScript): a new runtime dependency, and code that runs in the browser to apply the styles, for no gain on three pages.
 
 ## Decision
