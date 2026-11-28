@@ -4,7 +4,7 @@
 .claude-plugin/
   plugin.json             # Claude Code plugin manifest (the repository root is the plugin root)
   marketplace.json        # Claude Code marketplace definition
-skills/                   # role procedures (shared across tools)
+skills/                   # role procedures (shared across tools); rarely taken steps in <name>/references/
   spec/SKILL.md           # PM: requirements and acceptance criteria
   design/SKILL.md         # architect: design, decisions, threat model
   conventions/SKILL.md    # standards: conventions and tool rules
@@ -39,6 +39,8 @@ docs/
   design/                 # the design, one file per section
   adr/                    # keyturn's own decision records
   pre-pr-checklist.md     # what the review before a pull request checks
+  trying-locally.md       # how to try each kind of change locally
+  pull-request-reviews.md # how to handle review points and pace CodeRabbit
 AGENTS.md
 README.md
 LICENSE                   # MIT
