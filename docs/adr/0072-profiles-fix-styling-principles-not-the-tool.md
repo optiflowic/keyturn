@@ -1,6 +1,6 @@
 # 0072. A stack profile fixes how the pages use the tokens, not the styling tool, and the design chooses the styling method with the client
 
-- Status: accepted
+- Status: accepted; that a styling method without a dependency is for information superseded by [0074](0074-decisions-the-client-asked-to-be-consulted-on-need-agreement.md) when the client asked to be consulted on it
 - Date: 2026-11-28
 - Supersedes: in [0067](0067-design-decides-how-the-look-is-built.md), the styling methods a profile approves, the token file's form, and a UI library that does not fit the stack: a profile states the principles and a default method, and the design chooses any method that keeps them; one token file: one file by default, which the design may split when the project's scale calls for it, each token defined once; and a breakpoint repeated as a literal in media queries only: it may be repeated wherever the token file's form cannot be used; in [0068](0068-design-answers-may-add-a-token.md), the form of a reference to an existing token: it follows the token file's form
 

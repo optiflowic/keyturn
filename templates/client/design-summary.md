@@ -43,9 +43,16 @@ Leave the list empty, with "Nothing right now.", when no decision needs agreemen
 <!--
 One heading per decision that affects the client (cost, scope, or how the client works), and per decision that always needs the client's approval,
 even when it changes none of those: a new dependency (other than a development tool approved by the stack profile, listed at the end), a new external service, a change to authentication, authorization, or data handling, or anything that deletes data.
+Also one per decision the client asked to be consulted on, whatever its kind (keyturn's ADR 0074): give the recommendation and the reasons, and, when we do not take what the client named or suggested, say so and why.
+When the client asked for the recommendation in a card's answer, say in "What we decided" that this is the recommendation they asked for on that card. Their answer to the card is not their agreement: "Agreement" is waiting.
 - Use the number and title of the decision's ADR. Link to the ADR as the decision record: from keyturn/client/, the path is ../internal/adr/<NNNN-short-title>.md.
 - "Serves" lists the requirements the decision exists for. Every decision serves at least one requirement.
 - Give the realistic options only, in a sentence each, with why each was not chosen.
+- "For whoever maintains it" is only for a decision whose decision record has a "Maintainability after delivery" section (keyturn's ADR 0075); delete it otherwise.
+  First line: how much this counted against how well each option fits (as much, more, or less), and why (who maintains the app, as "Summary" says).
+  Then one line for what we chose and one for each option compared there (not one ruled out because it does not fit), in plain words: how widely it is used,
+  whether the current documentation of what the app is built with still recommends it, and how easy it is to find people who know it;
+  how good its documentation is and how often its updates break things only when that decided the choice. Last line: the date we checked, or that we could not check, and why.
 - "What it means for you" is the part the client agrees to. Say it concretely: money, time, what is or is not included, what they have to do.
   When the decision chose an option that is less known than another one we considered (its decision record says "Less known choice: yes"), including code we write ourselves
   instead of a widely used component, say so here, and why: the client's people maintain it after delivery. This applies under "For information" too.
@@ -68,6 +75,12 @@ even when it changes none of those: a new dependency (other than a development t
 
 - <option>: <why it was not chosen>
 
+**For whoever maintains it**: <how much this counted against fit, and why>
+
+- <what we chose>: <how widely used, whether still recommended, how easy to find people who know it>
+- <option compared>: <the same>
+- <checked on <date> | not checked: why>
+
 **What it means for you**: <cost, scope, or how you work>
 
 **If you do not answer**: <which work waits until you agree>
@@ -76,7 +89,7 @@ even when it changes none of those: a new dependency (other than a development t
 
 <!--
 Decisions the client should know about but does not need to agree to. They are listed for information only.
-Use the same fields as above, without "Agreement" and "If you do not answer". Leave "What it means for you" out when it means nothing for the client, never when the decision is a less known choice.
+Use the same fields as above, "For whoever maintains it" included, without "Agreement" and "If you do not answer". Leave "What it means for you" out when it means nothing for the client, never when the decision is a less known choice.
 Leave the section with "None." when there are none.
 -->
 
@@ -92,6 +105,12 @@ Leave the section with "None." when there are none.
 **Other options we considered**:
 
 - <option>: <why it was not chosen>
+
+**For whoever maintains it**: <how much this counted against fit, and why>
+
+- <what we chose>: <how widely used, whether still recommended, how easy to find people who know it>
+- <option compared>: <the same>
+- <checked on <date> | not checked: why>
 
 ## For information: development tools approved by the stack profile
 

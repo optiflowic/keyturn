@@ -34,6 +34,13 @@ You did not say who will maintain the app's code after delivery, so in every cho
 - Plain files: no extra component, but two changes at the same moment could overwrite each other.
 - A more widely used component for reading the same database: more people know it, but building the app with it needs an extra program (a C compiler) on every computer that builds it.
 
+**For whoever maintains it**: This counted as much as how well each option fits, because you did not say who will maintain the app (see "Summary").
+
+- The component we chose: used by fewer people than the other one below, and maintained, with its latest update in November 2026. Its own documentation describes it as the same database made to build without the extra program. The app's code reaches it only through the Go language's standard way of reading databases, which every Go developer knows.
+- The more widely used component for the same database: far more people follow it, and it is maintained too, but its own documentation says that building with it needs the extra program (a C compiler).
+- Plain files: code we would write ourselves, so whoever maintains it learns it from the code alone, with no outside documentation or people who already know it.
+- Checked on 28 November 2026.
+
 **What it means for you**: To back up the app, you stop it and copy one file (copying it while the app runs can give a damaged copy). We checked the extra component: it is maintained, has no known security problems, and its license lets you use it freely. It is less widely known than the other component for the same database, so fewer people will have used it before; we still chose it because whoever maintains the app can build it without the extra program, and the app's code uses it only through the Go language's standard way of reading databases, which every Go developer knows.
 
 **If you do not answer**: We do not start storing accounts or tasks (R-1, R-3 to R-6), so no work on the app itself starts.
@@ -53,6 +60,12 @@ You did not say who will maintain the app's code after delivery, so in every cho
 - Keeping the sign-in only in the browser: signing out could not end it at once, and it is easier to steal.
 - Signing in with an outside account (for example, Google): you asked for your own accounts with a password, and it would send sign-ins to an outside company.
 
+**For whoever maintains it**: This counted as much as how well each option fits, because you did not say who will maintain the app (see "Summary").
+
+- The sessions use only what comes with the Go language, which every Go developer knows. The password scrambling comes from the team that makes Go, and its current documentation recommends exactly the method we use; it was last updated in November 2026.
+- No other option was compared: the others do not fit (see above).
+- Checked on 28 November 2026.
+
 **What it means for you**: People stay signed in for 7 days (you chose this in decision card 1). We checked the extra component: it is maintained, and its license lets you use it freely. It has one known security problem, in a part the app does not use; our automatic checks confirm that it stays unused.
 
 **If you do not answer**: We do not start on signing up, signing in, or anything that needs it (R-1, R-2, R-7, R-8).
@@ -70,6 +83,12 @@ You did not say who will maintain the app's code after delivery, so in every cho
 **Other options we considered**:
 
 - Writing the pages without components: nothing extra to trust, but more code written by hand, where harmful text is most often let through by mistake, and fewer automatic checks.
+
+**For whoever maintains it**: This counted as much as how well each option fits, because you did not say who will maintain the app (see "Summary").
+
+- React and Vite: two of the most widely used components for web pages, used millions of times a week, so many people know them, and Vite was updated in the last weeks. React's documentation now recommends a ready-made framework for new apps, but still describes building one with Vite, which fits three pages.
+- Writing the pages without components: everything would be our own code, so whoever maintains it must first learn how it works from the code alone, with no outside documentation or people who already know it.
+- Checked on 28 November 2026.
 
 **What it means for you**: We checked both components: they are maintained, the versions we use have no known security problems, and their license lets you use them freely.
 
@@ -90,6 +109,12 @@ You did not say who will maintain the app's code after delivery, so in every cho
 
 - Two repositories: useful for large teams, but every change would need two linked changes.
 
+**For whoever maintains it**: This counted as much as how well each option fits, because you did not say who will maintain the app (see "Summary").
+
+- One repository: the server part is laid out as the Go language's own documentation shows, and the web pages as the usual setup for React apps, so anyone who knows Go or React finds their way around.
+- No other option was compared: two repositories do not fit an app this size (see above).
+- Checked on 28 November 2026.
+
 **What it means for you**: You create one repository for the project.
 
 ### Decision 0005: How the pages are styled
@@ -105,6 +130,12 @@ You did not say who will maintain the app's code after delivery, so in every cho
 
 - One style file for all the pages: nothing extra either, but a rule for one page can change another.
 - A ready-made styling component (Tailwind CSS): widely used, but one more component to agree to and keep up to date, which three plain pages do not need.
+
+**For whoever maintains it**: This counted as much as how well each option fits, because you did not say who will maintain the app (see "Summary").
+
+- What we chose: part of what the app is already built with (Vite and the browser), and Vite's current documentation describes it, so whoever maintains the pages needs to know only CSS, the standard language for the look of web pages.
+- Tailwind CSS: very widely used, used millions of times a week and updated in November 2026, and many people know it; it has its own documentation.
+- Checked on 28 November 2026.
 
 **What it means for you**: Nothing to do. If you later want the pages to look more worked out, the list of sizes, spaces, and colors is where it changes.
 
