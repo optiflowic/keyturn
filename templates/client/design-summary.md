@@ -20,7 +20,8 @@ Based on requirements version <n>.
 <!--
 About three lines: the overall shape of the design, and how many decisions need the client's agreement.
 Then one line on who we assumed maintains the app after delivery (your own team, another company, or nobody, from the requirements, or "you did not say"),
-how much that counted in the choices, and that the client can tell us otherwise when they answer, if someone else will maintain it or their team already works with other tools (keyturn's ADR 0073).
+how much that counted in the choices, and that the client can tell us otherwise before the work starts, if someone else will maintain it or their team already works with other tools (keyturn's ADR 0073).
+When the client has told us, say what they said and on which date: a rerun keeps it.
 -->
 
 <summary>

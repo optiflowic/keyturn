@@ -22,9 +22,9 @@ People sign up and sign in with a username and a password (R-1, R-2), and every 
 
 | Option | Use | Modern | Documentation | People | Stability |
 |---|---|---|---|---|---|
-| Server sessions, Argon2id from `golang.org/x/crypto` | `golang.org/x/crypto`: 3,361 stars on its GitHub mirror, latest release 2026-11-11 (github.com/golang/crypto, proxy.golang.org, checked 2026-11-28); server sessions in a cookie are the common pattern for web apps | maintained by the Go team as part of the Go project | Go's package documentation | any Go developer | follows the Go release policy; `argon2` has had no breaking change |
-| Signed tokens (JWT) | widely used (`github.com/golang-jwt/jwt`: 9,281 stars, checked 2026-11-28) | current | extensive | many | stable |
-| Outside service | not compared: the requirements rule it out | — | — | — | — |
+| Server sessions, Argon2id from `golang.org/x/crypto` | `golang.org/x/crypto`: 3,361 stars on its GitHub mirror, latest release 2026-11-11 (github.com/golang/crypto, proxy.golang.org, checked 2026-11-28); the sessions use only Go's standard library | "If you aren't sure which function you need, use Argon2id (IDKey)" (pkg.go.dev/golang.org/x/crypto/argon2, checked 2026-11-28) | that package documentation (checked 2026-11-28) | part of the Go project's own packages, which any Go developer can read up on there | the version is pinned; one function of the package is used |
+| Signed tokens (JWT) | not compared: it does not fit (signing out cannot end a token before it expires, AC-1) | | | | |
+| Outside service | not compared: it does not fit (the client asked for their own accounts with a password) | | | | |
 
 ## Decision
 

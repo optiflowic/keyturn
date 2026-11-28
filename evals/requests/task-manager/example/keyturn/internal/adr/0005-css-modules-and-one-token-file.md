@@ -25,10 +25,10 @@ Checked on 2026-11-08 in the current documentation of Vite (its CSS features: CS
 
 | Option | Use | Modern | Documentation | People | Stability |
 |---|---|---|---|---|---|
-| CSS Modules and custom properties | built into Vite (see ADR 0004 for its use); custom properties are standard CSS | Vite's guide documents `*.module.css` files and recommends native CSS variables (vite.dev, "Features", checked 2026-11-28) | Vite's guide and the CSS standard's documentation | anyone who knows CSS | part of Vite and of CSS; no package of its own |
-| One global stylesheet | standard CSS | current | the CSS standard's | anyone who knows CSS | stable, but the file's own rules grow with every page |
-| Tailwind CSS | 98,866 stars, 175 million npm downloads in the week to 2026-11-27, latest release 2026-11-06 (github.com, api.npmjs.org, checked 2026-11-28) | not in Vite's guide; its own documentation covers Vite | extensive | many | a major release changed its configuration; the version would be pinned |
-| A CSS-in-JS library | not compared further: it fits worst, with code that runs in the browser | — | — | — | — |
+| CSS Modules and custom properties | a feature of the stack: Vite builds `*.module.css` files, and custom properties are CSS (known as the stack, ADR 0004) | "Any CSS file ending with `.module.css` is considered a CSS modules file", and Vite recommends native CSS variables (vite.dev/guide/features, checked 2026-11-28) | that guide (checked 2026-11-28) | anyone who knows CSS and Vite | part of Vite, pinned with it; no package of its own |
+| One global stylesheet | not compared: it does not fit (a rule for one page can change another) | | | | |
+| Tailwind CSS | 98,866 stars, 175 million npm downloads in the week to 2026-11-27, latest release 2026-11-06 (github.com, api.npmjs.org, checked 2026-11-28) | its own guide installs it as a Vite plugin (tailwindcss.com/docs/installation/using-vite, checked 2026-11-28) | its own documentation (checked 2026-11-28) | many people know it (its stars and downloads) | its last major release moved the configuration from a JavaScript file to CSS and renamed utilities (tailwindcss.com/docs/upgrade-guide, checked 2026-11-28) |
+| A CSS-in-JS library | not compared: it does not fit (code that runs in the browser to apply the styles, for three pages) | | | | |
 
 ## Decision
 

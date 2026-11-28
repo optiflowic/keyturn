@@ -9,7 +9,7 @@ Based on requirements version 2.
 The app is one program that serves the pages and keeps the data in a single file on your server. People sign in with a username and a password, and the server checks on every request that a person only reaches their own tasks.
 You agreed to the three decisions that needed your agreement: where the data is kept, how signing in works, and the components the web pages are built with.
 
-You did not say who will maintain the app's code after delivery, so in every choice we weighed how easily other people could maintain it as much as how well it fits. If your own team, or another company, will maintain it, or already works with particular tools, tell us when you answer: it can change our choices.
+You did not say who will maintain the app's code after delivery, so in every choice we weighed how easily other people could maintain it as much as how well it fits. If your own team, or another company, will maintain it, or already works with particular tools, tell us before the work starts: it can change our choices.
 
 ## What you need to do
 

@@ -21,8 +21,8 @@ The task manager has a Go API and a React web client (stack profiles `go` and `r
 
 | Option | Use | Modern | Documentation | People | Stability |
 |---|---|---|---|---|---|
-| One repository, `api/` and `web/` | a common layout for a small app with a server and pages; each folder keeps its stack's own layout (Go's `go.mod` at `api/`, the web client's `package.json` at `web/`) | both stacks' current tools work from a subfolder | each part follows its stack's documentation | anyone who knows either stack finds their part where they expect it | nothing to upgrade |
-| Two repositories | common for separate teams | current | the same | the same, but each change spans two repositories | the contract between them needs its own versioning |
+| One repository, `api/` and `web/` | an approach with no package: `api/` follows the "Server project" layout of Go's "Organizing a Go module", with its `go.mod` at the part's root (go.dev/doc/modules/layout, checked 2026-11-28); `web/` follows the `react-spa` profile's layout | the same documentation | the same documentation | anyone who knows Go or React finds their part laid out as that documentation shows | nothing to upgrade |
+| Two repositories | not compared: it does not fit (two linked pull requests for every change, at this size) | | | | |
 
 ## Decision
 

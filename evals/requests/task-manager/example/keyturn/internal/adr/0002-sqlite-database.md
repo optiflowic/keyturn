@@ -23,10 +23,10 @@ Accounts and tasks must be stored. The client runs the app on one small server f
 
 | Option | Use | Modern | Documentation | People | Stability |
 |---|---|---|---|---|---|
-| `modernc.org/sqlite` | 515 stars on GitLab, latest release 2026-11-22 (gitlab.com/cznic/sqlite, proxy.golang.org, checked 2026-11-28) | its documentation: "a CGo-free port of the C SQLite3 library" (pkg.go.dev, checked 2026-11-28) | its package documentation, and SQLite's own | fewer people know this driver; the code uses only `database/sql`, which every Go developer knows | frequent releases that follow SQLite's, without breaking `database/sql` use |
-| PostgreSQL | very widely used (not compared further: it does not fit one small server) | current | extensive | many | stable |
-| Plain files | code of the project's own: no use, documentation, or people outside it | — | only what the project writes | only those who read the code | as stable as the project's code |
-| `github.com/mattn/go-sqlite3` | 9,282 stars on GitHub, latest release 2026-11-05 (github.com, proxy.golang.org, checked 2026-11-28) | its README: "_go-sqlite3_ is _cgo_ package ... you need gcc" (github.com, checked 2026-11-28) | its README, and SQLite's own | the most known Go driver for SQLite | stable, long-lived, with `database/sql` |
+| `modernc.org/sqlite` | 515 stars on GitLab, latest release 2026-11-22 (gitlab.com/cznic/sqlite, proxy.golang.org, checked 2026-11-28) | "a CGo-free port of the C SQLite3 library" (pkg.go.dev/modernc.org/sqlite, checked 2026-11-28) | its package documentation (pkg.go.dev, checked 2026-11-28) | fewer people know this driver than the one below; the code reaches it only through Go's standard `database/sql`, which is part of the stack | used through `database/sql`, so a driver release does not change the app's code; the version is pinned |
+| PostgreSQL | not compared: it does not fit (a second service the client would run, for a few people) | | | | |
+| Plain files | code of the project's own: no use, documentation, or people outside it | | | | |
+| `github.com/mattn/go-sqlite3` | 9,282 stars on GitHub, latest release 2026-11-05 (github.com/mattn/go-sqlite3, proxy.golang.org, checked 2026-11-28) | "_go-sqlite3_ is _cgo_ package. If you want to build your app using go-sqlite3, you need gcc." (its README, checked 2026-11-28) | its README (checked 2026-11-28) | more people know it than the driver above (its stars) | used through `database/sql` too |
 
 ## Decision
 
