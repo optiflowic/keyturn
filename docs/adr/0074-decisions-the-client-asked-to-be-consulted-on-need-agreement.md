@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Date: 2026-11-28
+- Supersedes: in [0067](0067-design-decides-how-the-look-is-built.md) and [0072](0072-profiles-fix-styling-principles-not-the-tool.md), that a styling method without a dependency is for information, when the client asked to be consulted on it
 
 ## Context
 
@@ -25,7 +26,7 @@ What constrains the answer:
 
 Option 3.
 
-**What counts as asking.** The client asked to be consulted on a decision when the approved requirements (for example, the request as they record it, or a "Decided on" line) or the answer or comment of a decision card say they want to decide it together, ask for keyturn's recommendation and its reasons, or name an example of what they want (a tool, a way of doing it). "Leave it to you", or a card's recommended option taken without such a comment, is not asking: the decision is made as the other rules say.
+**What counts as asking.** The client asked to be consulted on a decision when the approved requirements (for example, the request as they record it, or a "Decided on" line) or the answer or comment of a decision card say they want to decide it together, ask for keyturn's recommendation and its reasons, or name a tool or a way of doing it only as an example of what they want. A tool or a way the client requires, or says their team already uses, is not asking: it is the client's choice, taken as the other rules say (for a styling method, as ADR 0072 says). "Leave it to you", or a card's recommended option taken without such a comment, is not asking: the decision is made as the other rules say.
 
 **What follows.** Such a decision goes under "Must agree" in the design summary, with "Needs client agreement: yes" in its ADR, which stays `proposed` until the client agrees, whatever its kind: also a decision that adds no dependency, and also when the design takes what the client named. Its entry gives the recommendation, the reasons, and the realistic options, as any "Must agree" entry does. When the design does not take what the client named or suggested, the entry says so and why, and the client agrees to the alternative before any work that depends on it starts.
 

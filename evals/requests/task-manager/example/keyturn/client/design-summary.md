@@ -85,7 +85,7 @@ You did not say who will maintain the app's code after delivery, so in every cho
 
 **For whoever maintains it**: This counted as much as how well each option fits, because you did not say who will maintain the app (see "Summary").
 
-- React and Vite: two of the most widely used components for web pages, used millions of times a week and updated in the last weeks, so many people know them. React's current documentation still describes building a small app this way.
+- React and Vite: two of the most widely used components for web pages, used millions of times a week, so many people know them, and Vite was updated in the last weeks. React's documentation now recommends a ready-made framework for new apps, but still describes building one with Vite, which fits three pages.
 - Writing the pages without components: everything would be our own code, so whoever maintains it must first learn how it works from the code alone, with no outside documentation or people who already know it.
 - Checked on 28 November 2026.
 
@@ -133,7 +133,7 @@ You did not say who will maintain the app's code after delivery, so in every cho
 **For whoever maintains it**: This counted as much as how well each option fits, because you did not say who will maintain the app (see "Summary").
 
 - What we chose: part of what the app is already built with (Vite and the browser), and Vite's current documentation describes it, so whoever maintains the pages needs to know only CSS, the standard language for the look of web pages.
-- Tailwind CSS: very widely used, used millions of times a week and updated in November 2026, and many people know it; its documentation is good. Its last major update changed how it is set up and renamed parts of it, so updates can mean work.
+- Tailwind CSS: very widely used, used millions of times a week and updated in November 2026, and many people know it; it has its own documentation. Its last major update changed how it is set up and renamed parts of it, so updates can mean work.
 - Checked on 28 November 2026.
 
 **What it means for you**: Nothing to do. If you later want the pages to look more worked out, the list of sizes, spaces, and colors is where it changes.
