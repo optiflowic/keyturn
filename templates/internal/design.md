@@ -98,7 +98,7 @@ Required. How the screens are built to meet the requirements' "Look" section (AD
   like any other. It has an ADR, with the realistic options. When the client left the look to keyturn, the ADR records the best practice at that time
   for the stack, checked in its current documentation, with the date (also when the requirements' "Decided on" names a card answered that way).
 - Token file: the one file that holds every token, inside "Areas the work may change", in the form the styling method gives.
-  With a UI library, the library's theme takes its values from it.
+  With a UI library, the library's theme takes the values the tokens decide from it; the rest of its default theme stays as it is.
 - Checked widths: the phone and desktop widths at which the look's criteria are met; the developer builds for them and QA checks at them.
   Name the breakpoints too, if the layout changes at a width: the code may repeat them as literals, only where the token file's form
   cannot be used (for example, in media queries).
@@ -109,7 +109,8 @@ Required. How the screens are built to meet the requirements' "Look" section (AD
 - The code uses the tokens for every spacing, type size, color, radius, control height, border width, and shadow; literal values
   of those kinds appear only in the token file, in whatever form the method writes styles (style sheets, class names that carry
   a value, style objects, inline style attributes); 0, auto, inherit, and percentages are not such values, and a value the method
-  brings itself (a built-in scale or theme) is one, which the token file replaces. A token the code needs
+  brings itself (a built-in scale or theme) is one when the code writes it, which the token file replaces (a UI library's
+  default theme, which the code does not write, is not). A token the code needs
   and this table lacks is a question for the design, not a value the developer picks; once implement has started,
   a design answer may add it, on the scale the tokens already have (ADR 0068 in keyturn).
 -->

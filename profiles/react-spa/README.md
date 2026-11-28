@@ -72,8 +72,8 @@ The design's "Look" section names the styling method and the one token file the 
 
 - One token file in the part holds every token of the design's "Look", and the pages take each value of those kinds from it, as a reference to a token (for CSS custom properties, `var(--<token>)`).
 - No literal value of those kinds appears outside the token file: not in style sheets, not in class names that carry a value, not in style objects in the code, and not in a `style` attribute. `0`, `auto`, `inherit`, and percentages are not such values, nor is a breakpoint the design names, where the token file's form cannot be used (for CSS custom properties, in a media query).
-- A value the method brings itself (a built-in scale or a default theme) counts as a literal value: the token file replaces it, so that only the design's tokens are available.
-- A UI library's theme takes its values from the token file without repeating them, so the library and the pages' own styles use the same tokens.
+- A value the method brings itself (a built-in scale or theme) counts as a literal value when the project's code writes it (for example, a class name from the method's scale): the token file replaces it, so that only the design's tokens are available to the code. This applies only to the values the project's code writes: a UI library's default theme stays as the library ships it wherever the project does not change it.
+- A UI library's theme takes the values the design's tokens decide from the token file, by referencing the tokens without repeating them; the rest of its theme stays the library's default, and the token file does not replace it.
 
 **The default method**, as the best practice at the time this profile was written (checked on 2026-11-28 in the documentation of Vite 8, "Features", CSS): **CSS Modules with CSS custom properties**, which needs no package beyond the runtime above. Each component's styles are in a `*.module.css` file next to it, which Vite builds with class names scoped to the component; the tokens are CSS custom properties on `:root` in `src/styles/tokens.css`, imported once by the application's entry point; the pages' few global rules (for example, the page's own margin and the box sizing) are in one `src/styles/global.css`. A UI library fits it when its theme takes CSS custom properties.
 
@@ -83,7 +83,7 @@ The design's "Look" section names the styling method and the one token file the 
 - **Sass** (from Vite's documentation, "Features", CSS Pre-processors): `sass-embedded` (or `sass` where it is not supported), which Vite uses without a plugin. The token file may stay `src/styles/tokens.css` as CSS custom properties, or be Sass variables in one partial that every file takes them from. Prettier formats `*.scss` files, but the `suppressions` check does not read them (see "Suppressions").
 - **A CSS-in-JS library**: the token file is the one module, or the library's theme, that holds every token, and the components' style objects reference it.
 
-A method or UI library whose theme cannot take its values from one token file without repeating them does not keep the principles; the design asks the client on a decision card when the client named it.
+A method or UI library whose theme cannot take the values the design's tokens decide from one token file without repeating them does not keep the principles; the design asks the client on a decision card when the client named it.
 
 ## QA's tests
 
