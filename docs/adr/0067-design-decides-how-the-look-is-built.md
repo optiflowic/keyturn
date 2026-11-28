@@ -1,6 +1,6 @@
 # 0067. The design decides how the look is built, with one design-token file the code uses
 
-- Status: accepted; the styling methods a profile approves, the token file's form, one token file, and a UI library that does not fit the stack superseded by [0072](0072-profiles-fix-styling-principles-not-the-tool.md)
+- Status: accepted; the styling methods a profile approves, the token file's form, one token file, and a UI library that does not fit the stack superseded by [0072](0072-profiles-fix-styling-principles-not-the-tool.md); that a styling method without a dependency is for information superseded by [0074](0074-decisions-the-client-asked-to-be-consulted-on-need-agreement.md) when the client asked to be consulted on it
 - Date: 2026-11-26
 
 ## Context
