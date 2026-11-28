@@ -34,6 +34,30 @@ Template: architecture decision record (internal). Filled in by the role that ma
 1. **<option A>**: <what it is, and its main pros and cons>
 2. **<option B>**: <what it is, and its main pros and cons>
 
+## Maintainability after delivery
+
+<!--
+Delete this section unless the decision chooses a tool or an approach the deliverable is built or tested with: the stack, the repository structure, the data store, a library or a group of libraries, the styling method, a test tool, or how a standard feature is built (keyturn's ADR 0073).
+Writing a standard feature by hand is one of the options, against the widely used library or the stack's own feature that does it.
+- Weight: how much maintainability after delivery counts against fit, and why: who maintains the deliverable after delivery, for how long, and which tools that team knows, from the requirement (R-n) or the client's answer that says so, with its date.
+  When neither says who maintains it: "the same as fit: the requirements do not say who maintains the deliverable".
+- One row per option of "Options considered", each signal with its source and the date it was checked, never from memory.
+  `not checked: <why>` when a source cannot be reached (the choice is then made on fit alone, and "Open questions" in design.md says so);
+  `not compared: <why>` for an option ruled out on fit; for an approach with no package, the documentation it follows, with its date.
+  A feature of the stack or the platform counts as known as the stack.
+  Use: current signals (for example, the repository's stars, the package's downloads, how recent its releases are). Modern: whether the stack's current documentation still recommends it.
+  Documentation: its documentation and learning material. People: how easy it is to find people who know it (a tool the client's team already knows counts most). Stability: how often its releases break what was built with it, and its upgrade path.
+  Code written by hand has no use, documentation, or people outside the project.
+- Less known choice: "yes" when the chosen option is less known than another option here on these signals, with why it was still chosen; the design summary then says so. "not checked: <why>" when the signals could not be checked. Otherwise "no".
+-->
+
+- Weight: <the same as fit | more than fit | less than fit>: <why, from R-n or the client's answer of <date>, or "the requirements do not say who maintains the deliverable">
+- Less known choice: <no | yes: why it was still chosen | not checked: why>
+
+| Option | Use | Modern | Documentation | People | Stability |
+|---|---|---|---|---|---|
+| <option A> | <signals, source, date> | <what the current documentation says, source, date> | <what there is> | <how easy to find> | <releases and upgrades> |
+
 ## Decision
 
 <!-- The option chosen, in one or two sentences. -->

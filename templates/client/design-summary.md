@@ -17,9 +17,16 @@ Based on requirements version <n>.
 
 ## Summary
 
-<!-- About three lines: the overall shape of the design, and how many decisions need the client's agreement. -->
+<!--
+About three lines: the overall shape of the design, and how many decisions need the client's agreement.
+Then one line on who we assumed maintains the app after delivery (your own team, another company, or nobody, from the requirements, or "you did not say"),
+how much that counted in the choices, and that the client can tell us otherwise before the work starts, if someone else will maintain it or their team already works with other tools (keyturn's ADR 0073).
+When the client has told us, say what they said and on which date: a rerun keeps it.
+-->
 
 <summary>
+
+<who we assumed maintains it after delivery, and what that meant for the choices>
 
 ## What you need to do
 
@@ -40,6 +47,8 @@ even when it changes none of those: a new dependency (other than a development t
 - "Serves" lists the requirements the decision exists for. Every decision serves at least one requirement.
 - Give the realistic options only, in a sentence each, with why each was not chosen.
 - "What it means for you" is the part the client agrees to. Say it concretely: money, time, what is or is not included, what they have to do.
+  When the decision chose an option that is less known than another one we considered (its decision record says "Less known choice: yes"), including code we write ourselves
+  instead of a widely used component, say so here, and why: the client's people maintain it after delivery. This applies under "For information" too.
 - When the client answers, set "Agreement" to agreed, or to not agreed with what they want changed.
 - "If you do not answer" says which work waits until the client agrees. Nothing that depends on the decision starts before agreement; never use an option the client has not agreed to.
 - When a new ADR supersedes one listed here, replace the entry with the new ADR and set "Agreement" back to waiting.
@@ -67,7 +76,7 @@ even when it changes none of those: a new dependency (other than a development t
 
 <!--
 Decisions the client should know about but does not need to agree to. They are listed for information only.
-Use the same fields as above, without "Agreement" and "If you do not answer". Leave "What it means for you" out when it means nothing for the client.
+Use the same fields as above, without "Agreement" and "If you do not answer". Leave "What it means for you" out when it means nothing for the client, never when the decision is a less known choice.
 Leave the section with "None." when there are none.
 -->
 

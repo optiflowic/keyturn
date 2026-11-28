@@ -22,7 +22,7 @@ SKILL_MD_LIMIT = 30_000
 # SKILL_MD_LIMIT or less. Raise one only with the reason in the pull request.
 INTERIM_SKILL_MD_LIMITS = {
     "deliver": 108_000,
-    "design": 66_000,
+    "design": 68_000,  # raised by #211: maintainability after delivery, used on every design
     "qa": 50_000,
     "security-review": 48_000,
     "review": 40_000,

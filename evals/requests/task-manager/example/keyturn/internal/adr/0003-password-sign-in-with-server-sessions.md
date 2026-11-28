@@ -15,6 +15,17 @@ People sign up and sign in with a username and a password (R-1, R-2), and every 
 2. **Signed tokens kept in the browser (JWT)**: no session table, but signing out cannot end a token before it expires, and tokens kept where scripts can read them can be stolen by injected code.
 3. **Sign-in through an outside service (for example, a Google account)**: no passwords to store, but the client asked for their own accounts with a password, and it adds an external service.
 
+## Maintainability after delivery
+
+- Weight: the same as fit: the requirements do not say who maintains the deliverable.
+- Less known choice: no.
+
+| Option | Use | Modern | Documentation | People | Stability |
+|---|---|---|---|---|---|
+| Server sessions, Argon2id from `golang.org/x/crypto` | `golang.org/x/crypto`: 3,361 stars on its GitHub mirror, latest release 2026-11-11 (github.com/golang/crypto, proxy.golang.org, checked 2026-11-28); the sessions use only Go's standard library | "If you aren't sure which function you need, use Argon2id (IDKey)" (pkg.go.dev/golang.org/x/crypto/argon2, checked 2026-11-28) | that package documentation (checked 2026-11-28) | part of the Go project's own packages, which any Go developer can read up on there | the version is pinned; one function of the package is used |
+| Signed tokens (JWT) | not compared: it does not fit (signing out cannot end a token before it expires, AC-1) | | | | |
+| Outside service | not compared: it does not fit (the client asked for their own accounts with a password) | | | | |
+
 ## Decision
 
 Sessions stored on the server, with an `HttpOnly`, `Secure`, `SameSite=Lax` cookie; passwords hashed with Argon2id (option 1). A session ends after 7 days, or when the person signs out.

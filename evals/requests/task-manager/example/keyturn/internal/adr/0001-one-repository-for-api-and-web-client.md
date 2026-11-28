@@ -14,6 +14,16 @@ The task manager has a Go API and a React web client (stack profiles `go` and `r
 1. **One repository with `api/` and `web/` folders**: one pull request per change, one gate run, one place for the documents. The two parts can still be built and tested separately.
 2. **Two repositories with a versioned API contract**: clear ownership per part, but every change needs two linked pull requests and contract tests, which is overhead without benefit at this size.
 
+## Maintainability after delivery
+
+- Weight: the same as fit: the requirements do not say who maintains the deliverable.
+- Less known choice: no.
+
+| Option | Use | Modern | Documentation | People | Stability |
+|---|---|---|---|---|---|
+| One repository, `api/` and `web/` | an approach with no package: `api/` follows the "Server project" layout of Go's "Organizing a Go module", with its `go.mod` at the part's root (go.dev/doc/modules/layout, checked 2026-11-28); `web/` follows the `react-spa` profile's layout | the same documentation | the same documentation | anyone who knows Go or React finds their part laid out as that documentation shows | nothing to upgrade |
+| Two repositories | not compared: it does not fit (two linked pull requests for every change, at this size) | | | | |
+
 ## Decision
 
 One repository, with the API in `api/` and the web client in `web/` (option 1).
