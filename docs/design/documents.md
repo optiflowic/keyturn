@@ -9,7 +9,7 @@ The client reads these to make decisions and to do the final check. They must be
 | Document | Purpose |
 |---|---|
 | requirements.md | What will be built and how it will be judged. Each requirement has a priority, Must or Nice to have: the PM proposes it, and the client decides it. The client approves this before work starts. |
-| design-summary.md | The main design decisions in plain language, with the reason for each and the alternatives considered. |
+| design-summary.md | The main design decisions in plain language, with the reason for each, the alternatives considered, and how they compare for whoever maintains the deliverable. |
 | test-report.md | How every acceptance criterion was checked, in steps the client can read, the result, and the evidence: the screenshots QA took of the pages, and what it observed where no screen shows it ([ADR 0069](../adr/0069-qa-checks-the-screens-end-to-end-in-a-browser.md), [ADR 0070](../adr/0070-client-test-report-and-acceptance-without-required-checks.md)). |
 | acceptance-guide.md | How to open the deliverable and what the client may try on their own, the checks only the client can do (the criteria QA could not check), and the question whether they accept ([ADR 0070](../adr/0070-client-test-report-and-acceptance-without-required-checks.md)). |
 | delivery-report.md | What was delivered, what was verified, what was not, and the remaining risks. |
