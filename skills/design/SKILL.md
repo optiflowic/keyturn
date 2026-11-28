@@ -134,9 +134,9 @@ When a supply-chain item or a known vulnerability fails, do not take that releas
 
 #### Maintainability after delivery
 
-The client's people, or another vendor, usually maintain the deliverable after delivery. So every choice of a tool or an approach (the stack, the repository structure, the data store, each library or group, the styling method, the test tools you choose) weighs how easily they can maintain it against its fit (ADR 0073 in keyturn's `docs/adr/`). Compare each realistic option, the profile's default included, on five signals, each from current sources checked now, with the source and the date, never from memory (`not checked: <why>` when you cannot reach them):
+Every choice of a tool or an approach (the stack, the repository structure, the data store, each library or group, the styling method, the test tools you choose) weighs how easily the people who maintain the deliverable after delivery can maintain it against its fit (ADR 0073 in keyturn's `docs/adr/`). Compare each realistic option, the profile's default included, on five signals, each from current sources checked now, with the source and the date, never from memory (`not checked: <why>` when you cannot reach them):
 
-- **Use**: how widely it is used (for example, the repository's stars, the package's downloads, and how recent its releases are).
+- **Use**: how widely it is used (for example, stars, downloads, and recent releases).
 - **Modern**: whether the stack's current documentation still recommends it; one it no longer recommends counts against it, even when widely used.
 - **Documentation**: its documentation and learning material.
 - **People**: how easy it is to find people who know it; a tool the client's team, or the vendor who will maintain the deliverable, already knows counts most.
@@ -246,7 +246,8 @@ When the client answers:
 1. **In English-only mode, if the answer is not in English**, translate it with the `localize` skill ("Writing into English"). An answer to a card, or a change to a decision, changes what will be built, so it gets the back-translation and the client's confirmation before anything based on it is committed. A short "agreed" is handed back without one.
 2. **A card**: fill in "Your answer" and set the status to answered. Apply the answer to the design, the ADRs that wait for it, and the threat model (for an accepted risk: "Remaining risk: accepted on <date>" with a link to the card, and "Status: accepted" if nothing is implemented). The acceptance holds only once the security role confirms that the threat is low: nothing that contains the threat is delivered before then, and if the security role finds it is not low, the acceptance no longer holds and the threat needs a mitigation or a new card (ADR 0010 in keyturn's `docs/adr/`). If the client chose to change a requirement, the change goes to the `spec` skill, and the design waits for the new approved version. If a "Must agree" entry links the card as the way to agree to its decision (step 7, "Never ask the same thing twice"), the answer is also the answer to that decision: record it as in item 3.
 3. **A decision**: set its "Agreement" to agreed, and its ADR to `accepted`. If it is not agreed, rework the decision as the client asked (its ADR was never accepted, so revise it), set "Agreement" back to waiting, and send it again with step 7. When everything is agreed, set the design summary's status to agreed.
-4. Commit, translate again in English-only mode, and report as in step 8.
+4. **Who maintains it** (an answer to "Summary"): handle it as a decision the client asks to change, with item 1's confirmation: set the weight again ("Maintainability after delivery"), redo each ADR it changes (one already accepted is superseded), and update "Summary". Unanswered, the assumption stands.
+5. Commit, translate again in English-only mode, and report as in step 8.
 
 ### Changing the design
 
