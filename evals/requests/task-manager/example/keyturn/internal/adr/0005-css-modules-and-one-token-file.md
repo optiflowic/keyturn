@@ -18,6 +18,18 @@ Checked on 2026-11-08 in the current documentation of Vite (its CSS features: CS
 3. **Tailwind CSS**: widely used, with its own spacing and type scales, but a new runtime dependency the client would agree to, with a build plugin, for three pages; its own scale has to be replaced by the tokens, and the utilities with widths built in (for example `border`) stay, which only the review finds.
 4. **A CSS-in-JS library** (styles written in TypeScript): a new runtime dependency, and code that runs in the browser to apply the styles, for no gain on three pages.
 
+## Maintainability after delivery
+
+- Weight: the same as fit: the requirements do not say who maintains the deliverable.
+- Less known choice: no. Tailwind CSS is very widely used too, but CSS Modules and CSS custom properties are part of what Vite and the browser already do, so whoever maintains the pages needs to know only CSS.
+
+| Option | Use | Modern | Documentation | People | Stability |
+|---|---|---|---|---|---|
+| CSS Modules and custom properties | built into Vite (see ADR 0004 for its use); custom properties are standard CSS | Vite's guide documents `*.module.css` files and recommends native CSS variables (vite.dev, "Features", checked 2026-11-28) | Vite's guide and the CSS standard's documentation | anyone who knows CSS | part of Vite and of CSS; no package of its own |
+| One global stylesheet | standard CSS | current | the CSS standard's | anyone who knows CSS | stable, but the file's own rules grow with every page |
+| Tailwind CSS | 98,866 stars, 175 million npm downloads in the week to 2026-11-27, latest release 2026-11-06 (github.com, api.npmjs.org, checked 2026-11-28) | not in Vite's guide; its own documentation covers Vite | extensive | many | a major release changed its configuration; the version would be pinned |
+| A CSS-in-JS library | not compared further: it fits worst, with code that runs in the browser | — | — | — | — |
+
 ## Decision
 
 CSS Modules, with the tokens as CSS custom properties in `web/src/styles/tokens.css`, as the design's "Look" lists them (option 1).

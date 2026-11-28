@@ -88,3 +88,4 @@ See "Architecture decision records" in [`docs/design/documents.md`](../design/do
 | [0070](0070-client-test-report-and-acceptance-without-required-checks.md) | The client gets a test report with evidence for every criterion, the acceptance guide asks only for what QA could not check, and a delivery is limited by its number of acceptance criteria | accepted |
 | [0071](0071-size-limits-for-agents-md-and-skills.md) | `AGENTS.md` and each `SKILL.md` have a size limit that a test checks; what only some sessions need lives in files of its own | accepted |
 | [0072](0072-profiles-fix-styling-principles-not-the-tool.md) | A stack profile fixes how the pages use the tokens, not the styling tool, and the design chooses the styling method with the client | accepted |
+| [0073](0073-design-weighs-maintainability-after-delivery.md) | The design weighs how easily the client's people can maintain each choice after delivery, with a weight set from the request | accepted |

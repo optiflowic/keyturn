@@ -9,6 +9,8 @@ Based on requirements version 2.
 The app is one program that serves the pages and keeps the data in a single file on your server. People sign in with a username and a password, and the server checks on every request that a person only reaches their own tasks.
 You agreed to the three decisions that needed your agreement: where the data is kept, how signing in works, and the components the web pages are built with.
 
+You did not say who will maintain the app's code after delivery, so in every choice we weighed how easily other people could maintain it as much as how well it fits. If your own team, or another company, will maintain it, or already works with particular tools, tell us when you answer: it can change our choices.
+
 ## What you need to do
 
 > [!IMPORTANT]
@@ -30,8 +32,9 @@ You agreed to the three decisions that needed your agreement: where the data is 
 
 - A separate database server (PostgreSQL): made for many users, but you would have to install, run, and back up a second program.
 - Plain files: no extra component, but two changes at the same moment could overwrite each other.
+- A more widely used component for reading the same database: more people know it, but building the app with it needs an extra program (a C compiler) on every computer that builds it.
 
-**What it means for you**: To back up the app, you stop it and copy one file (copying it while the app runs can give a damaged copy). We checked the extra component: it is maintained, has no known security problems, and its license lets you use it freely.
+**What it means for you**: To back up the app, you stop it and copy one file (copying it while the app runs can give a damaged copy). We checked the extra component: it is maintained, has no known security problems, and its license lets you use it freely. It is less widely known than the other component for the same database, so fewer people will have used it before; we still chose it because whoever maintains the app can build it without the extra program, and the app's code uses it only through the Go language's standard way of reading databases, which every Go developer knows.
 
 **If you do not answer**: We do not start storing accounts or tasks (R-1, R-3 to R-6), so no work on the app itself starts.
 

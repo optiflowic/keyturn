@@ -14,6 +14,16 @@ The web client needs sign-up, sign-in, and task pages that call the Go API. The 
 1. **React with Vite (`react-spa`)**: the gate has a profile for it, React renders text safely by default (titles are never treated as HTML unless code asks for it), and the built result is static files served by the Go program. Three new dependencies: `react`, `react-dom`, and `vite` (used only to build).
 2. **Plain HTML and JavaScript, no framework**: no dependencies, but every page update is written by hand, which is where text is most often inserted as HTML by mistake (threat T-4), and there is no stack profile for it, so the gate's coverage would be limited.
 
+## Maintainability after delivery
+
+- Weight: the same as fit: the requirements do not say who maintains the deliverable.
+- Less known choice: no.
+
+| Option | Use | Modern | Documentation | People | Stability |
+|---|---|---|---|---|---|
+| React with Vite | `react`: 252,836 stars, 255 million npm downloads in the week to 2026-11-27, latest release 2026-10-14; `vite`: 84,169 stars, 270 million downloads that week, latest release 2026-11-26 (github.com, api.npmjs.org, registry.npmjs.org, checked 2026-11-28) | React's documentation recommends a framework for a new app, and still documents building one from scratch with a build tool such as Vite, which fits three pages served by the Go program (react.dev, "Creating a React App" and "Build a React app from Scratch", checked 2026-11-28) | extensive: both projects' own guides, and much learning material by others | very many people know both | major releases come with upgrade guides; the versions are pinned |
+| Plain HTML and JavaScript | the browser's own features, known to every web developer; the pages' code is the project's own | current | the browser's documentation; nothing about the project's own code | anyone can read it, but must first work out how the project's own page updates work | as stable as the browser; the project's code is maintained by hand |
+
 ## Decision
 
 React with Vite, following the `react-spa` profile, at the versions pinned in `web/package.json` (option 1).
