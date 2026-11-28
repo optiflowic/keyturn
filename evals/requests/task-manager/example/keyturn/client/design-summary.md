@@ -38,6 +38,7 @@ You did not say who will maintain the app's code after delivery, so in every cho
 
 - The component we chose: used by fewer people than the other one below, and maintained, with its latest update in November 2026. Its own documentation describes it as the same database made to build without the extra program. The app's code reaches it only through the Go language's standard way of reading databases, which every Go developer knows.
 - The more widely used component for the same database: far more people follow it, and it is maintained too, but its own documentation says that building with it needs the extra program (a C compiler).
+- Plain files: code we would write ourselves, so whoever maintains it learns it from the code alone, with no outside documentation or people who already know it.
 - Checked on 28 November 2026.
 
 **What it means for you**: To back up the app, you stop it and copy one file (copying it while the app runs can give a damaged copy). We checked the extra component: it is maintained, has no known security problems, and its license lets you use it freely. It is less widely known than the other component for the same database, so fewer people will have used it before; we still chose it because whoever maintains the app can build it without the extra program, and the app's code uses it only through the Go language's standard way of reading databases, which every Go developer knows.
@@ -133,7 +134,7 @@ You did not say who will maintain the app's code after delivery, so in every cho
 **For whoever maintains it**: This counted as much as how well each option fits, because you did not say who will maintain the app (see "Summary").
 
 - What we chose: part of what the app is already built with (Vite and the browser), and Vite's current documentation describes it, so whoever maintains the pages needs to know only CSS, the standard language for the look of web pages.
-- Tailwind CSS: very widely used, used millions of times a week and updated in November 2026, and many people know it; it has its own documentation. Its last major update changed how it is set up and renamed parts of it, so updates can mean work.
+- Tailwind CSS: very widely used, used millions of times a week and updated in November 2026, and many people know it; it has its own documentation.
 - Checked on 28 November 2026.
 
 **What it means for you**: Nothing to do. If you later want the pages to look more worked out, the list of sizes, spaces, and colors is where it changes.

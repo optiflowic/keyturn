@@ -44,7 +44,7 @@ Leave the list empty, with "Nothing right now.", when no decision needs agreemen
 One heading per decision that affects the client (cost, scope, or how the client works), and per decision that always needs the client's approval,
 even when it changes none of those: a new dependency (other than a development tool approved by the stack profile, listed at the end), a new external service, a change to authentication, authorization, or data handling, or anything that deletes data.
 Also one per decision the client asked to be consulted on, whatever its kind (keyturn's ADR 0074): give the recommendation and the reasons, and, when we do not take what the client named or suggested, say so and why.
-When the client asked for the recommendation in a card's answer, say in "What we decided" that this is the recommendation they asked for on that card.
+When the client asked for the recommendation in a card's answer, say in "What we decided" that this is the recommendation they asked for on that card. Their answer to the card is not their agreement: "Agreement" is waiting.
 - Use the number and title of the decision's ADR. Link to the ADR as the decision record: from keyturn/client/, the path is ../internal/adr/<NNNN-short-title>.md.
 - "Serves" lists the requirements the decision exists for. Every decision serves at least one requirement.
 - Give the realistic options only, in a sentence each, with why each was not chosen.

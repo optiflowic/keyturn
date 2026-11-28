@@ -5,6 +5,8 @@
 
 ## Context
 
+This adds to what [ADR 0073](0073-design-weighs-maintainability-after-delivery.md) says the design summary shows; it replaces none of it.
+
 [ADR 0073](0073-design-weighs-maintainability-after-delivery.md) has the design weigh how easily the client's people can maintain each tool or approach after delivery against its fit. The ADR of each such choice records the weight and compares every realistic option on five signals (use, modern, documentation, people, stability), from current sources with their dates. The design summary, which the client reads, says only who the design assumed maintains the deliverable and the weight that gave, and, when the chosen option is less known than another, that it is and why.
 
 So the client, who is the one whose people maintain the deliverable, sees the result of the comparison only when the choice is less known. When they agree to a decision, or read one for information, they cannot see how widely each option is used, whether the stack's current documentation still recommends it, or whether their people are likely to know it, unless they open the decision record, which is in English and written for the roles.
@@ -39,7 +41,7 @@ A less known choice is still said, and why, in "What it means for you" (ADR 0073
 
 ## Consequences
 
-- `templates/client/design-summary.md` has the field, and `skills/design/SKILL.md` step 7 writes it, and its step 6 checks it.
+- `templates/client/design-summary.md` has the field, and `skills/design/SKILL.md` step 7 writes it and checks it with the summary and the cards.
 - The worked example's design summary in `evals/requests/task-manager/example/` shows it for every decision.
 - The design summary gets a few lines longer per decision; a design with many decisions should group them as the design skill's "Keeping it small" already says.
 - "Architect" in `docs/design/roles.md` and the design summary's row in `docs/design/documents.md` say it.
