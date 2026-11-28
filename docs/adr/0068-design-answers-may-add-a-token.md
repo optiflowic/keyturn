@@ -1,6 +1,6 @@
 # 0068. A design answer may add a token to the design's "Look", on the scale the tokens already have
 
-- Status: accepted; that an answer never adds checked widths superseded by [0069](0069-qa-checks-the-screens-end-to-end-in-a-browser.md) (it may when the design has none)
+- Status: accepted; that an answer never adds checked widths superseded by [0069](0069-qa-checks-the-screens-end-to-end-in-a-browser.md) (it may when the design has none); the form of a reference to an existing token superseded by [0072](0072-profiles-fix-styling-principles-not-the-tool.md)
 - Date: 2026-11-26
 - Supersedes: in [0058](0058-design-answers-during-implement.md), that an answer never changes a decision the design records, for one case: an answer may add a token to the design's "Look"
 
