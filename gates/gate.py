@@ -85,8 +85,9 @@ ROLE_PATHS = {
     "qa": ["keyturn/internal/test-report.md"],
     "security-review": ["keyturn/internal/security-review.md", THREAT_MODEL],
     "review": ["keyturn/internal/review.md"],
+    # ADR 0033, and ADR 0070 for the client's test report.
     "deliver": ["keyturn/internal/state/**", "keyturn/internal/gate/**", "keyturn/client/acceptance-guide.md",
-                "keyturn/client/delivery-report.md"],
+                "keyturn/client/test-report.md", "keyturn/client/delivery-report.md"],
     # The client's acceptance, recorded by the PM in the merge step (ADR 0042, ADR 0046), and the card that asks the
     # client what to do after they did not accept (ADR 0047).
     "merge": ["keyturn/client/approvals.md", "keyturn/client/decision-card-*.md"],

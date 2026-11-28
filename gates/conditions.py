@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The merge conditions of a task's pull request, checked from committed records only (ADR 0042, ADR 0046).
+"""The merge conditions of a task's pull request, checked from committed records only (ADR 0042, ADR 0046, ADR 0070).
 
 Usage (from inside the project's repository):
   conditions.sh --task TASK --default-branch REV [--head REV]
@@ -12,8 +12,9 @@ one PASS or FAIL line:
                               report's "Reviewed change" ends at the developer's last commit
   findings [security-review]  the same in keyturn/internal/security-review.md, where no finding may be accepted
   acceptance                  the newest acceptance row of the task in keyturn/client/approvals.md says accepted, names
-                              the documents commit (deliver's newest commit that changed the acceptance guide or the
-                              delivery report), and has the SHA-256 of both documents at the head; every commit after
+                              the documents commit (deliver's newest commit that changed the acceptance guide, the
+                              test report, or the delivery report), and has the SHA-256 of the three documents at the
+                              head; every commit after
                               the documents commit is merge's or deliver's and changes only the approvals, the state
                               file, or (merge's) a decision card (ADR 0047)
 
@@ -57,7 +58,7 @@ def load_approval():
 EXIT_PASS, EXIT_FAIL, EXIT_SETUP = 0, 1, 2
 REPORTS = {"review": "keyturn/internal/review.md", "security-review": "keyturn/internal/security-review.md"}
 APPROVALS = "keyturn/client/approvals.md"
-DOCUMENTS = ("keyturn/client/acceptance-guide.md", "keyturn/client/delivery-report.md")
+DOCUMENTS = ("keyturn/client/acceptance-guide.md", "keyturn/client/test-report.md", "keyturn/client/delivery-report.md")
 STATE_DIR = gate.STATE_DIR
 CARD = "keyturn/client/decision-card-{}.md"
 
@@ -229,16 +230,16 @@ def check_acceptance(root: Path, head: str, task: str, commits: list[str], other
     changed = {commit: gate.name_status(root, f"{commit}^", commit) for commit in commits}
     touching = [commit for commit in commits if any(path in DOCUMENTS for path in changed[commit])]
     if not touching:
-        return Result("acceptance", [f"no commit on the task branch adds {DOCUMENTS[0]} or {DOCUMENTS[1]}; "
+        return Result("acceptance", [f"no commit on the task branch adds any of {', '.join(DOCUMENTS)}; "
                                      "deliver's last step commits them"])
     documents = touching[-1]
     recorded = deliver_row_commit(gate.file_at(root, head, state) or "")
     if recorded is None or not documents.startswith(recorded):
         problems.append(f"{state}: the deliver step's \"Commit\" is {recorded or '(none)'}, not the newest commit that "
-                        f"changed the acceptance guide or the delivery report, {documents[:12]}; the documents the client "
+                        f"changed a delivery document, {documents[:12]}; the documents the client "
                         "read are the ones the deliver step recorded")
     if others.get(documents) != "deliver":
-        problems.append(f"{documents[:12]}: changes the acceptance guide or the delivery report, but is not deliver's")
+        problems.append(f"{documents[:12]}: changes a delivery document, but is not deliver's")
     for commit in commits[commits.index(documents) + 1:]:
         role = others.get(commit)
         allowed = [APPROVALS, state] + ([CARD.format("*")] if role == "merge" else [])
@@ -266,7 +267,7 @@ def check_acceptance(root: Path, head: str, task: str, commits: list[str], other
     if row[2] != documents:
         problems.append(f"{APPROVALS}: the newest acceptance row of {task} names {row[2][:12] or '(nothing)'}, not the "
                         f"documents commit {documents[:12]}; the documents changed after they were sent")
-    for path, cell in zip(DOCUMENTS, row[4:6]):
+    for path, cell in zip(DOCUMENTS, row[approval.SHAS]):
         data = blob(root, head, path)
         if data is None:
             problems.append(f"{path}: missing at the head")

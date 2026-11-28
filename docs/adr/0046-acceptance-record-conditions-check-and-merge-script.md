@@ -1,6 +1,6 @@
 # 0046. The client's acceptance is a row of its own in `approvals.md`, a check next to the gate's decides the merge conditions, and the PM merges through a script that runs it again
 
-- Status: accepted; the branch protection and the ruleset in "The one-time setup" superseded by [0048](0048-default-branch-guarded-in-three-layers.md); the token's Checks read, and `merge.py` reading the check runs, superseded by [0049](0049-workflow-runs-read-instead-of-check-runs.md)
+- Status: accepted; the branch protection and the ruleset in "The one-time setup" superseded by [0048](0048-default-branch-guarded-in-three-layers.md); the token's Checks read, and `merge.py` reading the check runs, superseded by [0049](0049-workflow-runs-read-instead-of-check-runs.md); the documents the acceptance row covers superseded by [0070](0070-client-test-report-and-acceptance-without-required-checks.md) (also the client's test report)
 - Date: 2026-11-22
 
 ## Context

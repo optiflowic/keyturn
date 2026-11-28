@@ -31,7 +31,7 @@ Changing, deleting, and hiding tasks (R-5, R-6, R-9) are left for delivery 2. Th
 
 ## What is left
 
-- R-5, R-6, R-9: planned for delivery 2, so this delivery's acceptance guide stays within five "Must check" items.
+- R-5, R-6, R-9: planned for delivery 2, so this delivery stays within about ten acceptance criteria.
 
 ## How to run
 

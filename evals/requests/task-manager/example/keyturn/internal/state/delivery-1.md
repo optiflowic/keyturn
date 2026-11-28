@@ -25,7 +25,7 @@ Delivery 1 is done: the client accepted it, and the pull request is merged. The 
 | qa | done | [test report](../test-report.md) | `d2a7f13` | tested `9b02d4f` |
 | security-review | done | [security review](../security-review.md) | `e5b8c90` | reviewed `09f4c3d`..`9b02d4f` |
 | review | done | [review](../review.md) | `f1c4d27` | reviewed `09f4c3d`..`9b02d4f` |
-| deliver | done | [acceptance guide](../../client/acceptance-guide.md), [delivery report](../../client/delivery-report.md) | `c08d5e1` | |
+| deliver | done | [test report](../../client/test-report.md), [acceptance guide](../../client/acceptance-guide.md), [delivery report](../../client/delivery-report.md) | `c08d5e1` | |
 | merge | done | [approvals](../../client/approvals.md) | `5e9b3c7` | accepted by the client on 2026-11-09 |
 
 ## Commits

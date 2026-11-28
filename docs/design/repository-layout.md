@@ -21,7 +21,7 @@ gates/
                           # plus guardrail checks (protected paths, suppressions, scope)
 profiles/                 # stack profiles (one frontend + one backend first)
 templates/
-  client/                 # requirements, design summary, acceptance guide, delivery report, decision card, approvals
+  client/                 # requirements, design summary, test report, acceptance guide, delivery report, decision card, approvals
   internal/               # design, design answers, decisions, handoff, test report, review, task state
 hooks/
   hooks.json              # Claude Code plugin hooks (must be at the plugin root); thin, they call adapters/claude/scripts/

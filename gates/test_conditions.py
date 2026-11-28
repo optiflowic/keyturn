@@ -11,7 +11,8 @@ from pathlib import Path
 import test_gate
 
 CONDITIONS = Path(__file__).with_name("conditions.py")
-GUIDE = "# Acceptance guide\n\n## Must check\n"
+GUIDE = "# Acceptance guide\n\n## Checks we ask of you\n"
+TESTS = "# Test report\n\n## Results\n"
 REPORT = "# Delivery report\n\n## Summary\n"
 APPROVALS = "keyturn/client/approvals.md"
 
@@ -77,6 +78,7 @@ class ConditionsTest(unittest.TestCase):
 
     def documents(self) -> str:
         self.put("keyturn/client/acceptance-guide.md", GUIDE)
+        self.put("keyturn/client/test-report.md", TESTS)
         self.put("keyturn/client/delivery-report.md", REPORT)
         self.put("keyturn/internal/gate/t1.json", "{}\n")
         commit = self.commit("deliver")
@@ -87,11 +89,11 @@ class ConditionsTest(unittest.TestCase):
         return commit
 
     def acceptance(self, documents: str, answer: str = "accepted", words: str = "受け入れます。",
-                   guide: str = GUIDE) -> None:
-        waiting = (f"| acceptance-guide.md, delivery-report.md | t1 | {documents} | Japanese (original) | {sha(guide)} | "
-                   f"{sha(REPORT)} | none | none | 2026-11-22 | waiting | none | |\n")
-        header = ("# 承認\n\n## 受け入れ\n\n| 文書 | タスク | 文書のコミット | 言語 | a | b | c | d | 送った日 | 回答 | あなたの言葉 | 回答日 |\n"
-                  "|---|---|---|---|---|---|---|---|---|---|---|---|\n")
+                   guide: str = GUIDE, tests: str = TESTS) -> None:
+        waiting = (f"| acceptance-guide.md, test-report.md, delivery-report.md | t1 | {documents} | Japanese (original) | "
+                   f"{sha(guide)} | {sha(tests)} | {sha(REPORT)} | none | none | none | 2026-11-22 | waiting | none | |\n")
+        header = ("# 承認\n\n## 受け入れ\n\n| 文書 | タスク | 文書のコミット | 言語 | a | b | c | d | e | f | 送った日 | 回答 | "
+                  "あなたの言葉 | 回答日 |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n")
         self.put(APPROVALS, header + waiting)
         self.step("merge")
         self.put(APPROVALS, header + waiting.replace("| waiting | none | |", f"| {answer} | {words} | 2026-11-23 |"))
@@ -215,6 +217,18 @@ class ConditionsTest(unittest.TestCase):
         self.acceptance(self.documents(), guide="# another guide\n")
         self.assert_fails(self.conditions(), "FAIL acceptance: keyturn/client/approvals.md: the SHA-256 of acceptance-guide.md")
 
+    def test_an_acceptance_of_another_test_report_fails(self):
+        self.reports()
+        self.acceptance(self.documents(), tests="# another test report\n")
+        self.assert_fails(self.conditions(), "FAIL acceptance: keyturn/client/approvals.md: the SHA-256 of test-report.md")
+
+    def test_a_test_report_changed_after_the_acceptance_fails(self):
+        self.reports()
+        self.acceptance(self.documents())
+        self.put("keyturn/client/test-report.md", TESTS + "changed\n")
+        self.step("deliver")
+        self.assert_fails(self.conditions(), "FAIL acceptance: keyturn/client/approvals.md: the newest acceptance row of t1 names")
+
     def test_documents_changed_after_the_acceptance_fail(self):
         self.reports()
         documents = self.documents()
@@ -261,7 +275,7 @@ class ConditionsTest(unittest.TestCase):
         documents = self.documents()
         self.acceptance(documents)
         text = (self.root / APPROVALS).read_text()
-        self.put(APPROVALS, text + f"| acceptance-guide.md, delivery-report.md | t1 | {documents} | waiting |\n")
+        self.put(APPROVALS, text + f"| acceptance-guide.md, test-report.md, delivery-report.md | t1 | {documents} | waiting |\n")
         self.step("merge")
         self.assert_fails(self.conditions(), "FAIL acceptance: keyturn/client/approvals.md: the newest acceptance row of t1 has 4 cells")
 

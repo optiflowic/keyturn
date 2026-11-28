@@ -6,7 +6,7 @@ The first evaluation request for keyturn. It is written the way a client would w
 
 - A small web application built end to end in new-project mode, on the first two stack profiles (`go` and `react-spa`, see ADR 0003 in `docs/adr/`).
 - Requirements that commonly lead to vulnerabilities: sign-in, and per-user data isolation (one user must never see or change another user's tasks).
-- That the PM splits the work when one delivery would need too many "Must check" items.
+- That the PM splits the work when one delivery would cover too many acceptance criteria (about ten at most, ADR 0070 in `docs/adr/`).
 
 The worked example in [`example/`](example/) shows every template filled in by hand for this request, as the roles would fill them in. See [`example/README.md`](example/README.md).
 

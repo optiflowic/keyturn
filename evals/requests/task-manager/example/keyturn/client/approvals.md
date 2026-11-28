@@ -20,6 +20,6 @@ Each row identifies the exact text you were sent by a fingerprint. If the requir
 
 ## Acceptance
 
-| Documents | Task | Documents commit | Language | Acceptance guide SHA-256 | Delivery report SHA-256 | Acceptance guide translation SHA-256 | Delivery report translation SHA-256 | Date sent | Answer | Your words | Date answered |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| acceptance-guide.md, delivery-report.md | delivery-1 | c08d5e18368f08616c7e7b4b37e9dfdc8eafe711 | Japanese (translation) | 609de6cfce950445e218abc7f0e3f344f9b803bdc48466124837fb0f2168bcd5 | 880fb20a20a83cb242c5c51bf98d2d83900575eda572743163eb0f9e8af19967 | 35a7117e04584138f67e4e4e33a3b8fc356d75de2b09665af074620f302d3c62 | 1053572058dc29c94295ec74ea5e2e046be1a579768619c69e475c7403df56a1 | 2026-11-08 | accepted | Everything in the guide worked as it says. I accept delivery 1. | 2026-11-09 |
+| Documents | Task | Documents commit | Language | Acceptance guide SHA-256 | Test report SHA-256 | Delivery report SHA-256 | Acceptance guide translation SHA-256 | Test report translation SHA-256 | Delivery report translation SHA-256 | Date sent | Answer | Your words | Date answered |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| acceptance-guide.md, test-report.md, delivery-report.md | delivery-1 | c08d5e18368f08616c7e7b4b37e9dfdc8eafe711 | Japanese (translation) | d9283b89d4148ed1cc8ee60597ff717ac65915cd91e8c4385bcde6a68733d448 | 4375b8229257bab3d14719dd0c637688645c0b2968a02fecbd7c1c2190cfc1ef | cf5d5ad1af13791a906f2347ae43a12359519311c7e050dd9161649b9b7c7161 | d85c0b4af588bcca1d407397afe9155f34f50526909a43298bdf9bf87f954dc8 | 098faf7ff2f1f3b02533bb1b427749572bd2f47a5926c70384a1b77bbe7d7a1c | 18ecf06bf6b380f19969ea3b4864ea634ad14eef8697583e05bcc42097c0936b | 2026-11-08 | accepted | I read the test report and tried the app myself; it works as the report says. I accept delivery 1. | 2026-11-09 |

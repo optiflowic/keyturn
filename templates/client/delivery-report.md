@@ -10,7 +10,7 @@ Template: delivery report (client-facing). Filled in by the PM at delivery, from
 
 # Delivery report: <name of what is being delivered>
 
-Based on requirements version <n>. Acceptance guide: <link to acceptance-guide.md>.
+Based on requirements version <n>. Test report: <link to test-report.md>. Acceptance guide: <link to acceptance-guide.md>.
 
 ## Summary
 
@@ -23,7 +23,7 @@ Based on requirements version <n>. Acceptance guide: <link to acceptance-guide.m
 <!-- Only what the client must do or decide now. Usually: do the acceptance check, and decide whether the remaining risks are acceptable. -->
 
 > [!IMPORTANT]
-> - <for example: do the "Must check" items in the acceptance guide, read "Remaining risks", and accept the delivery or tell us what to change>
+> - <for example: read the test report, do the checks the acceptance guide asks of you (if any), read "Remaining risks", and accept the delivery or tell us what to change>
 
 ## What was delivered
 
@@ -53,7 +53,7 @@ Name who did each check in plain words, as in the rows below, not with internal 
 | Check | Done by | How | Result | Details |
 |---|---|---|---|---|
 | <what was checked> | Automated checks | <for example: ran the automated tests, the code style checks, and a scan for leaked passwords> | <result> | <link to the gate log> |
-| Behavior matches the requirements | Independent tester | <for example: automated tests written from the requirements only, one or more per acceptance criterion> | <for example: all 9 acceptance criteria pass> | <link to the test report> |
+| Behavior matches the requirements | Independent tester | <for example: automated tests written from the requirements only, one or more per acceptance criterion, using the screens in a web browser as a person does> | <for example: all 9 acceptance criteria pass> | <link to the client's test report (test-report.md), and to QA's detailed report> |
 | Security issues tools cannot find | Security reviewer | <for example: tried to reach another user's data and checked every threat in the threat model> | <result> | <link to the security findings> |
 | The code follows the design and is easy to maintain | Code reviewer | <for example: read the changes against the design and the coding conventions> | <result> | <link to the review findings> |
 

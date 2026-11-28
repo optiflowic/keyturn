@@ -1,107 +1,77 @@
 <!--
-Template: acceptance guide (client-facing). Filled in by the PM at delivery, from requirements.md.
+Template: acceptance guide (client-facing). Filled in by the PM at delivery, from requirements.md and QA's test report.
 
 - Write for a client who does not read code: no code, no unexplained jargon.
 - Write in the client's language, unless the project uses English-only mode.
 - Keep every ID (R-n, AC-n) exactly as it is, in every language.
+- The team that built the deliverable checked it; the test report shows how, with the evidence. This guide never asks the client to repeat a check QA ran and passed: it asks only for what QA could not check (ADR 0070 in keyturn's `docs/adr/`).
 - Delete these comments, and every placeholder in <angle brackets>, when you fill in the template.
 -->
 
 # Acceptance guide: <name of what is being delivered>
 
-Based on requirements version <n>. Delivery report: <link to delivery-report.md>.
+Based on requirements version <n>. Test report: <link to test-report.md>. Delivery report: <link to delivery-report.md>.
 
 ## Summary
 
-<!-- About three lines: what was delivered, how many "Must check" items there are, whether the screenshots under "The screens" show how the pages look, and about how long the check takes. -->
+<!-- About three lines: what was delivered, that our tester checked it and the test report shows how, how many checks we ask of you (often none), and about how long reading and checking take. -->
 
 <summary>
 
 ## What you need to do
 
-<!-- Only what the client must do now. Usually: look at the screenshots under "The screens", do the "Must check" items, record each result, and accept the delivery or report what failed. -->
+<!-- Only what the client must do now. Usually: read the test report, do the checks we ask of you (if any), and tell us whether you accept the delivery. Trying the deliverable yourself is optional. -->
 
 > [!IMPORTANT]
-> - <for example: do the 4 "Must check" items below (about 15 minutes), write the result of each, and tell us whether you accept the delivery>
+> - <for example: read the test report (about 20 minutes), do the 1 check below (about 5 minutes), and tell us in your own words whether you accept the delivery>
 
-## The screens
+## Checks we ask of you
 
 <!--
-The screenshots QA took when it checked the look's criteria on the pages (ADR 0069 in keyturn's `docs/adr/`), from `keyturn/client/evidence/<task>/`, so the client can see how the pages look before opening the deliverable.
-- "Covers" names the look's criteria that QA checked on these screens and passed (the test report marks them `pass`), with their requirements. Those criteria are not checks the client does by hand. A look criterion that the test report marks `not tested` or `partly tested` is a check below instead, and is not named here.
-- One heading per page, in the order a person meets them. Under it, each screenshot as an image, with a short caption that says the width (for example, "On a phone (360 px wide)", "On a computer (1280 px wide)", "With the Tab key on the first field"). Link the images with a relative path from this file (for example, `evidence/<task>/<page>-<width>.png`).
-- Say in one or two lines what QA checked on them, in plain words, and that the client may look at the pages themselves too.
-- "Result" is filled in by the client, from the screenshots: as expected, or not as expected with what they see. A screenshot that is not as expected is reported as a failed check is.
-Leave the section with "No screens in this delivery." when the deliverable has none, or when QA checked none of the look's criteria (then they are checks below).
+Only the acceptance criteria that QA's test report marks `not tested` or `partly tested`, when the client can check them before accepting. A criterion that needs what comes after the delivery (for example, the client's own server) is not a check here: the test report and the delivery report say what was not checked and what the client can do.
+- One heading per check, the checks of Must requirements first. One check can cover several criteria only when the same steps check all of them.
+- "Why we ask you" says, in plain words, why our tester could not check it (from QA's "Untested areas"), and for "partly tested", which part the tester checked.
+- "Priority" is the requirement's approved priority. A check of a Nice to have requirement may be skipped; a skipped check does not block acceptance.
+- Steps are things the client does and sees, numbered, one action per step. The expected result must be something the client can observe, not "works correctly".
+- "Result" is filled in by the client: pass, fail (with what happened), or not checked.
+When there is none, leave the section with "None: we ask no check of you before you accept." Add "Our tester checked every acceptance criterion of this delivery; the test report shows how." only when QA's test report marks every criterion of this delivery `pass`. Otherwise add which criteria could not be checked before the delivery, and why, with a link to the test report's "What we did not check": never say that every criterion was checked.
 -->
 
+### Check 1: <short title>
+
 - Covers: AC-<n> (R-<n>)
-- Result: <as expected | not as expected: what you see>
+- Priority: <Must | Nice to have>
+- Why we ask you: <why our tester could not check it>
+- Result: <pass | fail: what happened | not checked>
 
-<what QA checked on these screens, in plain words>
+Steps:
 
-### <page>
+1. <what the client does>
 
-![<page> on a phone (<width> px wide)](evidence/<task>/<page>-<width>.png)
-
-![<page> on a computer (<width> px wide)](evidence/<task>/<page>-<width>.png)
+Expected result: <what the client sees or what happens>
 
 ## Before you start
 
 <!--
-What the client needs before the first check, in numbered steps: how to open or start the deliverable, test accounts, sample data.
+What the client needs to open the deliverable, for the checks above and for trying it: how to open or start it, test accounts, sample data, in numbered steps.
 Never write a real password or secret here; say where to find it instead.
 Leave the section with "Nothing to prepare." when there is nothing.
 -->
 
 1. <step>
 
-## Must check
+## Try it yourself (optional)
 
 <!--
-One heading per check, in priority order: the check whose failure would hurt the client most comes first.
-- The acceptance criteria of every Must requirement in this delivery are "Must check". A check that covers a Must requirement is "Must check", even if it also covers a Nice to have one.
-- Every acceptance criterion in this delivery appears in exactly one check, here or under "Optional", or under "The screens" when QA checked it on the screens and it passed. Removed criteria are left out.
-- One check can cover several acceptance criteria only when the same steps check all of them. Never combine unrelated checks to stay under the limit.
-- Keep "Must check" items to about five. If a delivery needs more, it is too big: split it into smaller deliveries.
-  Never move a Must requirement's criterion to "Optional" to stay under the limit.
-- Steps are things the client does and sees, numbered, one action per step.
-- The expected result must be something the client can observe, not "works correctly".
-- "Result" is filled in by the client: pass, fail (with what happened), or not checked.
+What the client may want to try on their own, free and optional, with nothing to record: the main screens or commands of this delivery, how to reach each, and one or two things to try on each, in a short list.
+Say that anything that is not as they expect goes into their answer.
+Leave the section with "Nothing to try in this delivery." when the deliverable has nothing the client can open.
 -->
 
-### Check 1: <short title>
+- <screen or command>: <how to reach it, and what to try>
 
-- Covers: AC-<n> (R-<n>)
-- Result: <pass | fail: what happened | not checked>
+## If something is wrong
 
-Steps:
+<!-- How to report a failed check, or anything not as expected in the test report or when trying it, and what happens next. Keep it to a few lines. -->
 
-1. <what the client does>
-
-Expected result: <what the client sees or what happens>
-
-## Optional
-
-<!--
-Checks for the acceptance criteria of Nice to have requirements, in the same format as "Must check".
-The client may skip them; a skipped check does not block acceptance.
-Leave the section with "None." when there are none.
--->
-
-### Check <n>: <short title>
-
-- Covers: AC-<n> (R-<n>)
-- Result: <pass | fail: what happened | not checked>
-
-Steps:
-
-1. <what the client does>
-
-Expected result: <what the client sees or what happens>
-
-## If a check fails
-
-<!-- How to report a failure and what happens next. Keep it to a few lines. -->
-
-<for example: write what you did and what you saw in the "Result" line, and tell us. We fix it and send you only the checks affected by the fix.>
+<for example: tell us what you did and what you saw, in your own words, when you answer. We fix it, check it again, and send you the new test report.>
