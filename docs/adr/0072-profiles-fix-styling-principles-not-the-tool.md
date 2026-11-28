@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Date: 2026-11-28
-- Supersedes: [0067](0067-design-decides-how-the-look-is-built.md) (the styling methods a profile approves, the token file's form, and a UI library that does not fit the stack), and [0068](0068-design-answers-may-add-a-token.md) (the form of a reference to an existing token)
+- Supersedes: in [0067](0067-design-decides-how-the-look-is-built.md), the styling methods a profile approves, the token file's form, and a UI library that does not fit the stack: a profile states the principles and a default method, and the design chooses any method that keeps them; in [0068](0068-design-answers-may-add-a-token.md), the form of a reference to an existing token: it follows the token file's form
 
 ## Context
 
